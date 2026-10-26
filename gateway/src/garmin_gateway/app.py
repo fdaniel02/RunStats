@@ -7,17 +7,22 @@ from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
 from fastapi import FastAPI, Path, Query, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from garminconnect import Garmin, GarminConnectConnectionError, GarminConnectNotFoundError
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.metrics import MeterProvider
 from opentelemetry.trace import TracerProvider
 
+from .fit import InvalidFitFile, samples
 from .garmin import GarminService, GarminUnavailable
 
 logger = logging.getLogger(__name__)
 
 ActivityId = Annotated[int, Path(gt=0)]
+
+# A long run is well under 1 MB.
+MAX_FIT_FILE_BYTES = 20 * 1024 * 1024
 
 
 class NoFitFile(Exception):
@@ -65,6 +70,10 @@ def create_app(
     async def no_fit_file(_: Request, e: NoFitFile) -> JSONResponse:
         return JSONResponse({"error": str(e)}, status_code=404)
 
+    @app.exception_handler(InvalidFitFile)
+    async def invalid_fit_file(_: Request, e: InvalidFitFile) -> JSONResponse:
+        return JSONResponse({"error": str(e)}, status_code=422)
+
     @app.exception_handler(GarminConnectConnectionError)
     async def garmin_failed(request: Request, e: GarminConnectConnectionError) -> JSONResponse:
         logger.warning("Garmin request for %s failed: %s", request.url.path, e)
@@ -102,6 +111,17 @@ def create_app(
     def personal_records() -> Any:
         return service.call("get_personal_record", lambda g: g.get_personal_record())
 
+    # Decodes a FIT file the app already has; Garmin isn't called, so it doesn't wait for the throttle.
+    @app.post("/fit/samples")
+    async def fit_samples(request: Request) -> Any:
+        declared = request.headers.get("content-length")
+        if declared and declared.isdigit() and int(declared) > MAX_FIT_FILE_BYTES:
+            return _too_large()
+        data = await request.body()
+        if len(data) > MAX_FIT_FILE_BYTES:
+            return _too_large()
+        return await run_in_threadpool(samples, data)
+
     @app.get("/healthz/live", response_class=PlainTextResponse)
     def live() -> str:
         return "Healthy"
@@ -111,6 +131,10 @@ def create_app(
         return PlainTextResponse("Healthy") if service.logged_in else PlainTextResponse("Unhealthy", status_code=503)
 
     return app
+
+
+def _too_large() -> JSONResponse:
+    return JSONResponse({"error": f"FIT file larger than {MAX_FIT_FILE_BYTES} bytes"}, status_code=413)
 
 
 def _login_in_background(service: GarminService) -> None:
