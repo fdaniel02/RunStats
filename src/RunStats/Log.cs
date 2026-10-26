@@ -1,3 +1,5 @@
+using RunStats.Data;
+
 namespace RunStats;
 
 // Event ids are what log queries and alerts in Grafana filter on; keep them stable when messages change.
@@ -13,4 +15,27 @@ public static partial class Log
 
     [LoggerMessage(EventId = 3, Level = LogLevel.Critical, Message = "Application stopped because of an unhandled error")]
     public static partial void ApplicationFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(EventId = 10, Level = LogLevel.Information, Message = "Sync {SyncId} started ({Trigger})")]
+    public static partial void SyncStarted(this ILogger logger, int syncId, SyncTrigger trigger);
+
+    [LoggerMessage(EventId = 11, Level = LogLevel.Information,
+        Message = "Sync {SyncId}: {ToAdd} runs to add, {ToUpdate} to update, {ToDelete} to delete, {Unchanged} unchanged")]
+    public static partial void SyncPlanned(this ILogger logger, int syncId, int toAdd, int toUpdate, int toDelete, int unchanged);
+
+    [LoggerMessage(EventId = 12, Level = LogLevel.Information,
+        Message = "Sync {SyncId} succeeded: {Added} runs added, {Updated} updated, {Deleted} deleted in {Seconds:0.0} s")]
+    public static partial void SyncSucceeded(this ILogger logger, int syncId, int added, int updated, int deleted, double seconds);
+
+    [LoggerMessage(EventId = 13, Level = LogLevel.Warning, Message = "Sync {SyncId} stopped: {Reason}")]
+    public static partial void SyncStopped(this ILogger logger, int syncId, string reason);
+
+    [LoggerMessage(EventId = 14, Level = LogLevel.Error, Message = "Sync {SyncId} failed")]
+    public static partial void SyncFailed(this ILogger logger, int syncId, Exception exception);
+
+    [LoggerMessage(EventId = 15, Level = LogLevel.Error, Message = "Sync {SyncId} crashed and couldn't record its result")]
+    public static partial void SyncCrashed(this ILogger logger, int syncId, Exception exception);
+
+    [LoggerMessage(EventId = 16, Level = LogLevel.Warning, Message = "Syncs interrupted when the app stopped: {Count}")]
+    public static partial void SyncsInterrupted(this ILogger logger, int count);
 }
