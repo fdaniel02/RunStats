@@ -24,5 +24,6 @@ public class SyncRun
     public int RunsProcessed { get; set; }
     public int RunsAdded { get; set; }
     public int RunsUpdated { get; set; }
+    public int RunsDeleted { get; set; }
     public string? Error { get; set; }
 }

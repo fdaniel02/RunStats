@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -6,6 +7,8 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using RunStats;
 using RunStats.Components;
 using RunStats.Data;
+using RunStats.Garmin;
+using RunStats.Sync;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +39,14 @@ builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
 builder.Services.AddAppTelemetry(builder.Configuration);
 
 builder.Services.AddSingleton<DatabaseMigrator>();
+builder.Services.AddHttpClient<IGarminGateway, GarminGatewayClient>((services, client) =>
+    client.BaseAddress = new Uri(services.GetRequiredService<IConfiguration>()["GarminGateway:BaseUrl"]
+        ?? throw new InvalidOperationException("Setting 'GarminGateway:BaseUrl' is missing (e.g. 'http://garmin-gateway:8080/').")));
+builder.Services.AddSingleton<SyncMetrics>();
+builder.Services.AddSingleton<SyncCoordinator>();
+builder.Services.AddTransient<SyncJob>();
+builder.Services.AddHostedService<SyncWorker>();
+builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddSingleton(TimeProvider.System);
 // Resolved after Build(), so a bad setting is logged like any other startup error.
 builder.Services.AddSingleton(services =>
@@ -52,6 +63,7 @@ try
 {
     app.Services.GetRequiredService<Clock>();
     await app.Services.GetRequiredService<DatabaseMigrator>().MigrateAsync();
+    await app.Services.GetRequiredService<SyncCoordinator>().InitializeAsync();
 
     app.UseForwardedHeaders();
 
@@ -67,6 +79,7 @@ try
     // Liveness without the database check: a database outage must not make Kubernetes restart the pod.
     app.MapHealthChecks("/healthz/live", new HealthCheckOptions { Predicate = _ => false });
     app.MapHealthChecks("/healthz/ready");
+    app.MapSyncEndpoints();
 
     app.MapStaticAssets();
     app.MapRazorComponents<App>()

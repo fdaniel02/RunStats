@@ -23,7 +23,9 @@ RunStats.slnx
 src/RunStats/                the app (Blazor Server)
   Components/                app shell: App, routes, layout, error pages
   Features/<Screen>/         one folder per screen (Dashboard, Runs, Heatmap)
-  Data/                      DbContext, migrations, startup and time zone helpers
+  Data/                      DbContext, entities, migrations, startup and time zone helpers
+  Garmin/                    client for the Garmin gateway
+  Sync/                      the sync with Garmin and its API
 tests/RunStats.Tests/        unit, component (bUnit) and SQL Server tests (xUnit v3)
 gateway/                     the Garmin gateway (Python, FastAPI), see below
 .github/workflows/ci.yml     build and test on every pull request and push to main, publish the image from main
@@ -73,6 +75,11 @@ A test fails when the model has changes without a migration.
 
 The app needs the connection string `ConnectionStrings:Default`. It is not stored in `appsettings.json`;
 the app refuses to start without it.
+
+### Garmin gateway address
+
+`GarminGateway:BaseUrl` is where the app reaches the gateway: `http://garmin-gateway:8080/` (the Service name in the
+cluster) in `appsettings.json`, `http://localhost:8081/` in `appsettings.Development.json`.
 
 ### Time zone
 
@@ -132,6 +139,35 @@ ConnectionStrings__Default=Server=<sql-host>;Database=RunStats;User Id=<login>;P
 ```
 
 Keep that file outside the project folder, so it can't end up in the image or in git.
+
+## Sync
+
+A sync reads Garmin's whole activity list through the gateway and keeps the runs: type `running` (id 1) and its sub types
+(parent type id 1: treadmill, trail, track, obstacle runs, ...). It compares each run's list entry with the stored one:
+
+- new run: downloads its detail, laps, heart rate zones, weather and FIT file and stores them as they came
+  (`RunRawData`), together with a `Runs` row with the basics from the list
+- changed list entry (e.g. renamed, marked as a race): downloads and stores the run again
+- unchanged: nothing is downloaded
+- gone from Garmin: deleted, only when the whole list was read
+
+Each run is stored in its own transaction, so a sync that stops halfway (rate limit, failed login, app stopping) keeps
+the runs it stored, and the next sync continues from there. Downloading a run takes about 6 s, because the gateway
+spaces its calls to Garmin.
+
+Only one sync runs at a time. Each is recorded in `SyncRuns` with its progress and result; a sync that was running
+when the app stopped is marked as interrupted at the next start.
+
+```powershell
+curl.exe -X POST "http://localhost:5310/api/sync?trigger=manual"   # 202, Location: /api/sync/{id}
+curl.exe http://localhost:5310/api/sync/1                          # status, counts and error
+```
+
+`trigger` is `schedule` (default) or `manual`. A request while a sync runs returns that sync (`"started": false`).
+
+Telemetry: a `Sync` span (the gateway's spans join its trace), log events 10–16, and the metrics `runstats.syncs`
+(by trigger and outcome), `runstats.sync.duration`, `runstats.sync.runs` (by change: added, updated, deleted) and
+`runstats.sync.last_success` (Unix time of the last successful sync).
 
 ## Garmin gateway
 

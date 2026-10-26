@@ -436,6 +436,9 @@ namespace RunStats.Migrations
                     b.Property<int>("RunsAdded")
                         .HasColumnType("int");
 
+                    b.Property<int>("RunsDeleted")
+                        .HasColumnType("int");
+
                     b.Property<int>("RunsProcessed")
                         .HasColumnType("int");
 
