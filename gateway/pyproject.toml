@@ -10,10 +10,6 @@ dependencies = [
     "uvicorn>=0.54.0",
 ]
 
-[build-system]
-requires = ["uv_build>=0.13.5,<0.14.0"]
-build-backend = "uv_build"
-
 [dependency-groups]
 dev = [
     "httpx2>=2.16.0",
@@ -21,6 +17,10 @@ dev = [
     "pytest-cov>=7.1.0",
     "ruff>=0.17.2",
 ]
+
+[tool.uv]
+# An application, not a package: nothing to build, so uv can run with --no-build.
+package = false
 
 [tool.ruff]
 line-length = 120
@@ -30,11 +30,11 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 
 [tool.coverage.run]
 source = ["garmin_gateway"]
 branch = true
-relative_files = true
 
 [tool.coverage.report]
 exclude_also = ['if __name__ == "__main__":']

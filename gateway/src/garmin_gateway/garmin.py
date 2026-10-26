@@ -74,7 +74,7 @@ class GarminService:
         try:
             self._throttled(lambda: client.login(token_dir))
         except GarminConnectAuthenticationError as e:
-            logger.error("Garmin login failed: %s", e)
+            logger.exception("Garmin login failed")
             self._block(self._settings.login_failure_cooldown_seconds, "Garmin login failed")
             raise self._unavailable() from e
         self._client = client

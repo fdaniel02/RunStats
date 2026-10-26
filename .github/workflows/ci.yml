@@ -60,16 +60,16 @@ jobs:
       - run: dotnet test -c Release --no-build --coverlet
 
       - working-directory: gateway
-        run: uv sync --frozen
+        run: uv sync --frozen --no-build
 
       - working-directory: gateway
-        run: uv run ruff check
+        run: uv run --frozen --no-build ruff check
 
       - working-directory: gateway
-        run: uv run ruff format --check
+        run: uv run --frozen --no-build ruff format --check
 
       - working-directory: gateway
-        run: uv run pytest --cov --cov-report=xml
+        run: uv run --frozen --no-build pytest --cov --cov-report=xml
 
       - if: env.SONAR_TOKEN != ''
         run: dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
