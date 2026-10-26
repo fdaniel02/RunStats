@@ -14,6 +14,10 @@ from opentelemetry.trace import TracerProvider
 
 SCOPE = "garmin_gateway"
 
+OPERATION = "garmin.operation"
+OUTCOME = "garmin.outcome"
+LOGIN_METHOD = "garmin.login.method"
+
 
 def configure_telemetry(env: Mapping[str, str] = os.environ) -> bool:
     """Sends traces and metrics over OTLP/HTTP, only when there is a collector to send them to."""

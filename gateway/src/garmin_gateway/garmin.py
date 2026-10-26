@@ -16,7 +16,7 @@ from garminconnect import (
 from opentelemetry.trace import SpanKind, Status, StatusCode
 
 from .settings import Settings
-from .telemetry import GarminTelemetry
+from .telemetry import LOGIN_METHOD, OPERATION, OUTCOME, GarminTelemetry
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +94,7 @@ class GarminService:
             raise
         finally:
             method = "saved_token" if had_token else "password"
-            self._telemetry.logins.add(1, {"garmin.login.method": method, "garmin.outcome": outcome})
+            self._telemetry.logins.add(1, {LOGIN_METHOD: method, OUTCOME: outcome})
         self._client = client
         logger.info("Logged in to Garmin Connect (%s)", "saved token" if had_token else "email and password")
         return client
@@ -109,7 +109,7 @@ class GarminService:
         with self._telemetry.tracer.start_as_current_span(
             f"Garmin {name}", kind=SpanKind.CLIENT, record_exception=False, set_status_on_exception=False
         ) as span:
-            span.set_attribute("garmin.operation", name)
+            span.set_attribute(OPERATION, name)
             span.set_attribute("garmin.throttle_wait_seconds", wait)
             start = self._clock()
             outcome = "error"
@@ -125,14 +125,14 @@ class GarminService:
                 raise
             except GarminConnectTooManyRequestsError as e:
                 outcome = "rate_limited"
-                self._telemetry.rate_limits.add(1, {"garmin.operation": name})
+                self._telemetry.rate_limits.add(1, {OPERATION: name})
                 logger.warning("Garmin rate limit reached: %s", e)
                 self._block(self._settings.rate_limit_cooldown_seconds, "Garmin rate limit reached")
                 raise self._unavailable() from e
             finally:
                 self._last_call_end = self._clock()
-                attributes = {"garmin.operation": name, "garmin.outcome": outcome}
-                span.set_attribute("garmin.outcome", outcome)
+                attributes = {OPERATION: name, OUTCOME: outcome}
+                span.set_attribute(OUTCOME, outcome)
                 if outcome not in ("ok", "not_found"):
                     span.set_status(Status(StatusCode.ERROR))
                 self._telemetry.calls.add(1, attributes)
