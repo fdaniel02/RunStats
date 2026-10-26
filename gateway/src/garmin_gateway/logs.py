@@ -3,6 +3,7 @@ import sys
 from datetime import UTC, datetime
 from typing import Any
 
+from opentelemetry import trace
 from pythonjsonlogger.json import JsonFormatter
 
 
@@ -15,6 +16,10 @@ class _Formatter(JsonFormatter):
         super().add_fields(log_data, record, message_dict)
         # uvicorn's copy of the message with terminal color codes.
         log_data.pop("color_message", None)
+        span = trace.get_current_span().get_span_context()
+        if span.is_valid:
+            log_data["TraceId"] = format(span.trace_id, "032x")
+            log_data["SpanId"] = format(span.span_id, "016x")
 
 
 class _SkipHealthChecks(logging.Filter):

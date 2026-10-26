@@ -2,7 +2,7 @@ import io
 import zipfile
 
 import pytest
-from fakes import FakeGarmin, FakeTime, settings
+from fakes import CollectedTelemetry, FakeGarmin, FakeTime, settings
 from fastapi.testclient import TestClient
 from garminconnect import (
     Garmin,
@@ -11,6 +11,7 @@ from garminconnect import (
     GarminConnectNotFoundError,
     GarminConnectTooManyRequestsError,
 )
+from opentelemetry.trace import SpanKind
 
 from garmin_gateway.app import create_app
 from garmin_gateway.garmin import GarminService
@@ -185,3 +186,47 @@ def test_unexpected_startup_login_error_is_logged(garmin, tmp_path, caplog):
 
     assert "Garmin login failed" in caplog.messages
     assert not service.logged_in
+
+
+@pytest.fixture
+def telemetry():
+    return CollectedTelemetry()
+
+
+@pytest.fixture
+def traced_client(garmin, tmp_path, telemetry):
+    time = FakeTime()
+    service = GarminService(settings(str(tmp_path)), garmin.factory, time.clock, time.sleep, telemetry.garmin)
+    app = create_app(service, telemetry.tracer_provider, telemetry.meter_provider)
+    with TestClient(app) as test_client:
+        test_client.app.state.login.join()
+        yield test_client
+
+
+def test_requests_are_traced_with_the_garmin_call_inside(traced_client, telemetry):
+    traced_client.get("/activities/42")
+
+    spans = telemetry.finished_spans()
+    server = next(s for s in spans if s.kind is SpanKind.SERVER)
+    garmin_call = next(s for s in spans if s.name == "Garmin get_activity")
+    assert server.name == "GET /activities/{activity_id}"
+    assert garmin_call.parent.span_id == server.context.span_id
+    assert not any(s.name.endswith(("http send", "http receive")) for s in spans)
+
+
+def test_the_callers_trace_is_continued(traced_client, telemetry):
+    trace_id = "4bf92f3577b34da6a3ce929d0e0e4736"
+
+    traced_client.get("/activities/42", headers={"traceparent": f"00-{trace_id}-00f067aa0ba902b7-01"})
+
+    garmin_call = next(s for s in telemetry.finished_spans() if s.name == "Garmin get_activity")
+    assert format(garmin_call.context.trace_id, "032x") == trace_id
+
+
+def test_health_checks_are_not_traced(traced_client, telemetry):
+    before = len(telemetry.finished_spans())
+
+    traced_client.get("/healthz/live")
+    traced_client.get("/healthz/ready")
+
+    assert len(telemetry.finished_spans()) == before

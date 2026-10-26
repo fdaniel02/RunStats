@@ -183,9 +183,26 @@ for `GARMIN_LOGIN_FAILURE_COOLDOWN_SECONDS`, because repeated failed logins can 
 | `GARMIN_RATE_LIMIT_COOLDOWN_SECONDS` | `300` |
 | `GARMIN_LOGIN_FAILURE_COOLDOWN_SECONDS` | `900` |
 | `HOST` | `127.0.0.1` (`0.0.0.0` in the Docker image) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | none: no traces or metrics |
+| `OTEL_SERVICE_NAME` | `garmin-gateway` |
 | `PORT` | `8080` |
 
 Logs are JSON on stdout with the same field names as the app's; health check requests aren't logged.
+Log lines written during a request carry its `TraceId` and `SpanId`.
+
+### Telemetry
+
+With `OTEL_EXPORTER_OTLP_ENDPOINT` set (e.g. `http://alloy:4318`), traces and metrics go to that collector over
+OTLP/HTTP. Requests are traced (health checks aren't); a request from the app continues the app's trace. Each call to
+Garmin is a span `Garmin <operation>` with its outcome and the time it waited for the throttle. Spans and metrics hold
+operation names, outcomes and timings only: no credentials, tokens, Garmin data or error messages.
+
+| Metric | Attributes |
+| --- | --- |
+| `garmin.calls` | `garmin.operation`, `garmin.outcome` (`ok`, `not_found`, `unauthorized`, `rate_limited`, `error`) |
+| `garmin.call.duration` (s, without the throttle wait) | same |
+| `garmin.rate_limits` | `garmin.operation` |
+| `garmin.logins` | `garmin.login.method` (`saved_token`, `password`), `garmin.outcome` (`ok`, `failed`, `rate_limited`, `error`) |
 
 ### Run locally
 

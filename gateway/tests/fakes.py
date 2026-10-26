@@ -1,7 +1,14 @@
 from collections.abc import Callable
 from typing import Any
 
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import InMemoryMetricReader
+from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
 from garmin_gateway.settings import Settings
+from garmin_gateway.telemetry import GarminTelemetry
 
 
 def settings(token_dir: str, **overrides: Any) -> Settings:
@@ -63,3 +70,38 @@ class Client:
             return self._script.responses.get(name)
 
         return method
+
+
+class CollectedTelemetry:
+    """Real OpenTelemetry providers that keep spans and metrics in memory instead of exporting them."""
+
+    def __init__(self) -> None:
+        self.spans = InMemorySpanExporter()
+        self.tracer_provider = TracerProvider()
+        self.tracer_provider.add_span_processor(SimpleSpanProcessor(self.spans))
+        self.reader = InMemoryMetricReader()
+        self.meter_provider = MeterProvider(metric_readers=[self.reader])
+        self.garmin = GarminTelemetry(self.tracer_provider, self.meter_provider)
+
+    def finished_spans(self) -> list[ReadableSpan]:
+        return list(self.spans.get_finished_spans())
+
+    def points(self, name: str) -> dict[frozenset[tuple[str, Any]], Any]:
+        """Data points of one metric by their attributes: the count for counters, the data point for histograms."""
+        data = self.reader.get_metrics_data()
+        result: dict[frozenset[tuple[str, Any]], Any] = {}
+        for resource in data.resource_metrics if data else []:
+            for scope in resource.scope_metrics:
+                for metric in scope.metrics:
+                    if metric.name == name:
+                        for point in metric.data.data_points:
+                            key = frozenset(point.attributes.items())
+                            result[key] = getattr(point, "value", point)
+        return result
+
+
+ATTRIBUTE_NAMES = {"operation": "garmin.operation", "outcome": "garmin.outcome", "method": "garmin.login.method"}
+
+
+def attrs(**values: Any) -> frozenset[tuple[str, Any]]:
+    return frozenset((ATTRIBUTE_NAMES[k], v) for k, v in values.items())
