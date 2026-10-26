@@ -182,6 +182,7 @@ for `GARMIN_LOGIN_FAILURE_COOLDOWN_SECONDS`, because repeated failed logins can 
 | `GARMIN_MIN_SECONDS_BETWEEN_CALLS` | `1` |
 | `GARMIN_RATE_LIMIT_COOLDOWN_SECONDS` | `300` |
 | `GARMIN_LOGIN_FAILURE_COOLDOWN_SECONDS` | `900` |
+| `HOST` | `127.0.0.1` (`0.0.0.0` in the Docker image) |
 | `PORT` | `8080` |
 
 Logs are JSON on stdout with the same field names as the app's; health check requests aren't logged.
