@@ -205,7 +205,16 @@ The tests use a fake Garmin client; they never call Garmin.
 | `GET /activities/{id}/weather` | Weather during the activity |
 | `GET /activities/{id}/fit` | The original FIT file (404 for activities imported without one) |
 | `GET /personal-records` | Personal records |
+| `POST /fit/samples` | Decodes the FIT file in the request body into one sample per second (see below) |
 | `GET /healthz/live`, `GET /healthz/ready` | Up / logged in to Garmin |
+
+`/fit/samples` doesn't call Garmin: the app sends a FIT file it has stored, so runs can be processed again without
+downloading them. It uses [fitdecode](https://github.com/polyvertex/fitdecode) (MIT), not Garmin's FIT SDK, whose
+license doesn't allow distributing it in a public image. Each sample has its offset in seconds from the first record,
+position in semicircles, distance, speed, altitude, heart rate, cadence in steps per minute (FIT counts strides, with
+the fraction in a separate field), step length, ground contact time, vertical oscillation and ratio, power and
+temperature; missing values are `null`. When a second has more than one record, the last one is used. Files over 20 MB
+get `413`, files that aren't valid FIT get `422`.
 
 Errors: `404` when Garmin doesn't know the activity, `502` when a Garmin call fails, and `503` with `Retry-After`
 while the gateway waits after a rate limit or a failed login.
