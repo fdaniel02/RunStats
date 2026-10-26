@@ -1,0 +1,10 @@
+{
+  "platformOptions": {
+    "Coverlet": {
+      "include": "[RunStats]*",
+      "excludeByFile": "**/Migrations/*.cs",
+      "excludeByAttribute": "GeneratedCodeAttribute",
+      "format": "opencover"
+    }
+  }
+}
