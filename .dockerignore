@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+.vs/
+.vscode/
+.git/
+.github/
+TestResults/
+tests/
+deploy/
+scripts/
+*.md
+*.code-workspace
+**/appsettings.Development.json
+**/secrets.json
+*.env
