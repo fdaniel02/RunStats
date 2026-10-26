@@ -35,7 +35,8 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
 
     public async ValueTask DisposeAsync() => await services.DisposeAsync();
 
-    SyncJob Job(int pageSize = 100) => new(db, garmin, new RunProcessing(db, garmin), metrics, time, logger) { PageSize = pageSize };
+    SyncJob Job(int pageSize = 100) =>
+        new(db, garmin, new RunProcessing(db, garmin), new PersonalRecordUpdate(db, time), metrics, time, logger) { PageSize = pageSize };
 
     async Task<SyncRun> SyncAsync(SyncJob? job = null, SyncTrigger trigger = SyncTrigger.Schedule, CancellationToken? cancellationToken = null)
     {
@@ -278,6 +279,40 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
         Assert.Equal((SyncStatus.Failed, 2, 2, 1), (failed.Status, failed.RunsAdded, failed.RunsToProcess, failed.RunsProcessed));
         Assert.Equal("HttpRequestException: Connection refused", failed.Error);
         Assert.Equal((SyncStatus.Succeeded, 0, 1, 1), (next.Status, next.RunsAdded, next.RunsToProcess, next.RunsProcessed));
+    }
+
+    [Fact]
+    public async Task Personal_records_are_updated_at_the_end()
+    {
+        garmin.Activities.Add(Activity(1));
+        garmin.PersonalRecordsJson = """
+            [{"typeId":3,"activityType":"running","activityId":1,"value":1250.5,"prStartTimeGmt":1761385800000,
+              "activityStartDateTimeInGMT":1761385800000,"activityStartDateTimeLocal":1761389400000},
+             {"typeId":8,"activityType":"road_biking","activityId":9,"value":40000.0,"prStartTimeGmt":1761385800000}]
+            """;
+
+        var sync = await SyncAsync();
+
+        Assert.Equal(SyncStatus.Succeeded, sync.Status);
+        Assert.Equal("personal-records", garmin.Calls.Last());
+        await using var context = await db.CreateDbContextAsync(Ct);
+        var record = Assert.Single(await context.PersonalRecords.ToListAsync(Ct));
+        Assert.Equal((3, 1250.5, 1L), (record.TypeId, record.Value, record.RunId!.Value));
+        var log = Assert.Single(logger.Collector.GetSnapshot(), r => r.Id.Id == 19);
+        Assert.Equal($"Sync {sync.Id}: personal records 1 added, 0 changed, 0 removed", log.Message);
+    }
+
+    [Fact]
+    public async Task Failing_to_get_the_personal_records_fails_the_sync_but_keeps_the_runs()
+    {
+        garmin.Activities.Add(Activity(1));
+        garmin.Fail = call => call == "personal-records" ? new GarminUnavailableException("Garmin rate limit reached", null) : null;
+
+        var sync = await SyncAsync();
+
+        Assert.Equal((SyncStatus.Failed, 1, 1), (sync.Status, sync.RunsAdded, sync.RunsProcessed));
+        Assert.Equal("Garmin is unavailable: Garmin rate limit reached", sync.Error);
+        Assert.Single(await StoredRunsAsync());
     }
 
     [Fact]
