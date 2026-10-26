@@ -3,6 +3,7 @@ import logging
 import sys
 
 import pytest
+from opentelemetry.sdk.trace import TracerProvider
 
 from garmin_gateway.logs import configure_logging
 
@@ -79,3 +80,17 @@ def test_uvicorns_colored_copy_of_the_message_is_dropped(restore_logging, capsys
     [entry] = lines(capsys)
     assert entry["Message"] == "Started"
     assert "color_message" not in entry
+
+
+def test_log_lines_carry_the_current_trace(restore_logging, capsys):
+    configure_logging()
+    tracer = TracerProvider().get_tracer("test")
+
+    with tracer.start_as_current_span("request") as span:
+        logging.getLogger("garmin_gateway").info("Inside")
+    logging.getLogger("garmin_gateway").info("Outside")
+
+    inside, outside = lines(capsys)
+    assert inside["TraceId"] == format(span.get_span_context().trace_id, "032x")
+    assert inside["SpanId"] == format(span.get_span_context().span_id, "016x")
+    assert "TraceId" not in outside

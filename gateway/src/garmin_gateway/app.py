@@ -9,6 +9,9 @@ from typing import Annotated, Any
 from fastapi import FastAPI, Path, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from garminconnect import Garmin, GarminConnectConnectionError, GarminConnectNotFoundError
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.metrics import MeterProvider
+from opentelemetry.trace import TracerProvider
 
 from .garmin import GarminService, GarminUnavailable
 
@@ -30,7 +33,9 @@ def extract_fit(archive: bytes) -> bytes:
         return zip_file.read(names[0])
 
 
-def create_app(service: GarminService) -> FastAPI:
+def create_app(
+    service: GarminService, tracer_provider: TracerProvider | None = None, meter_provider: MeterProvider | None = None
+) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         # Logging in before the first sync shows a wrong password in the logs right away, without blocking startup.
@@ -39,6 +44,14 @@ def create_app(service: GarminService) -> FastAPI:
         yield
 
     app = FastAPI(title="garmin-gateway", lifespan=lifespan)
+    # Also picks up the trace context of the app's requests, so the gateway's spans join the sync's trace.
+    FastAPIInstrumentor.instrument_app(
+        app,
+        excluded_urls="healthz/live,healthz/ready",
+        exclude_spans=["receive", "send"],
+        tracer_provider=tracer_provider,
+        meter_provider=meter_provider,
+    )
 
     @app.exception_handler(GarminUnavailable)
     async def unavailable(_: Request, e: GarminUnavailable) -> JSONResponse:
@@ -59,34 +72,35 @@ def create_app(service: GarminService) -> FastAPI:
 
     @app.get("/activities")
     def activities(start: Annotated[int, Query(ge=0)] = 0, limit: Annotated[int, Query(ge=1, le=1000)] = 100) -> Any:
-        return service.call(lambda g: g.get_activities(start, limit))
+        return service.call("get_activities", lambda g: g.get_activities(start, limit))
 
     @app.get("/activities/{activity_id}")
     def activity(activity_id: ActivityId) -> Any:
-        return service.call(lambda g: g.get_activity(str(activity_id)))
+        return service.call("get_activity", lambda g: g.get_activity(str(activity_id)))
 
     @app.get("/activities/{activity_id}/splits")
     def splits(activity_id: ActivityId) -> Any:
-        return service.call(lambda g: g.get_activity_splits(str(activity_id)))
+        return service.call("get_activity_splits", lambda g: g.get_activity_splits(str(activity_id)))
 
     @app.get("/activities/{activity_id}/hr-zones")
     def hr_zones(activity_id: ActivityId) -> Any:
-        return service.call(lambda g: g.get_activity_hr_in_timezones(str(activity_id)))
+        return service.call("get_activity_hr_in_timezones", lambda g: g.get_activity_hr_in_timezones(str(activity_id)))
 
     @app.get("/activities/{activity_id}/weather")
     def weather(activity_id: ActivityId) -> Any:
-        return service.call(lambda g: g.get_activity_weather(str(activity_id)))
+        return service.call("get_activity_weather", lambda g: g.get_activity_weather(str(activity_id)))
 
     @app.get("/activities/{activity_id}/fit")
     def fit(activity_id: ActivityId) -> Response:
         archive = service.call(
-            lambda g: g.download_activity(str(activity_id), dl_fmt=Garmin.ActivityDownloadFormat.ORIGINAL)
+            "download_activity",
+            lambda g: g.download_activity(str(activity_id), dl_fmt=Garmin.ActivityDownloadFormat.ORIGINAL),
         )
         return Response(extract_fit(archive), media_type="application/vnd.ant.fit")
 
     @app.get("/personal-records")
     def personal_records() -> Any:
-        return service.call(lambda g: g.get_personal_record())
+        return service.call("get_personal_record", lambda g: g.get_personal_record())
 
     @app.get("/healthz/live", response_class=PlainTextResponse)
     def live() -> str:
