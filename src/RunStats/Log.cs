@@ -44,4 +44,8 @@ public static partial class Log
 
     [LoggerMessage(EventId = 18, Level = LogLevel.Information, Message = "Sync {SyncId}: {Processed} runs processed, {Failed} failed")]
     public static partial void SyncProcessed(this ILogger logger, int syncId, int processed, int failed);
+
+    [LoggerMessage(EventId = 19, Level = LogLevel.Information,
+        Message = "Sync {SyncId}: personal records {Added} added, {Changed} changed, {Removed} removed")]
+    public static partial void PersonalRecordsUpdated(this ILogger logger, int syncId, int added, int changed, int removed);
 }

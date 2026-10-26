@@ -164,6 +164,11 @@ processes every stored run again, without downloading anything. A run whose raw 
 in `Runs.ProcessingError` and isn't tried again until the version changes; if the gateway itself is unreachable, the
 sync stops and the next one continues.
 
+Last, the sync updates `PersonalRecords` from Garmin's records, keeping the running ones (by Garmin's record type: 1 km,
+1 mile, 5 km, 10 km, half marathon, marathon, longest run). Records Garmin no longer reports are removed;
+`UpdatedAtUtc` changes only when a record's value, run or time changes. Garmin leaves a record's local time empty, so
+`AchievedAtLocal` is its UTC start shifted by the activity's offset.
+
 Only one sync runs at a time. Each is recorded in `SyncRuns` with its progress and result; a sync that was running
 when the app stopped is marked as interrupted at the next start.
 
@@ -174,7 +179,7 @@ curl.exe http://localhost:5310/api/sync/1                          # status, cou
 
 `trigger` is `schedule` (default) or `manual`. A request while a sync runs returns that sync (`"started": false`).
 
-Telemetry: a `Sync` span (the gateway's spans join its trace), log events 10–18, and the metrics `runstats.syncs`
+Telemetry: a `Sync` span (the gateway's spans join its trace), log events 10–19, and the metrics `runstats.syncs`
 (by trigger and outcome), `runstats.sync.duration`, `runstats.sync.runs` (by change: added, updated, deleted, processed, processing_failed) and
 `runstats.sync.last_success` (Unix time of the last successful sync).
 

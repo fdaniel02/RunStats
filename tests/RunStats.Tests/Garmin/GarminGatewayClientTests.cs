@@ -194,4 +194,20 @@ public class GarminGatewayClientTests
 
         Assert.Empty(await client.DecodeFitAsync([1], Ct));
     }
+
+    [Fact]
+    public async Task Personal_records_come_back_as_they_came()
+    {
+        handler.Responses["/personal-records"] = Json("""[{"typeId":3,"value":1250.5}]""");
+
+        Assert.Equal("""[{"typeId":3,"value":1250.5}]""", await client.GetPersonalRecordsAsync(Ct));
+    }
+
+    [Fact]
+    public async Task Missing_personal_records_are_an_error()
+    {
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.GetPersonalRecordsAsync(Ct));
+
+        Assert.Equal(HttpStatusCode.NotFound, error.StatusCode);
+    }
 }

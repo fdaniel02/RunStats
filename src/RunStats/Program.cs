@@ -46,6 +46,7 @@ builder.Services.AddHttpClient<IGarminGateway, GarminGatewayClient>((services, c
 builder.Services.AddSingleton<SyncMetrics>();
 builder.Services.AddSingleton<SyncCoordinator>();
 builder.Services.AddTransient<RunProcessing>();
+builder.Services.AddTransient<PersonalRecordUpdate>();
 builder.Services.AddTransient<SyncJob>();
 builder.Services.AddHostedService<SyncWorker>();
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));

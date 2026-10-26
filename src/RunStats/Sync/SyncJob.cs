@@ -7,11 +7,12 @@ using RunStats.Processing;
 namespace RunStats.Sync;
 
 // One sync: reads Garmin's whole activity list, downloads new and changed runs, removes runs deleted in Garmin,
-// then processes the raw data of every run that needs it.
+// processes the raw data of every run that needs it, and updates the personal records.
 public class SyncJob(
     IDbContextFactory<AppDbContext> dbFactory,
     IGarminGateway garmin,
     RunProcessing processing,
+    PersonalRecordUpdate personalRecords,
     SyncMetrics metrics,
     TimeProvider time,
     ILogger<SyncJob> logger)
@@ -52,6 +53,10 @@ public class SyncJob(
             sync.RunsDeleted = plan.ToDelete.Count;
 
             await ProcessAsync(db, sync, cancellationToken);
+
+            var records = PersonalRecordMapper.Running(await garmin.GetPersonalRecordsAsync(cancellationToken));
+            var recordChanges = await personalRecords.ApplyAsync(records, cancellationToken);
+            logger.PersonalRecordsUpdated(syncId, recordChanges.Added, recordChanges.Changed, recordChanges.Removed);
 
             await FinishAsync(db, sync, SyncStatus.Succeeded, null);
             metrics.LastSuccessAt(sync.FinishedAtUtc!.Value);
