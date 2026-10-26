@@ -12,7 +12,7 @@ using RunStats.Data;
 namespace RunStats.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261026152450_RunData")]
+    [Migration("20261026153634_RunData")]
     partial class RunData
     {
         /// <inheritdoc />

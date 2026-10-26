@@ -6,7 +6,7 @@ using RunStats.Data;
 namespace RunStats.Tests.Data;
 
 [Collection("SqlServer")]
-public class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
+public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
 {
     readonly PooledDbContextFactory<AppDbContext> factory =
         new(new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(sqlServer.ConnectionString(SqlServerFixture.NewDatabaseName())).Options);

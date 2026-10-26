@@ -1,7 +1,7 @@
 namespace RunStats.Data;
 
 // Units are the ones Garmin uses; the column names say which.
-public class Run
+public class Run : RunMetrics
 {
     // Garmin's activity id.
     public long Id { get; set; }
@@ -14,33 +14,7 @@ public class Run
     // Garmin's local time at the place of the run, which can differ from the app's TimeZone setting.
     public DateTime StartLocal { get; set; }
 
-    public double DistanceMeters { get; set; }
-    public double DurationSeconds { get; set; }
-    public double? MovingDurationSeconds { get; set; }
-    public double? ElapsedDurationSeconds { get; set; }
-
-    public double? AverageSpeedMps { get; set; }
-    public double? AverageMovingSpeedMps { get; set; }
-    public double? GradeAdjustedSpeedMps { get; set; }
-    public double? MaxSpeedMps { get; set; }
-
     public short? MinHeartRate { get; set; }
-    public short? AverageHeartRate { get; set; }
-    public short? MaxHeartRate { get; set; }
-
-    public double? AverageCadenceSpm { get; set; }
-    public double? MaxCadenceSpm { get; set; }
-    public double? StrideLengthCm { get; set; }
-    public double? GroundContactTimeMs { get; set; }
-    public double? VerticalOscillationCm { get; set; }
-    public double? VerticalRatioPercent { get; set; }
-
-    public double? AveragePowerWatts { get; set; }
-    public double? MaxPowerWatts { get; set; }
-    public double? NormalizedPowerWatts { get; set; }
-
-    public double? ElevationGainMeters { get; set; }
-    public double? ElevationLossMeters { get; set; }
     public double? MinElevationMeters { get; set; }
     public double? MaxElevationMeters { get; set; }
 
@@ -48,7 +22,6 @@ public class Run
     public double? AnaerobicTrainingEffect { get; set; }
     public double? TrainingLoad { get; set; }
     public double? Vo2Max { get; set; }
-    public double? Calories { get; set; }
     public int? Steps { get; set; }
     public double? AverageTemperatureCelsius { get; set; }
 
