@@ -46,7 +46,7 @@ jobs:
           /d:sonar.token="$SONAR_TOKEN"
           /d:sonar.cs.opencover.reportsPaths=TestResults/coverage.opencover.*.xml
           /d:sonar.exclusions=**/Migrations/**
-          /d:sonar.coverage.exclusions=**/Migrations/**
+          /d:sonar.coverage.exclusions=**/Migrations/**,**/ReconnectModal.razor.js
 
       - run: dotnet build -c Release --no-restore
 

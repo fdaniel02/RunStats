@@ -30,21 +30,36 @@
     border-radius: 16px;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
     opacity: 0;
-    transition: display 0.5s allow-discrete, overlay 0.5s allow-discrete;
-    animation: components-reconnect-modal-fadeOutOpacity 0.5s both;
-    &[open]
-
-{
-    animation: components-reconnect-modal-slideUp 1.5s cubic-bezier(.05, .89, .25, 1.02) 0.3s, components-reconnect-modal-fadeInOpacity 0.5s ease-in-out 0.3s;
-    animation-fill-mode: both;
 }
 
-}
+    #components-reconnect-modal[open] {
+        opacity: 1;
+    }
 
 #components-reconnect-modal::backdrop {
     background-color: rgba(0, 0, 0, 0.6);
-    animation: components-reconnect-modal-fadeInOpacity 0.5s ease-in-out;
     opacity: 1;
+}
+
+/* With reduced motion the dialog just appears; the opacity rules above keep it visible without the fade-in. */
+@media (prefers-reduced-motion: no-preference) {
+    #components-reconnect-modal {
+        transition: display 0.5s allow-discrete, overlay 0.5s allow-discrete;
+        animation: components-reconnect-modal-fadeOutOpacity 0.5s both;
+    }
+
+        #components-reconnect-modal[open] {
+            animation: components-reconnect-modal-slideUp 1.5s cubic-bezier(.05, .89, .25, 1.02) 0.3s, components-reconnect-modal-fadeInOpacity 0.5s ease-in-out 0.3s;
+            animation-fill-mode: both;
+        }
+
+        #components-reconnect-modal::backdrop {
+            animation: components-reconnect-modal-fadeInOpacity 0.5s ease-in-out;
+        }
+
+    .components-rejoining-animation div {
+        animation: components-rejoining-animation 1.5s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+    }
 }
 
 @keyframes components-reconnect-modal-slideUp {
@@ -124,7 +139,6 @@
         border: 3px solid var(--accent);
         opacity: 1;
         border-radius: 50%;
-        animation: components-rejoining-animation 1.5s cubic-bezier(0, 0.2, 0.8, 1) infinite;
     }
 
         .components-rejoining-animation div:nth-child(2) {
