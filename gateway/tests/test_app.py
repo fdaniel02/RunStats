@@ -4,6 +4,7 @@ import zipfile
 import pytest
 from fakes import CollectedTelemetry, FakeGarmin, FakeTime, settings
 from fastapi.testclient import TestClient
+from fit_files import fit_file
 from garminconnect import (
     Garmin,
     GarminConnectAuthenticationError,
@@ -13,6 +14,7 @@ from garminconnect import (
 )
 from opentelemetry.trace import SpanKind
 
+from garmin_gateway import app as app_module
 from garmin_gateway.app import create_app
 from garmin_gateway.garmin import GarminService
 
@@ -230,3 +232,41 @@ def test_health_checks_are_not_traced(traced_client, telemetry):
     traced_client.get("/healthz/ready")
 
     assert len(telemetry.finished_spans()) == before
+
+
+def test_fit_file_is_decoded_into_samples_without_calling_garmin(client, garmin):
+    calls_before = len(garmin.calls)
+
+    response = client.post(
+        "/fit/samples",
+        content=fit_file({"second": 0, "heart_rate": 140}, {"second": 1, "heart_rate": 141}),
+        headers={"content-type": "application/vnd.ant.fit"},
+    )
+
+    assert response.status_code == 200
+    assert [(s["offsetSeconds"], s["heartRate"]) for s in response.json()] == [(0, 140), (1, 141)]
+    assert len(garmin.calls) == calls_before
+
+
+def test_invalid_fit_file_is_unprocessable(client):
+    response = client.post("/fit/samples", content=b"not a fit file")
+
+    assert response.status_code == 422
+    assert response.json()["error"].startswith("Not a valid FIT file")
+
+
+def test_too_large_fit_file_is_refused_by_its_declared_size(client, monkeypatch):
+    monkeypatch.setattr(app_module, "MAX_FIT_FILE_BYTES", 10)
+
+    response = client.post("/fit/samples", content=b"x" * 11)
+
+    assert response.status_code == 413
+
+
+def test_too_large_fit_file_is_refused_without_a_declared_size(client, monkeypatch):
+    monkeypatch.setattr(app_module, "MAX_FIT_FILE_BYTES", 10)
+
+    response = client.post("/fit/samples", content=iter([b"x" * 6, b"x" * 6]))
+
+    assert response.status_code == 413
+    assert "larger than 10 bytes" in response.json()["error"]
