@@ -2,13 +2,19 @@ using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using RunStats.Data;
 using RunStats.Garmin;
+using RunStats.Processing;
 
 namespace RunStats.Sync;
 
-// One sync: reads Garmin's whole activity list, downloads new and changed runs, removes runs deleted in Garmin.
-// Only raw data and the basics from the list are stored; the rest is processed from the raw data later.
+// One sync: reads Garmin's whole activity list, downloads new and changed runs, removes runs deleted in Garmin,
+// then processes the raw data of every run that needs it.
 public class SyncJob(
-    IDbContextFactory<AppDbContext> dbFactory, IGarminGateway garmin, SyncMetrics metrics, TimeProvider time, ILogger<SyncJob> logger)
+    IDbContextFactory<AppDbContext> dbFactory,
+    IGarminGateway garmin,
+    RunProcessing processing,
+    SyncMetrics metrics,
+    TimeProvider time,
+    ILogger<SyncJob> logger)
 {
     public int PageSize { get; init; } = 100;
     const int MaxErrorLength = 2000;
@@ -36,7 +42,7 @@ public class SyncJob(
                     sync.RunsAdded++;
                 else
                     sync.RunsUpdated++;
-                sync.RunsProcessed++;
+                sync.RunsDownloaded++;
                 await db.SaveChangesAsync(cancellationToken);
             }
 
@@ -45,11 +51,15 @@ public class SyncJob(
                 await db.Runs.Where(r => plan.ToDelete.Contains(r.Id)).ExecuteDeleteAsync(cancellationToken);
             sync.RunsDeleted = plan.ToDelete.Count;
 
+            await ProcessAsync(db, sync, cancellationToken);
+
             await FinishAsync(db, sync, SyncStatus.Succeeded, null);
             metrics.LastSuccessAt(sync.FinishedAtUtc!.Value);
             metrics.RunsChanged("added", sync.RunsAdded);
             metrics.RunsChanged("updated", sync.RunsUpdated);
             metrics.RunsChanged("deleted", sync.RunsDeleted);
+            metrics.RunsChanged("processed", sync.RunsProcessed);
+            metrics.RunsChanged("processing_failed", sync.RunsFailedToProcess);
             var elapsed = time.GetElapsedTime(started);
             logger.SyncSucceeded(syncId, sync.RunsAdded, sync.RunsUpdated, sync.RunsDeleted, elapsed.TotalSeconds);
         }
@@ -70,6 +80,28 @@ public class SyncJob(
         }
         span?.SetTag("runstats.sync.outcome", sync.Status.ToString().ToLowerInvariant());
         metrics.SyncFinished(sync.Trigger, sync.Status, time.GetElapsedTime(started));
+    }
+
+    async Task ProcessAsync(AppDbContext db, SyncRun sync, CancellationToken cancellationToken)
+    {
+        var pending = await processing.PendingAsync(cancellationToken);
+        sync.RunsToProcess = pending.Count;
+        await db.SaveChangesAsync(cancellationToken);
+        foreach (var runId in pending)
+        {
+            if (await processing.ProcessAsync(runId, cancellationToken) is { } error)
+            {
+                sync.RunsFailedToProcess++;
+                logger.RunProcessingFailed(runId, error);
+            }
+            else
+            {
+                sync.RunsProcessed++;
+            }
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        if (pending.Count > 0)
+            logger.SyncProcessed(sync.Id, sync.RunsProcessed, sync.RunsFailedToProcess);
     }
 
     async Task<SyncPlan> PlanAsync(AppDbContext db, CancellationToken cancellationToken)

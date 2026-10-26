@@ -12,6 +12,8 @@ public sealed class FakeGarminGateway : IGarminGateway
     public List<GarminActivity> Activities { get; } = [];
     public HashSet<long> WithoutFitFile { get; } = [];
     public HashSet<long> WithoutWeather { get; } = [];
+    // What decoding an activity's FIT file returns; by default a few seconds along a short straight line.
+    public Dictionary<long, IReadOnlyList<FitSample>> FitSamples { get; } = [];
     public ConcurrentQueue<string> Calls { get; } = new();
     // Called with the name of each call ("list 0", "detail 42", ...); an exception it returns is thrown.
     public Func<string, Exception?> Fail { get; set; } = _ => null;
@@ -33,11 +35,17 @@ public sealed class FakeGarminGateway : IGarminGateway
     static string Local(string startGmt) =>
         DateTime.ParseExact(startGmt, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture).AddHours(1).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
 
-    public static string DetailJson(long id) => $$$"""{"activityId":{{{id}}},"summaryDTO":{"distance":5000}}""";
+    public static string DetailJson(long id) => $$$"""{"activityId":{{{id}}},"summaryDTO":{"averageHR":150.0,"averageRunCadence":170.0}}""";
     public static string SplitsJson(long id) => $$"""{"activityId":{{id}},"lapDTOs":[]}""";
     public static string HeartRateZonesJson(long id) => $$"""[{"zoneNumber":1,"activityId":{{id}}}]""";
     public static string WeatherJson(long id) => $$"""{"temp":12,"activityId":{{id}}}""";
     public static byte[] FitFile(long id) => Encoding.ASCII.GetBytes($"FIT{id}");
+
+    public static IReadOnlyList<FitSample> StraightLine(int seconds) =>
+    [
+        .. Enumerable.Range(0, seconds).Select(i => new FitSample(
+            i, 624_769_324 + i * 1000, -58_342_310, i * 3.0, 3.0, 5.0, 140 + i, 170.0, 1150.0, 240.0, 85.0, 7.0, 300, 18))
+    ];
 
     public IEnumerable<string> DownloadCalls => Calls.Where(c => !c.StartsWith("list", StringComparison.Ordinal));
 
@@ -66,4 +74,10 @@ public sealed class FakeGarminGateway : IGarminGateway
 
     public Task<byte[]?> GetFitFileAsync(long id, CancellationToken cancellationToken) =>
         Task.FromResult(Call($"fit {id}", () => WithoutFitFile.Contains(id) ? null : FitFile(id)));
+
+    public Task<IReadOnlyList<FitSample>> DecodeFitAsync(byte[] fitFile, CancellationToken cancellationToken)
+    {
+        var id = long.Parse(Encoding.ASCII.GetString(fitFile)[3..], CultureInfo.InvariantCulture);
+        return Task.FromResult(Call($"decode {id}", () => FitSamples.GetValueOrDefault(id) ?? StraightLine(3)));
+    }
 }

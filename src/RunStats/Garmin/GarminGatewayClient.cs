@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace RunStats.Garmin;
@@ -11,6 +13,7 @@ public interface IGarminGateway
     Task<string?> GetHeartRateZonesAsync(long id, CancellationToken cancellationToken);
     Task<string?> GetWeatherAsync(long id, CancellationToken cancellationToken);
     Task<byte[]?> GetFitFileAsync(long id, CancellationToken cancellationToken);
+    Task<IReadOnlyList<FitSample>> DecodeFitAsync(byte[] fitFile, CancellationToken cancellationToken);
 }
 
 // The gateway waits after a rate limit or a failed login; until then it answers 503 with Retry-After.
@@ -20,6 +23,8 @@ public class GarminUnavailableException(string reason, TimeSpan? retryAfter)
     public string Reason { get; } = reason;
     public TimeSpan? RetryAfter { get; } = retryAfter;
 }
+
+public class InvalidFitFileException(string message) : Exception(message);
 
 public class GarminGatewayClient(HttpClient http) : IGarminGateway
 {
@@ -48,6 +53,17 @@ public class GarminGatewayClient(HttpClient http) : IGarminGateway
     {
         using var response = await SendAsync($"activities/{id}/fit", cancellationToken);
         return response is null ? null : await response.Content.ReadAsByteArrayAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<FitSample>> DecodeFitAsync(byte[] fitFile, CancellationToken cancellationToken)
+    {
+        using var content = new ByteArrayContent(fitFile);
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.ant.fit");
+        using var response = await http.PostAsync("fit/samples", content, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
+            throw new InvalidFitFileException(await ReasonAsync(response, cancellationToken));
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<FitSample>>(cancellationToken) ?? [];
     }
 
     // Missing data (404) and Garmin's JSON null both become null.

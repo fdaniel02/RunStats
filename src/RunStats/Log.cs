@@ -38,4 +38,10 @@ public static partial class Log
 
     [LoggerMessage(EventId = 16, Level = LogLevel.Warning, Message = "Syncs interrupted when the app stopped: {Count}")]
     public static partial void SyncsInterrupted(this ILogger logger, int count);
+
+    [LoggerMessage(EventId = 17, Level = LogLevel.Warning, Message = "Run {RunId} couldn't be processed: {Error}")]
+    public static partial void RunProcessingFailed(this ILogger logger, long runId, string error);
+
+    [LoggerMessage(EventId = 18, Level = LogLevel.Information, Message = "Sync {SyncId}: {Processed} runs processed, {Failed} failed")]
+    public static partial void SyncProcessed(this ILogger logger, int syncId, int processed, int failed);
 }

@@ -8,6 +8,7 @@ using RunStats;
 using RunStats.Components;
 using RunStats.Data;
 using RunStats.Garmin;
+using RunStats.Processing;
 using RunStats.Sync;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,6 +45,7 @@ builder.Services.AddHttpClient<IGarminGateway, GarminGatewayClient>((services, c
         ?? throw new InvalidOperationException("Setting 'GarminGateway:BaseUrl' is missing (e.g. 'http://garmin-gateway:8080/').")));
 builder.Services.AddSingleton<SyncMetrics>();
 builder.Services.AddSingleton<SyncCoordinator>();
+builder.Services.AddTransient<RunProcessing>();
 builder.Services.AddTransient<SyncJob>();
 builder.Services.AddHostedService<SyncWorker>();
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
