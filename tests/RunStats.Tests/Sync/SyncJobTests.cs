@@ -259,6 +259,8 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
         Assert.Equal(["decode 3", "decode 2", "decode 1"], garmin.Calls.Where(c => c.StartsWith("decode", StringComparison.Ordinal)));
         var log = Assert.Single(logger.Collector.GetSnapshot(), r => r.Id.Id == 17);
         Assert.Equal((LogLevel.Warning, "Run 2 couldn't be processed: InvalidFitFileException: Not a valid FIT file"), (log.Level, log.Message));
+        var summary = Assert.Single(logger.Collector.GetSnapshot(), r => r.Id.Id == 18);
+        Assert.Equal($"Sync {sync.Id}: 2 runs processed, 1 failed", summary.Message);
         var runs = await StoredRunsAsync();
         Assert.Equal([null, "InvalidFitFileException: Not a valid FIT file", null], runs.Select(r => r.ProcessingError));
     }

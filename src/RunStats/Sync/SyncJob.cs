@@ -61,8 +61,7 @@ public class SyncJob(
             metrics.RunsChanged("processed", sync.RunsProcessed);
             metrics.RunsChanged("processing_failed", sync.RunsFailedToProcess);
             var elapsed = time.GetElapsedTime(started);
-            logger.SyncSucceeded(
-                syncId, sync.RunsAdded, sync.RunsUpdated, sync.RunsDeleted, sync.RunsProcessed, sync.RunsFailedToProcess, elapsed.TotalSeconds);
+            logger.SyncSucceeded(syncId, sync.RunsAdded, sync.RunsUpdated, sync.RunsDeleted, elapsed.TotalSeconds);
         }
         catch (Exception e)
         {
@@ -101,6 +100,8 @@ public class SyncJob(
             }
             await db.SaveChangesAsync(cancellationToken);
         }
+        if (pending.Count > 0)
+            logger.SyncProcessed(sync.Id, sync.RunsProcessed, sync.RunsFailedToProcess);
     }
 
     async Task<SyncPlan> PlanAsync(AppDbContext db, CancellationToken cancellationToken)

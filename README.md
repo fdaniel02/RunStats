@@ -174,7 +174,7 @@ curl.exe http://localhost:5310/api/sync/1                          # status, cou
 
 `trigger` is `schedule` (default) or `manual`. A request while a sync runs returns that sync (`"started": false`).
 
-Telemetry: a `Sync` span (the gateway's spans join its trace), log events 10–17, and the metrics `runstats.syncs`
+Telemetry: a `Sync` span (the gateway's spans join its trace), log events 10–18, and the metrics `runstats.syncs`
 (by trigger and outcome), `runstats.sync.duration`, `runstats.sync.runs` (by change: added, updated, deleted, processed, processing_failed) and
 `runstats.sync.last_success` (Unix time of the last successful sync).
 
