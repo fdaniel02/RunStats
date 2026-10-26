@@ -40,7 +40,7 @@ public sealed class SyncApiTests : IDisposable
 
     public void Dispose() => factory.Dispose();
 
-    async Task<JsonElement> WaitUntilFinishedAsync(HttpClient client, Uri location)
+    static async Task<JsonElement> WaitUntilFinishedAsync(HttpClient client, Uri location)
     {
         for (var attempt = 0; attempt < 100; attempt++)
         {

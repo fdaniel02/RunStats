@@ -50,7 +50,8 @@ public class SyncJob(
             metrics.RunsChanged("added", sync.RunsAdded);
             metrics.RunsChanged("updated", sync.RunsUpdated);
             metrics.RunsChanged("deleted", sync.RunsDeleted);
-            logger.SyncSucceeded(syncId, sync.RunsAdded, sync.RunsUpdated, sync.RunsDeleted, time.GetElapsedTime(started).TotalSeconds);
+            var elapsed = time.GetElapsedTime(started);
+            logger.SyncSucceeded(syncId, sync.RunsAdded, sync.RunsUpdated, sync.RunsDeleted, elapsed.TotalSeconds);
         }
         catch (Exception e)
         {
@@ -74,13 +75,14 @@ public class SyncJob(
     async Task<SyncPlan> PlanAsync(AppDbContext db, CancellationToken cancellationToken)
     {
         var activities = new List<GarminActivity>();
-        for (var start = 0; ; start += PageSize)
+        IReadOnlyList<GarminActivity> page;
+        var start = 0;
+        do
         {
-            var page = await garmin.GetActivitiesAsync(start, PageSize, cancellationToken);
+            page = await garmin.GetActivitiesAsync(start, PageSize, cancellationToken);
             activities.AddRange(page);
-            if (page.Count < PageSize)
-                break;
-        }
+            start += PageSize;
+        } while (page.Count == PageSize);
         var stored = await db.Runs
             .Select(r => new { r.Id, ListJson = r.RawData != null ? r.RawData.ListJson : "" })
             .ToDictionaryAsync(r => r.Id, r => r.ListJson, cancellationToken);

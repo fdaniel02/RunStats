@@ -31,14 +31,10 @@ public static class SyncEndpoints
         trigger = SyncTrigger.Schedule;
         if (string.IsNullOrEmpty(value))
             return true;
-        foreach (var candidate in Enum.GetValues<SyncTrigger>())
-        {
-            if (string.Equals(value, candidate.ToString(), StringComparison.OrdinalIgnoreCase))
-            {
-                trigger = candidate;
-                return true;
-            }
-        }
-        return false;
+        var matches = Enum.GetValues<SyncTrigger>().Where(t => t.ToString().Equals(value, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (matches.Count == 0)
+            return false;
+        trigger = matches[0];
+        return true;
     }
 }
