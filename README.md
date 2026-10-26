@@ -26,6 +26,7 @@ src/RunStats/                the app (Blazor Server)
   Data/                      DbContext, entities, migrations, startup and time zone helpers
   Garmin/                    client for the Garmin gateway
   Sync/                      the sync with Garmin and its API
+  Processing/                turns a run's raw data into stats, laps, samples and its track
 tests/RunStats.Tests/        unit, component (bUnit) and SQL Server tests (xUnit v3)
 gateway/                     the Garmin gateway (Python, FastAPI), see below
 .github/workflows/ci.yml     build and test on every pull request and push to main, publish the image from main
@@ -155,6 +156,14 @@ Each run is stored in its own transaction, so a sync that stops halfway (rate li
 the runs it stored, and the next sync continues from there. Downloading a run takes about 6 s, because the gateway
 spaces its calls to Garmin.
 
+After the downloads, the sync processes the raw data of every run whose `ProcessorVersion` is below
+`RunProcessor.Version`: the stats in `Runs` (from Garmin's summary; VO2max from the list entry), `RunLaps` (from the
+splits), `RunSamples` (the FIT file, decoded by the gateway) and `RunTracks` (the GPS positions simplified to 3 m, as an
+encoded polyline with a bounding box). Raise `RunProcessor.Version` when the processing changes: the next sync then
+processes every stored run again, without downloading anything. A run whose raw data can't be processed gets the reason
+in `Runs.ProcessingError` and isn't tried again until the version changes; if the gateway itself is unreachable, the
+sync stops and the next one continues.
+
 Only one sync runs at a time. Each is recorded in `SyncRuns` with its progress and result; a sync that was running
 when the app stopped is marked as interrupted at the next start.
 
@@ -165,8 +174,8 @@ curl.exe http://localhost:5310/api/sync/1                          # status, cou
 
 `trigger` is `schedule` (default) or `manual`. A request while a sync runs returns that sync (`"started": false`).
 
-Telemetry: a `Sync` span (the gateway's spans join its trace), log events 10–16, and the metrics `runstats.syncs`
-(by trigger and outcome), `runstats.sync.duration`, `runstats.sync.runs` (by change: added, updated, deleted) and
+Telemetry: a `Sync` span (the gateway's spans join its trace), log events 10–17, and the metrics `runstats.syncs`
+(by trigger and outcome), `runstats.sync.duration`, `runstats.sync.runs` (by change: added, updated, deleted, processed, processing_failed) and
 `runstats.sync.last_success` (Unix time of the last successful sync).
 
 ## Garmin gateway

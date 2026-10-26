@@ -19,12 +19,16 @@ public class GarminGatewayClientTests
     {
         public Dictionary<string, Func<HttpResponseMessage>> Responses { get; } = [];
         public List<string> Requested { get; } = [];
+        public HttpRequestMessage? LastRequest { get; private set; }
+        public byte[]? LastBody { get; private set; }
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var path = request.RequestUri!.PathAndQuery;
             Requested.Add(path);
-            return Task.FromResult(Responses.TryGetValue(path, out var response) ? response() : new HttpResponseMessage(HttpStatusCode.NotFound));
+            LastRequest = request;
+            LastBody = request.Content is null ? null : await request.Content.ReadAsByteArrayAsync(cancellationToken);
+            return Responses.TryGetValue(path, out var response) ? response() : new HttpResponseMessage(HttpStatusCode.NotFound);
         }
     }
 
@@ -140,5 +144,54 @@ public class GarminGatewayClientTests
         var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.GetFitFileAsync(7, Ct));
 
         Assert.Equal(HttpStatusCode.BadGateway, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task Fit_file_is_sent_for_decoding_and_samples_come_back()
+    {
+        handler.Responses["/fit/samples"] = Json("""
+            [{"offsetSeconds":0,"latitudeSemicircles":624798437,"longitudeSemicircles":-58339972,"distanceMeters":0.0,"speedMps":2.95,
+              "altitudeMeters":-1.6,"heartRate":150,"cadenceSpm":171.0,"stepLengthMm":1150.0,"groundContactTimeMs":241.5,
+              "verticalOscillationMm":89.2,"verticalRatioPercent":6.95,"powerWatts":310,"temperatureCelsius":-3},
+             {"offsetSeconds":1,"latitudeSemicircles":null,"longitudeSemicircles":null,"distanceMeters":null,"speedMps":null,
+              "altitudeMeters":null,"heartRate":null,"cadenceSpm":null,"stepLengthMm":null,"groundContactTimeMs":null,
+              "verticalOscillationMm":null,"verticalRatioPercent":null,"powerWatts":null,"temperatureCelsius":null}]
+            """);
+
+        var samples = await client.DecodeFitAsync([1, 2, 3], Ct);
+
+        Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
+        Assert.Equal("application/vnd.ant.fit", handler.LastRequest.Content!.Headers.ContentType!.MediaType);
+        Assert.Equal([1, 2, 3], handler.LastBody);
+        Assert.Equal(new FitSample(0, 624798437, -58339972, 0, 2.95, -1.6, 150, 171, 1150, 241.5, 89.2, 6.95, 310, -3), samples[0]);
+        Assert.Equal(new FitSample(1, null, null, null, null, null, null, null, null, null, null, null, null, null), samples[1]);
+    }
+
+    [Fact]
+    public async Task Fit_file_the_gateway_cannot_read_is_invalid()
+    {
+        handler.Responses["/fit/samples"] = Json("""{"error":"Not a valid FIT file: CRC mismatch"}""", HttpStatusCode.UnprocessableEntity);
+
+        var error = await Assert.ThrowsAsync<InvalidFitFileException>(() => client.DecodeFitAsync([1], Ct));
+
+        Assert.Equal("Not a valid FIT file: CRC mismatch", error.Message);
+    }
+
+    [Fact]
+    public async Task Other_decoding_errors_fail_with_their_status()
+    {
+        handler.Responses["/fit/samples"] = Json("{}", HttpStatusCode.InternalServerError);
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.DecodeFitAsync([1], Ct));
+
+        Assert.Equal(HttpStatusCode.InternalServerError, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task Null_samples_are_an_empty_list()
+    {
+        handler.Responses["/fit/samples"] = Json("null");
+
+        Assert.Empty(await client.DecodeFitAsync([1], Ct));
     }
 }

@@ -32,6 +32,8 @@ public class Run : RunMetrics
 
     // Raised when the processing changes, so stored runs can be processed again from their raw data.
     public int ProcessorVersion { get; set; }
+    // Why the raw data couldn't be processed; the run is tried again when the processing changes.
+    public string? ProcessingError { get; set; }
 
     public RunRawData? RawData { get; set; }
     public List<RunLap> Laps { get; set; } = [];

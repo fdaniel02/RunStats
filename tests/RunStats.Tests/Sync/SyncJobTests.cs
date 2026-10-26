@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using RunStats.Data;
 using RunStats.Garmin;
+using RunStats.Processing;
 using RunStats.Sync;
 using RunStats.Tests.Data;
 using static RunStats.Tests.Sync.FakeGarminGateway;
@@ -34,7 +35,7 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
 
     public async ValueTask DisposeAsync() => await services.DisposeAsync();
 
-    SyncJob Job(int pageSize = 100) => new(db, garmin, metrics, time, logger) { PageSize = pageSize };
+    SyncJob Job(int pageSize = 100) => new(db, garmin, new RunProcessing(db, garmin), metrics, time, logger) { PageSize = pageSize };
 
     async Task<SyncRun> SyncAsync(SyncJob? job = null, SyncTrigger trigger = SyncTrigger.Schedule, CancellationToken? cancellationToken = null)
     {
@@ -69,7 +70,7 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
 
         var sync = await SyncAsync();
 
-        Assert.Equal((SyncStatus.Succeeded, 3, 3, 3, 0, 0), (sync.Status, sync.RunsTotal, sync.RunsProcessed, sync.RunsAdded, sync.RunsUpdated, sync.RunsDeleted));
+        Assert.Equal((SyncStatus.Succeeded, 3, 3, 3, 0, 0), (sync.Status, sync.RunsTotal, sync.RunsDownloaded, sync.RunsAdded, sync.RunsUpdated, sync.RunsDeleted));
         Assert.Equal(time.GetUtcNow().UtcDateTime, sync.FinishedAtUtc);
         Assert.Null(sync.Error);
         var runs = await StoredRunsAsync();
@@ -78,7 +79,7 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
         Assert.Equal(("Race day", "running", 1, 17, true), (race.Name, race.TypeKey, race.TypeId, race.ParentTypeId, race.IsRace));
         Assert.Equal(new DateTime(2026, 10, 25, 9, 30, 0, DateTimeKind.Utc), race.StartUtc);
         Assert.Equal(new DateTime(2026, 10, 25, 10, 30, 0), race.StartLocal);
-        Assert.Equal((10012.5, 2700.25, 0), (race.DistanceMeters, race.DurationSeconds, race.ProcessorVersion));
+        Assert.Equal((10012.5, 2700.25, RunProcessor.Version), (race.DistanceMeters, race.DurationSeconds, race.ProcessorVersion));
         Assert.Equal(200, runs[0].Name.Length);
         var raw = race.RawData!;
         Assert.Equal(garmin.Activities[0].Json, raw.ListJson);
@@ -143,9 +144,9 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
         var sync = await SyncAsync();
 
         Assert.Equal((1, 0, 1), (sync.RunsTotal, sync.RunsAdded, sync.RunsUpdated));
-        Assert.Equal(["detail 2", "splits 2", "hr-zones 2", "weather 2", "fit 2"], garmin.DownloadCalls);
+        Assert.Equal(["detail 2", "splits 2", "hr-zones 2", "weather 2", "fit 2", "decode 2"], garmin.DownloadCalls);
         var renamed = (await StoredRunsAsync())[1];
-        Assert.Equal(("Renamed", true, 0), (renamed.Name, renamed.IsRace, renamed.ProcessorVersion));
+        Assert.Equal(("Renamed", true, RunProcessor.Version), (renamed.Name, renamed.IsRace, renamed.ProcessorVersion));
         Assert.Equal(garmin.Activities[1].Json, renamed.RawData!.ListJson);
         Assert.Equal(time.GetUtcNow().UtcDateTime, renamed.RawData.DownloadedAtUtc);
     }
@@ -175,7 +176,7 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
 
         Assert.Equal(SyncStatus.Failed, sync.Status);
         Assert.Equal("Garmin is unavailable: Garmin rate limit reached (retry after 300 s)", sync.Error);
-        Assert.Equal((3, 2, 2), (sync.RunsTotal, sync.RunsProcessed, sync.RunsAdded));
+        Assert.Equal((3, 2, 2), (sync.RunsTotal, sync.RunsDownloaded, sync.RunsAdded));
         Assert.Equal([2L, 3L], (await StoredRunsAsync()).Select(r => r.Id));
         Assert.Equal(time.GetUtcNow().UtcDateTime, sync.FinishedAtUtc);
         var log = Assert.Single(logger.Collector.GetSnapshot(), r => r.Id.Id == 13);
@@ -193,8 +194,9 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
 
         var sync = await SyncAsync();
 
-        Assert.Equal((SyncStatus.Succeeded, 1), (sync.Status, sync.RunsAdded));
-        Assert.All(garmin.DownloadCalls, c => Assert.EndsWith(" 1", c));
+        // The first sync stopped before processing, so the second processes all three.
+        Assert.Equal((SyncStatus.Succeeded, 1, 3), (sync.Status, sync.RunsAdded, sync.RunsProcessed));
+        Assert.All(garmin.DownloadCalls.Where(c => !c.StartsWith("decode", StringComparison.Ordinal)), c => Assert.EndsWith(" 1", c));
         Assert.Equal(3, (await StoredRunsAsync()).Count);
     }
 
@@ -246,6 +248,37 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Downloaded_runs_are_processed_and_failures_counted()
+    {
+        garmin.Activities.AddRange([Activity(3), Activity(2), Activity(1)]);
+        garmin.Fail = call => call == "decode 2" ? new InvalidFitFileException("Not a valid FIT file") : null;
+
+        var sync = await SyncAsync();
+
+        Assert.Equal((SyncStatus.Succeeded, 3, 2, 1), (sync.Status, sync.RunsToProcess, sync.RunsProcessed, sync.RunsFailedToProcess));
+        Assert.Equal(["decode 3", "decode 2", "decode 1"], garmin.Calls.Where(c => c.StartsWith("decode", StringComparison.Ordinal)));
+        var log = Assert.Single(logger.Collector.GetSnapshot(), r => r.Id.Id == 17);
+        Assert.Equal((LogLevel.Warning, "Run 2 couldn't be processed: InvalidFitFileException: Not a valid FIT file"), (log.Level, log.Message));
+        var runs = await StoredRunsAsync();
+        Assert.Equal([null, "InvalidFitFileException: Not a valid FIT file", null], runs.Select(r => r.ProcessingError));
+    }
+
+    [Fact]
+    public async Task Gateway_down_while_processing_fails_the_sync_and_the_next_one_processes()
+    {
+        garmin.Activities.AddRange([Activity(2), Activity(1)]);
+        garmin.Fail = call => call == "decode 1" ? new HttpRequestException("Connection refused") : null;
+        var failed = await SyncAsync();
+        garmin.Fail = _ => null;
+
+        var next = await SyncAsync();
+
+        Assert.Equal((SyncStatus.Failed, 2, 2, 1), (failed.Status, failed.RunsAdded, failed.RunsToProcess, failed.RunsProcessed));
+        Assert.Equal("HttpRequestException: Connection refused", failed.Error);
+        Assert.Equal((SyncStatus.Succeeded, 0, 1, 1), (next.Status, next.RunsAdded, next.RunsToProcess, next.RunsProcessed));
+    }
+
+    [Fact]
     public async Task Sync_outcomes_and_changes_are_measured()
     {
         var meterFactory = services.GetRequiredService<IMeterFactory>();
@@ -265,8 +298,7 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
             m => Assert.Equal(("manual", "succeeded"), (m.Tags["runstats.sync.trigger"], m.Tags["runstats.sync.outcome"])),
             m => Assert.Equal(("schedule", "failed"), (m.Tags["runstats.sync.trigger"], m.Tags["runstats.sync.outcome"])));
         Assert.Equal(2, duration.GetMeasurementSnapshot().Count);
-        var added = Assert.Single(runs.GetMeasurementSnapshot());
-        Assert.Equal((2L, "added"), (added.Value, added.Tags["runstats.sync.change"]));
+        Assert.Equal([(2L, "added"), (2L, "processed")], runs.GetMeasurementSnapshot().Select(m => (m.Value, m.Tags["runstats.sync.change"])));
         lastSuccess.RecordObservableInstruments();
         Assert.Equal(time.GetUtcNow().ToUnixTimeSeconds(), lastSuccess.LastMeasurement!.Value);
     }

@@ -24,8 +24,9 @@ public static partial class Log
     public static partial void SyncPlanned(this ILogger logger, int syncId, int toAdd, int toUpdate, int toDelete, int unchanged);
 
     [LoggerMessage(EventId = 12, Level = LogLevel.Information,
-        Message = "Sync {SyncId} succeeded: {Added} runs added, {Updated} updated, {Deleted} deleted in {Seconds:0.0} s")]
-    public static partial void SyncSucceeded(this ILogger logger, int syncId, int added, int updated, int deleted, double seconds);
+        Message = "Sync {SyncId} succeeded: {Added} runs added, {Updated} updated, {Deleted} deleted, {Processed} processed, {FailedToProcess} failed to process in {Seconds:0.0} s")]
+    public static partial void SyncSucceeded(
+        this ILogger logger, int syncId, int added, int updated, int deleted, int processed, int failedToProcess, double seconds);
 
     [LoggerMessage(EventId = 13, Level = LogLevel.Warning, Message = "Sync {SyncId} stopped: {Reason}")]
     public static partial void SyncStopped(this ILogger logger, int syncId, string reason);
@@ -38,4 +39,7 @@ public static partial class Log
 
     [LoggerMessage(EventId = 16, Level = LogLevel.Warning, Message = "Syncs interrupted when the app stopped: {Count}")]
     public static partial void SyncsInterrupted(this ILogger logger, int count);
+
+    [LoggerMessage(EventId = 17, Level = LogLevel.Warning, Message = "Run {RunId} couldn't be processed: {Error}")]
+    public static partial void RunProcessingFailed(this ILogger logger, long runId, string error);
 }

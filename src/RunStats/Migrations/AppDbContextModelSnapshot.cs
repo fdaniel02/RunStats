@@ -167,6 +167,10 @@ namespace RunStats.Migrations
                     b.Property<int>("ParentTypeId")
                         .HasColumnType("int");
 
+                    b.Property<string>("ProcessingError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<int>("ProcessorVersion")
                         .HasColumnType("int");
 
@@ -439,7 +443,16 @@ namespace RunStats.Migrations
                     b.Property<int>("RunsDeleted")
                         .HasColumnType("int");
 
+                    b.Property<int>("RunsDownloaded")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RunsFailedToProcess")
+                        .HasColumnType("int");
+
                     b.Property<int>("RunsProcessed")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RunsToProcess")
                         .HasColumnType("int");
 
                     b.Property<int?>("RunsTotal")
