@@ -487,3 +487,5 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 garmin_tokens.json
+.coverage
+coverage.xml
