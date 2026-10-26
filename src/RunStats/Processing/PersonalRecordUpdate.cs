@@ -8,6 +8,9 @@ public sealed record PersonalRecordChanges(int Added, int Changed, int Removed);
 // Makes the stored personal records the same as Garmin's current ones.
 public class PersonalRecordUpdate(IDbContextFactory<AppDbContext> dbFactory, TimeProvider time)
 {
+    // Values are seconds or metres; anything below a thousandth is the same record.
+    const double ValueTolerance = 0.001;
+
     public async Task<PersonalRecordChanges> ApplyAsync(IReadOnlyList<PersonalRecord> current, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -24,7 +27,7 @@ public class PersonalRecordUpdate(IDbContextFactory<AppDbContext> dbFactory, Tim
                 continue;
             }
             // UpdatedAtUtc is when the record last changed, so it isn't touched when only the JSON's field order did.
-            if (existing.Value != record.Value || existing.RunId != record.RunId || existing.AchievedAtUtc != record.AchievedAtUtc)
+            if (Math.Abs(existing.Value - record.Value) > ValueTolerance || existing.RunId != record.RunId || existing.AchievedAtUtc != record.AchievedAtUtc)
             {
                 existing.UpdatedAtUtc = now;
                 changed++;
