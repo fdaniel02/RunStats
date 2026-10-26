@@ -39,7 +39,7 @@ public class ErrorPageTests : BunitContext
     }
 
     // Activity.Current is async-local; the test runner may have one running around the test.
-    static IDisposable SuppressCurrentActivity()
+    static Restore SuppressCurrentActivity()
     {
         var previous = Activity.Current;
         Activity.Current = null;
