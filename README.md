@@ -8,7 +8,7 @@ Statistics from my runs, downloaded from Garmin Connect and shown in a web app. 
 ## Components
 
 - `runstats`: Blazor Server app (.NET). Holds the UI and the sync, and owns the SQL Server database.
-- `garmin-gateway` (#2): small Python service that talks to Garmin Connect through
+- `garmin-gateway`: small Python service that talks to Garmin Connect through
   [python-garminconnect](https://github.com/cyberjunky/python-garminconnect). It has no database; it only passes
   Garmin's responses on to the app.
 
@@ -25,8 +25,9 @@ src/RunStats/                the app (Blazor Server)
   Features/<Screen>/         one folder per screen (Dashboard, Runs, Heatmap)
   Data/                      DbContext, migrations, startup and time zone helpers
 tests/RunStats.Tests/        unit, component (bUnit) and SQL Server tests (xUnit v3)
+gateway/                     the Garmin gateway (Python, FastAPI), see below
 .github/workflows/ci.yml     build and test on every pull request and push to main, publish the image from main
-.github/dependabot.yml       weekly update pull requests for NuGet packages and GitHub Actions
+.github/dependabot.yml       weekly update pull requests for NuGet, uv (gateway) and GitHub Actions
 ```
 
 NuGet versions are locked in `packages.lock.json` (enabled in `Directory.Build.props`); CI restores in locked mode.
@@ -131,3 +132,75 @@ ConnectionStrings__Default=Server=<sql-host>;Database=RunStats;User Id=<login>;P
 ```
 
 Keep that file outside the project folder, so it can't end up in the image or in git.
+
+## Garmin gateway
+
+`gateway/` is the only part that talks to Garmin Connect. It returns Garmin's responses unchanged; the app decides what
+to keep. It needs [uv](https://docs.astral.sh/uv/) (`winget install --id astral-sh.uv -e`), which also installs the
+Python version from `gateway/.python-version` if it's missing. Dependencies are locked in `gateway/uv.lock`.
+
+```powershell
+cd gateway
+uv sync
+uv run ruff check
+uv run ruff format --check
+uv run pytest --cov
+```
+
+The tests use a fake Garmin client; they never call Garmin.
+
+### Endpoints
+
+| Endpoint | Returns |
+| --- | --- |
+| `GET /activities?start=0&limit=100` | A page of activities, newest first (`limit` up to 1000) |
+| `GET /activities/{id}` | The full summary of one activity |
+| `GET /activities/{id}/splits` | Laps |
+| `GET /activities/{id}/hr-zones` | Time in heart rate zones |
+| `GET /activities/{id}/weather` | Weather during the activity |
+| `GET /activities/{id}/fit` | The original FIT file (404 for activities imported without one) |
+| `GET /personal-records` | Personal records |
+| `GET /healthz/live`, `GET /healthz/ready` | Up / logged in to Garmin |
+
+Errors: `404` when Garmin doesn't know the activity, `502` when a Garmin call fails, and `503` with `Retry-After`
+while the gateway waits after a rate limit or a failed login.
+
+### Login and limits
+
+At startup the gateway logs in: with the saved token in `GARMIN_TOKEN_DIR` if there is one, otherwise with the email
+and password (the account has no two-factor authentication). Garmin refreshes the token itself; when that fails, the
+gateway logs in again once. The token file holds the Garmin session, so keep it as private as the password.
+
+Calls to Garmin run one at a time, at least `GARMIN_MIN_SECONDS_BETWEEN_CALLS` apart. After a rate limit (HTTP 429)
+the gateway doesn't call Garmin for `GARMIN_RATE_LIMIT_COOLDOWN_SECONDS`; after a failed login it doesn't try again
+for `GARMIN_LOGIN_FAILURE_COOLDOWN_SECONDS`, because repeated failed logins can get the account locked.
+
+| Setting | Default |
+| --- | --- |
+| `GARMIN_EMAIL`, `GARMIN_PASSWORD` | none |
+| `GARMIN_TOKEN_DIR` | `/data` |
+| `GARMIN_MIN_SECONDS_BETWEEN_CALLS` | `1` |
+| `GARMIN_RATE_LIMIT_COOLDOWN_SECONDS` | `300` |
+| `GARMIN_LOGIN_FAILURE_COOLDOWN_SECONDS` | `900` |
+| `HOST` | `127.0.0.1` (`0.0.0.0` in the Docker image) |
+| `PORT` | `8080` |
+
+Logs are JSON on stdout with the same field names as the app's; health check requests aren't logged.
+
+### Run locally
+
+Put the credentials in a file outside the repository, e.g. `%USERPROFILE%\.runstats\gateway.env`:
+
+```
+GARMIN_EMAIL=...
+GARMIN_PASSWORD=...
+```
+
+```powershell
+docker build -t runstats-garmin-gateway gateway
+docker run -d --name garmin-gateway -p 8081:8080 --read-only `
+  --env-file $env:USERPROFILE\.runstats\gateway.env -v garmin-gateway-data:/data runstats-garmin-gateway
+```
+
+The image is published as `ghcr.io/fdaniel02/runstats-garmin-gateway` together with the app's. It runs as user
+`10001` and only writes to `/data`.

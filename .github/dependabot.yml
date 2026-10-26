@@ -26,3 +26,12 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+
+  - package-ecosystem: uv
+    directory: /gateway
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      uv:
+        patterns: ["*"]
