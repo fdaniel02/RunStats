@@ -1,6 +1,80 @@
 @page "/heatmap"
+@using System.Text.Json
+@inject IHeatmapQueries Queries
+@inject IConfiguration Configuration
 
 <PageTitle>Heatmap · RunStats</PageTitle>
+<HeadContent>
+    <link rel="stylesheet" href="@Assets["lib/leaflet/leaflet.css"]" />
+</HeadContent>
 
 <h1>Heatmap</h1>
-<p class="muted">Coming in #13.</p>
+
+@if (data is null)
+{
+    return;
+}
+@if (data.Years.Count == 0)
+{
+    <p class="muted">No runs with GPS yet.</p>
+}
+else
+{
+    @* Full page loads: Blazor's enhanced navigation would swap the page without running the map script again. *@
+    <div class="filters">
+        <nav class="chips" aria-label="Period">
+            <a href="@Link(null, data.TypeKey)" aria-current="@Current(data.Year is null)" data-enhance-nav="false">All time</a>
+            @foreach (var year in data.Years)
+            {
+                <a href="@Link(year, data.TypeKey)" aria-current="@Current(data.Year == year)" data-enhance-nav="false">@year</a>
+            }
+        </nav>
+        @if (data.TypeKeys.Count > 1)
+        {
+            <nav class="chips" aria-label="Type">
+                <a href="@Link(data.Year, null)" aria-current="@Current(data.TypeKey is null)" data-enhance-nav="false">All types</a>
+                @foreach (var type in data.TypeKeys)
+                {
+                    <a href="@Link(data.Year, type)" aria-current="@Current(data.TypeKey == type)" data-enhance-nav="false">@Format.RunType(type)</a>
+                }
+            </nav>
+        }
+        <p class="summary muted">@data.Tracks.Count @(data.Tracks.Count == 1 ? "run" : "runs") · @Format.Km(data.Tracks.Sum(t => t.DistanceMeters)) km</p>
+    </div>
+
+    <div id="heatmap" class="map" role="region" aria-label="Map of the routes" data-carto-key="@Configuration["Heatmap:CartoApiKey"]"></div>
+    <script type="application/json" id="heatmap-data">@((MarkupString)Json())</script>
+    <script src="@Assets["lib/leaflet/leaflet.js"]"></script>
+    <script type="module" src="@Assets["js/heatmap.js"]"></script>
+}
+
+@code {
+    HeatmapData? data;
+
+    [SupplyParameterFromQuery(Name = "year")] public int? Year { get; set; }
+    [SupplyParameterFromQuery(Name = "type")] public string? TypeKey { get; set; }
+
+    protected override async Task OnParametersSetAsync() => data = await Queries.LoadAsync(Year, TypeKey, CancellationToken.None);
+
+    static string Link(int? year, string? typeKey)
+    {
+        var query = new List<string>();
+        if (year is not null)
+            query.Add($"year={year}");
+        if (typeKey is not null)
+            query.Add($"type={Uri.EscapeDataString(typeKey)}");
+        return query.Count == 0 ? "heatmap" : $"heatmap?{string.Join('&', query)}";
+    }
+
+    static string? Current(bool current) => current ? "page" : null;
+
+    // System.Text.Json escapes <, > and &, so a run's name can't close the script element.
+    string Json() => JsonSerializer.Serialize(data!.Tracks.Select(t => new
+    {
+        polyline = t.Polyline,
+        name = t.Name,
+        type = Format.RunType(t.TypeKey),
+        date = Format.Date(t.Date),
+        km = Format.Km(t.DistanceMeters)
+    }));
+}

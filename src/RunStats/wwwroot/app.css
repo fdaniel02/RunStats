@@ -42,3 +42,5 @@ h1 { font-size:1.6rem; margin:0; }
 main.page > * { min-width:0; }
 .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; min-width:0; }
 .visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+/* OpenStreetMap's light tiles turned dark, so the routes stand out; only the tiles, not the routes. */
+.leaflet-tile-pane .dark-tiles { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.85) saturate(.4); }
