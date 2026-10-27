@@ -29,7 +29,8 @@ public class DashboardPageTests : BunitContext
 
     static DashboardData Data(
         IReadOnlyList<WeekTotal>? weeks = null, IReadOnlyList<RunRow>? lastRuns = null, IReadOnlyList<RecordRow>? records = null,
-        IReadOnlyList<int>? raceYears = null, int? raceYear = 2026, IReadOnlyList<RunRow>? races = null) => new(
+        IReadOnlyList<int>? raceYears = null, int? raceYear = 2026, IReadOnlyList<RunRow>? races = null,
+        IReadOnlyList<DateOnly>? runDays = null) => new(
         new Totals(84, 710_800, 68 * 3600 + 55 * 60),
         new Totals(1, 23_700, 2 * 3600 + 15 * 60),
         weeks ?? Weeks((12, 1), (0, 0), (33.1, 3.2), (6, 0.5)),
@@ -37,7 +38,8 @@ public class DashboardPageTests : BunitContext
         records ?? [new RecordRow(3, 1429, new DateOnly(2026, 9, 27), 1), new RecordRow(7, 21530, new DateOnly(2025, 10, 12), 2)],
         raceYears ?? [2026, 2025],
         raceYear,
-        races ?? [new RunRow(2, new DateOnly(2026, 10, 17), "running", "Amsterdam Running", 7500, 2397)]);
+        races ?? [new RunRow(2, new DateOnly(2026, 10, 17), "running", "Amsterdam Running", 7500, 2397)],
+        runDays ?? [new DateOnly(2026, 10, 17), new DateOnly(2026, 10, 26)]);
 
     FakeQueries queries = null!;
 
@@ -212,5 +214,16 @@ public class DashboardPageTests : BunitContext
         var page = Render(Data(races: [new RunRow(2, new DateOnly(2026, 10, 17), "running", "Amsterdam Running", 7500, 2397, IsRace: true)]));
 
         Assert.Empty(page.FindAll("tr.race"));
+    }
+
+    [Fact]
+    public void The_activity_grid_sits_next_to_the_weekly_chart_and_marks_the_run_days()
+    {
+        var page = Render(Data());
+
+        Assert.Equal(["weeks", "activity"], page.FindAll(".sections > section").Take(2).Select(s => s.ClassList[s.ClassList.Length - 1]));
+        Assert.Equal("Days with a run", page.Find(".activity h2").TextContent);
+        Assert.Equal(["2026-10-17", "2026-10-26"], page.FindAll(".activity .cell.done").Select(c => c.GetAttribute("title")));
+        Assert.Equal("2026-10-27", page.Find(".activity .cell.today").GetAttribute("title"));
     }
 }

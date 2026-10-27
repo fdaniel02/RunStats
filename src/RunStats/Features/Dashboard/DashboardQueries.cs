@@ -10,10 +10,12 @@ public sealed record WeekTotal(DateOnly Monday, double DistanceMeters, double Du
 
 public sealed record RecordRow(int TypeId, double Value, DateOnly Date, long? RunId);
 
-// Races are shown one year at a time: RaceYear of RaceYears, the years that have races (newest first).
+// Races are shown one year at a time: RaceYear of RaceYears, the years that have races (newest first). RunDays are the
+// dates with a run in the activity grid's weeks.
 public sealed record DashboardData(
     Totals Year, Totals Month, IReadOnlyList<WeekTotal> Weeks, IReadOnlyList<RunRow> LastRuns,
-    IReadOnlyList<RecordRow> Records, IReadOnlyList<int> RaceYears, int? RaceYear, IReadOnlyList<RunRow> Races);
+    IReadOnlyList<RecordRow> Records, IReadOnlyList<int> RaceYears, int? RaceYear, IReadOnlyList<RunRow> Races,
+    IReadOnlyList<DateOnly> RunDays);
 
 public interface IDashboardQueries
 {
@@ -25,6 +27,7 @@ public class DashboardQueries(IDbContextFactory<AppDbContext> dbFactory, Clock c
 {
     public const int WeekCount = 12;
     public const int LastRunCount = 10;
+    public const int GridWeeks = 16;
 
     public async Task<DashboardData> LoadAsync(int? raceYear, CancellationToken cancellationToken)
     {
@@ -39,7 +42,8 @@ public class DashboardQueries(IDbContextFactory<AppDbContext> dbFactory, Clock c
             await RecordsAsync(cancellationToken),
             raceYears,
             year,
-            year is { } y ? await RacesAsync(y, cancellationToken) : []);
+            year is { } y ? await RacesAsync(y, cancellationToken) : [],
+            await RunDaysAsync(new ActivityGrid(today, GridWeeks).Start, cancellationToken));
     }
 
     public async Task<Totals> TotalsSinceAsync(DateOnly from, CancellationToken cancellationToken)
@@ -106,6 +110,15 @@ public class DashboardQueries(IDbContextFactory<AppDbContext> dbFactory, Clock c
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         return await db.Runs.Where(r => r.IsRace && r.StartLocal >= from && r.StartLocal < to)
             .OrderByDescending(r => r.StartUtc).ToRunRowsAsync(cancellationToken);
+    }
+
+    // By the run's own (Garmin local) date, the date the run tables show.
+    public async Task<List<DateOnly>> RunDaysAsync(DateOnly from, CancellationToken cancellationToken)
+    {
+        var start = from.ToDateTime(TimeOnly.MinValue);
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var days = await db.Runs.Where(r => r.StartLocal >= start).Select(r => r.StartLocal.Date).Distinct().ToListAsync(cancellationToken);
+        return [.. days.Select(DateOnly.FromDateTime).Order()];
     }
 
     public async Task<List<RecordRow>> RecordsAsync(CancellationToken cancellationToken)

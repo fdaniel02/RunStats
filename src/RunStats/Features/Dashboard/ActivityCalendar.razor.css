@@ -1,0 +1,33 @@
+/* minmax(0,…) keeps columns equal: a month label wider than a column overflows into the next one instead of widening its own. */
+.calendar {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-template-rows: auto repeat(7, 1fr);
+    gap: 3px;
+}
+
+.month {
+    font-size: .7rem;
+    line-height: 1;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.cell {
+    aspect-ratio: 1;
+    border-radius: 3px;
+    background: #21262d;
+}
+
+    .cell.done {
+        background: var(--accent);
+    }
+
+    .cell.future {
+        visibility: hidden;
+    }
+
+    .cell.today {
+        outline: 1px solid var(--muted);
+    }
