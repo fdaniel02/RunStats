@@ -42,6 +42,10 @@ jobs:
           working-directory: gateway
           enable-cache: true
 
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
       - if: env.SONAR_TOKEN != ''
         run: >
           dotnet sonarscanner begin
@@ -50,8 +54,9 @@ jobs:
           /d:sonar.host.url=https://sonarcloud.io
           /d:sonar.token="$SONAR_TOKEN"
           /d:sonar.cs.opencover.reportsPaths=TestResults/coverage.opencover.*.xml
-          /d:sonar.exclusions=**/Migrations/**
-          /d:sonar.coverage.exclusions=**/Migrations/**,**/ReconnectModal.razor.js,gateway/tests/**
+          /d:sonar.exclusions=**/Migrations/**,**/wwwroot/lib/**
+          /d:sonar.coverage.exclusions=**/Migrations/**,**/ReconnectModal.razor.js,gateway/tests/**,tests/js/**
+          /d:sonar.javascript.lcov.reportPaths=TestResults/js-lcov.info
           /d:sonar.python.version=3.14
           /d:sonar.python.coverage.reportPaths=gateway/coverage.xml
 
@@ -71,6 +76,12 @@ jobs:
       - working-directory: gateway
         run: uv run --frozen --no-build pytest --cov --cov-report=xml
 
+      - run: >
+          node --test --experimental-test-coverage --test-coverage-include="src/**/*.js"
+          --test-reporter=spec --test-reporter-destination=stdout
+          --test-reporter=lcov --test-reporter-destination=TestResults/js-lcov.info
+          "tests/js/*.test.mjs"
+
       - if: env.SONAR_TOKEN != ''
         run: dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
 
@@ -81,6 +92,7 @@ jobs:
           path: |
             TestResults/coverage.opencover.*.xml
             gateway/coverage.xml
+            TestResults/js-lcov.info
           retention-days: 7
 
   image:

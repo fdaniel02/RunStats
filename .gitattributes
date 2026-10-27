@@ -1,2 +1,4 @@
 # WSL runs these from the Windows checkout; bash fails on CRLF line endings.
 *.sh text eol=lf
+# Third-party files exactly as published (checked against cdnjs SRI hashes): no line-ending conversion.
+src/RunStats/wwwroot/lib/** -text

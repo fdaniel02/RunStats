@@ -23,6 +23,8 @@ RunStats.slnx
 src/RunStats/                the app (Blazor Server)
   Components/                app shell: App, routes, layout, error pages
   Features/<Screen>/         one folder per screen (Dashboard, Runs, Heatmap)
+  wwwroot/js/                the heatmap's script (tests: tests/js, Node's test runner)
+  wwwroot/lib/leaflet/       Leaflet 1.9.4, the map library, kept in the repo (BSD 2-Clause)
   Data/                      DbContext, entities, migrations, startup and time zone helpers
   Garmin/                    client for the Garmin gateway
   Sync/                      the sync with Garmin and its API
@@ -54,6 +56,12 @@ dotnet run --project src/RunStats
 dotnet test --coverlet
 ```
 
+The heatmap's JavaScript is tested with Node's built-in test runner (Node 24, no packages to install):
+
+```powershell
+node --test "tests/js/*.test.mjs"
+```
+
 Tests run on Microsoft Testing Platform (set in `global.json`). `--coverlet` writes an OpenCover report
 to `TestResults/coverage.opencover.*.xml`; the settings are in `tests/RunStats.Tests/testconfig.json`.
 
@@ -81,6 +89,16 @@ the app refuses to start without it.
 
 `GarminGateway:BaseUrl` is where the app reaches the gateway: `http://garmin-gateway:8080/` (the Service name in the
 cluster) in `appsettings.json`, `http://localhost:8081/` in `appsettings.Development.json`.
+
+### Heatmap map tiles
+
+The heatmap draws the routes on CARTO's dark map ("Dark Matter"), which needs a free key from
+[carto.com/basemaps/apikey](https://carto.com/basemaps/apikey): the setting `Heatmap:CartoApiKey` (user-secrets
+locally, `Heatmap__CartoApiKey` in the container). Without it, the map uses OpenStreetMap's tiles, darkened with CSS.
+The browser loads the tiles itself, so the key is visible in the page, as with every map key.
+
+Leaflet is kept in `wwwroot/lib/leaflet` rather than loaded from a CDN, so Dependabot doesn't update it; to update,
+replace the files with a newer release from cdnjs and check them against cdnjs' SRI hashes.
 
 ### Time zone
 
