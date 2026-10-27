@@ -108,26 +108,23 @@ h2 {
         padding: 12px;
         border: 1px solid var(--line);
         border-radius: 10px;
+        /* For the name's link, which covers the whole record like the rows of the run tables. */
+        position: relative;
     }
+
+        .record-list li:hover:has(a[href]) {
+            border-color: var(--accent);
+        }
+
+        .record-list li:has(a:focus-visible) {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
 
 .record-name {
     color: var(--muted);
     font-size: .85rem;
 }
-
-/* The name's link covers the whole record, like the rows of the run tables. */
-.record-list li {
-    position: relative;
-}
-
-    .record-list li:hover:has(a[href]) {
-        border-color: var(--accent);
-    }
-
-    .record-list li:has(a:focus-visible) {
-        outline: 2px solid var(--accent);
-        outline-offset: 2px;
-    }
 
 a.record-name {
     text-decoration: none;
