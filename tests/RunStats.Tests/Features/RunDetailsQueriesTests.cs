@@ -38,7 +38,8 @@ public sealed class RunDetailsQueriesTests(SqlServerFixture sqlServer) : IAsyncL
             DurationSeconds = 2397,
             Vo2Max = 50,
             Laps = [.. lapIndexes.Select(i => new RunLap { LapIndex = i, StartUtc = start.AddMinutes(5 * i), DistanceMeters = 1000, DurationSeconds = 300 })],
-            Track = track ? new RunTrack { EncodedPolyline = $"line{id}", PointCount = 2 } : null
+            Track = track ? new RunTrack { EncodedPolyline = $"line{id}", PointCount = 2 } : null,
+            Samples = [.. Enumerable.Range(0, 60).Select(i => new RunSample { OffsetSeconds = i, DistanceMeters = i * 3, SpeedMps = 3, HeartRate = 150, AltitudeMeters = 5 })]
         });
         await context.SaveChangesAsync(Ct);
     }
@@ -57,6 +58,8 @@ public sealed class RunDetailsQueriesTests(SqlServerFixture sqlServer) : IAsyncL
         Assert.Equal([1, 2, 3], details.Laps.Select(l => l.LapIndex));
         Assert.All(details.Laps, l => Assert.Equal(1, l.RunId));
         Assert.Equal("line1", details.Polyline);
+        Assert.Equal(50, details.ChartPoints.Count);
+        Assert.All(details.ChartPoints, p => Assert.Equal((150d, 5d), (p.HeartRate, p.ElevationMeters)));
     }
 
     [Fact]
@@ -64,7 +67,10 @@ public sealed class RunDetailsQueriesTests(SqlServerFixture sqlServer) : IAsyncL
     {
         await AddAsync(1, "Treadmill", track: false, 1);
 
-        Assert.Null((await queries.LoadAsync(1, Ct))!.Polyline);
+        var details = await queries.LoadAsync(1, Ct);
+
+        Assert.Null(details!.Polyline);
+        Assert.All(details.ChartPoints, p => Assert.Null(p.ElevationMeters));
     }
 
     [Fact]

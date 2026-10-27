@@ -69,10 +69,35 @@
     outline-offset: 2px;
 }
 
+.summary-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px 16px;
+    margin-bottom: 12px;
+}
+
 .summary {
-    margin: 0 0 12px;
+    margin: 0;
     font-size: .9rem;
 }
+
+/* The key to RunTable's tinted race rows; stronger than the row tint, since a small swatch needs more color to show. */
+.race-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .85rem;
+}
+
+    .race-key::before {
+        content: "";
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        background: rgba(47, 129, 247, .35);
+    }
 
 .pager {
     display: flex;

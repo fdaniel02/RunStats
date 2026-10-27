@@ -24,6 +24,18 @@ function show(container, track) {
         marker(L, ends.start, "#3fb950", "Start").addTo(map);
     }
     map.fitBounds(line.getBounds(), { padding: [24, 24] });
+
+    followCharts(document, map, L.circleMarker([0, 0], { radius: 7, weight: 2, color: "#0d1117", fillColor: "#e6edf3", fillOpacity: 1 }));
+}
+
+// The dot shows where the charts' readout is, which charts.js announces with "run:position".
+export function followCharts(document, map, dot) {
+    document.addEventListener("run:position", e => {
+        if (e.detail)
+            dot.setLatLng(e.detail).addTo(map);
+        else
+            dot.remove();
+    });
 }
 
 const container = typeof document === "undefined" ? null : document.getElementById("route");

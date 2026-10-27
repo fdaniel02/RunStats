@@ -132,7 +132,16 @@ public class RunsPageTests : BunitContext
         var rows = Render(Data()).FindAll("tbody tr");
 
         Assert.Equal(2, rows.Count);
-        Assert.Equal(["2026-10-17", "Amsterdam Running", "Run", "7.5", "39:57", "5:20 / 3:42 /km"], rows[0].Children.Take(6).Select(c => c.TextContent));
+        Assert.Equal(["2026-10-17", "Amsterdam Running", "Run", "7.5", "39:57", "5:20 / 3:42"], rows[0].Children.Take(6).Select(c => c.TextContent));
+    }
+
+    [Fact]
+    public void The_pace_unit_is_in_the_header_like_the_other_columns()
+    {
+        var page = Render(Data());
+
+        Assert.Equal("Pace/km", page.FindAll("thead th")[5].TextContent);
+        Assert.Equal("/km", page.FindAll("thead th")[5].QuerySelector(".unit")!.TextContent);
     }
 
     [Fact]
@@ -146,7 +155,7 @@ public class RunsPageTests : BunitContext
     [Fact]
     public void Without_a_max_speed_the_max_pace_is_missing()
     {
-        Assert.Equal("5:45 / – /km", Render(Data()).FindAll("tbody tr")[1].Children[5].TextContent);
+        Assert.Equal("5:45 / –", Render(Data()).FindAll("tbody tr")[1].Children[5].TextContent);
     }
 
     [Fact]
@@ -159,6 +168,27 @@ public class RunsPageTests : BunitContext
         var rows = page.FindAll("tbody tr");
         Assert.Equal(["11.3 / 16.2", "162 / 181", "171 / 186", "1.10", "512", "12 / 14"], rows[0].QuerySelectorAll("td.metric").Select(c => c.TextContent));
         Assert.Equal(["10.4 / –", "140 / 155", "166 / 170", "1.04", "380", "–"], rows[1].QuerySelectorAll("td.metric").Select(c => c.TextContent));
+    }
+
+    [Fact]
+    public void Races_are_tinted_and_say_so_to_screen_readers()
+    {
+        var page = Render(Data(runs: [Amsterdam with { IsRace = true }, Treadmill]));
+
+        var rows = page.FindAll("tbody tr");
+        Assert.Equal(["race", null], rows.Select(r => r.GetAttribute("class")));
+        Assert.Equal("Amsterdam Running (race)", rows[0].QuerySelector(".name")!.TextContent);
+        Assert.Equal(" (race)", rows[0].QuerySelector(".name .visually-hidden")!.TextContent);
+        Assert.Equal("Race", page.Find(".race-key").TextContent);
+    }
+
+    [Fact]
+    public void Without_races_on_the_page_there_is_no_key()
+    {
+        var page = Render(Data());
+
+        Assert.Empty(page.FindAll("tr.race"));
+        Assert.Empty(page.FindAll(".race-key"));
     }
 
     [Fact]

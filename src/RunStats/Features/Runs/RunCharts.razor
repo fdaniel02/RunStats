@@ -1,0 +1,97 @@
+@using System.Globalization
+@using System.Text.Json
+
+@if (view is not null)
+{
+    <section class="card charts" id="charts" tabindex="0" aria-label="Charts over the distance. The arrow keys step through the run.">
+        <div class="charts-head">
+            <h2>Over the distance</h2>
+            <button type="button" class="fullscreen-open">Full screen</button>
+            <button type="button" class="fullscreen-close" aria-label="Close full screen">✕</button>
+        </div>
+        <p class="rotate-hint muted">Turn your phone for a wider view.</p>
+        <div class="plots">
+            <div class="chart-tip" role="status" hidden></div>
+            @foreach (var series in view.Series)
+            {
+                <div class="chart" data-key="@series.Key">
+                    <div class="chart-title">@series.Title <span class="muted">@series.Unit</span></div>
+                    <div class="plot">
+                        <div class="y-ticks" aria-hidden="true">
+                            @foreach (var tick in series.Ticks)
+                            {
+                                <span style="top: @Percent(tick.Position)">@tick.Label</span>
+                            }
+                        </div>
+                        <div class="drawing">
+                            <svg viewBox="0 0 @RunChartView.Width @RunChartView.Height" preserveAspectRatio="none" aria-hidden="true">
+                                @foreach (var y in series.Ticks.Select(t => Number(t.Position)))
+                                {
+                                    <line class="grid" x1="0" x2="@RunChartView.Width" y1="@y" y2="@y" />
+                                }
+                                @if (series.Area is not null)
+                                {
+                                    <path class="area" d="@series.Area" />
+                                }
+                                <path class="line" d="@series.Line" />
+                            </svg>
+                            <div class="cursor" hidden></div>
+                        </div>
+                    </div>
+                </div>
+            }
+            <div class="x-ticks" aria-hidden="true">
+                <div class="ticks">
+                    @foreach (var tick in view.KmTicks)
+                    {
+                        <span style="left: @Percent(tick.Position)">@tick.Label</span>
+                    }
+                </div>
+                <span class="muted">km</span>
+            </div>
+        </div>
+    </section>
+    <script type="application/json" id="chart-data">@((MarkupString)Json())</script>
+    <script type="module" src="@Assets["js/charts.js"]"></script>
+}
+
+@code {
+    static readonly CultureInfo Culture = CultureInfo.InvariantCulture;
+
+    ChartView? view;
+
+    [Parameter, EditorRequired] public IReadOnlyList<ChartPoint> Points { get; set; } = [];
+
+    protected override void OnParametersSet() => view = RunChartView.For(Points);
+
+    static string Number(double value) => value.ToString("0.##", Culture);
+
+    static string Percent(double value) => $"{Number(value)}%";
+
+    // For the hover readout and the map's dot; rounded, since the page carries every value.
+    string Json()
+    {
+        var keys = view!.Series.Select(s => s.Key).ToHashSet();
+        static double? Round(double? value, int decimals) => value is { } v ? Math.Round(v, decimals) : null;
+        var values = new Dictionary<string, object?>
+        {
+            ["total"] = Math.Round(view.TotalKm, 3),
+            ["series"] = view.Series.Select(s => new { key = s.Key, title = s.Title, unit = s.Unit }),
+            ["km"] = Points.Select(p => Math.Round(p.Km, 3)),
+            ["time"] = Points.Select(p => Math.Round(p.Seconds)),
+            ["lat"] = Points.Select(p => Round(p.Latitude, 6)),
+            ["lon"] = Points.Select(p => Round(p.Longitude, 6))
+        };
+        if (keys.Contains("pace"))
+            values["pace"] = Points.Select(p => Round(p.PaceSecondsPerKm, 0));
+        if (keys.Contains("hr"))
+            values["hr"] = Points.Select(p => Round(p.HeartRate, 0));
+        if (keys.Contains("elevation"))
+            values["elevation"] = Points.Select(p => Round(p.ElevationMeters, 0));
+        if (keys.Contains("cadence"))
+            values["cadence"] = Points.Select(p => Round(p.CadenceSpm, 0));
+        if (keys.Contains("stride"))
+            values["stride"] = Points.Select(p => Round(p.StrideMeters, 2));
+        return JsonSerializer.Serialize(values);
+    }
+}

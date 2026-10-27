@@ -29,4 +29,33 @@ public class ChartScaleTests
 
     [Fact]
     public void Decimal_ticks_stay_round() => Assert.Equal([0, 0.2, 0.4, 0.6], ChartScale.Ticks(0.6, 0.2));
+
+    [Theory]
+    [InlineData(152, 181, 150, 190, 10)]
+    [InlineData(0.93, 1.18, 0.9, 1.2, 0.1)]
+    [InlineData(2, 7, 2, 8, 2)]
+    public void Range_rounds_around_the_values(double lowest, double highest, double min, double max, double step)
+    {
+        var (actualMin, actualMax, actualStep) = ChartScale.Range(lowest, highest);
+
+        Assert.Equal((min, max, step), (Math.Round(actualMin, 6), Math.Round(actualMax, 6), Math.Round(actualStep, 6)));
+    }
+
+    [Fact]
+    public void Range_uses_given_steps_when_one_fits()
+    {
+        Assert.Equal((285d, 360d, 15d), ChartScale.Range(290, 347, [15, 30, 60]));
+    }
+
+    [Fact]
+    public void Range_falls_back_to_round_steps_past_the_given_ones()
+    {
+        Assert.Equal((0d, 1000d, 500d), ChartScale.Range(10, 990, [15, 30, 60]));
+    }
+
+    [Fact]
+    public void A_flat_range_still_has_room()
+    {
+        Assert.Equal((4d, 6d, 0.5), ChartScale.Range(5, 5));
+    }
 }
