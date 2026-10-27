@@ -183,6 +183,26 @@ Telemetry: a `Sync` span (the gateway's spans join its trace), log events 10–1
 (by trigger and outcome), `runstats.sync.duration`, `runstats.sync.runs` (by change: added, updated, deleted, processed, processing_failed) and
 `runstats.sync.last_success` (Unix time of the last successful sync).
 
+## Deployment
+
+RunStats runs in the homelab's k3s cluster; its manifests are in
+[cluster-gitops](https://github.com/fdaniel02/cluster-gitops) (`workloads/runstats/`). The database is `RunStats` on the
+cluster's SQL Server, with its own login `runstats` (`db_datareader`, `db_datawriter`, `db_ddladmin` for the migrations)
+and the `backup` user the nightly backup job needs.
+
+`scripts/setup-cluster-database.sh` sets this up once from WSL. It copies the local development database into the
+cluster (backup, copy into the `mssql-0` pod, restore), so production starts with every run instead of downloading the
+whole history from Garmin again; it empties the development sync history and Data Protection keys, creates the login
+with a generated password, and seals `runstats-db` (the connection string) and `garmin-gateway` (from `gateway.env`)
+into the cluster-gitops checkout. No password is printed or stored in plain text; the login's password exists only in
+the sealed secret and in SQL Server. It refuses to overwrite an existing `RunStats` database unless given `--replace`.
+
+```bash
+scripts/setup-cluster-database.sh --gitops /mnt/c/_WORK/cluster-gitops
+```
+
+`scripts/create-sql-login.sql` has the same login setup for doing it by hand.
+
 ## Garmin gateway
 
 `gateway/` is the only part that talks to Garmin Connect. It returns Garmin's responses unchanged; the app decides what
