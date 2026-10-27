@@ -78,7 +78,7 @@ public class DashboardQueries(IDbContextFactory<AppDbContext> dbFactory, Clock c
     public async Task<List<RunRow>> LastRunsAsync(CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        return Rows(await db.Runs.OrderByDescending(r => r.StartUtc).Take(LastRunCount).Select(RowColumns).ToListAsync(cancellationToken));
+        return await db.Runs.OrderByDescending(r => r.StartUtc).Take(LastRunCount).ToRunRowsAsync(cancellationToken);
     }
 
     // The requested race year if it has races, otherwise this year, otherwise the latest year with races.
@@ -104,8 +104,8 @@ public class DashboardQueries(IDbContextFactory<AppDbContext> dbFactory, Clock c
         var from = new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
         var to = from.AddYears(1);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        return Rows(await db.Runs.Where(r => r.IsRace && r.StartLocal >= from && r.StartLocal < to)
-            .OrderByDescending(r => r.StartUtc).Select(RowColumns).ToListAsync(cancellationToken));
+        return await db.Runs.Where(r => r.IsRace && r.StartLocal >= from && r.StartLocal < to)
+            .OrderByDescending(r => r.StartUtc).ToRunRowsAsync(cancellationToken);
     }
 
     public async Task<List<RecordRow>> RecordsAsync(CancellationToken cancellationToken)
@@ -115,14 +115,6 @@ public class DashboardQueries(IDbContextFactory<AppDbContext> dbFactory, Clock c
         var records = await db.PersonalRecords.Where(r => known.Contains(r.TypeId)).OrderBy(r => r.TypeId).ToListAsync(cancellationToken);
         return [.. records.Select(r => new RecordRow(r.TypeId, r.Value, DateOnly.FromDateTime(r.AchievedAtLocal), r.RunId))];
     }
-
-    sealed record RowValues(long Id, DateTime StartLocal, string TypeKey, string Name, double DistanceMeters, double DurationSeconds);
-
-    static readonly System.Linq.Expressions.Expression<Func<Run, RowValues>> RowColumns =
-        r => new RowValues(r.Id, r.StartLocal, r.TypeKey, r.Name, r.DistanceMeters, r.DurationSeconds);
-
-    static List<RunRow> Rows(List<RowValues> rows) =>
-        [.. rows.Select(r => new RunRow(r.Id, DateOnly.FromDateTime(r.StartLocal), r.TypeKey, r.Name, r.DistanceMeters, r.DurationSeconds))];
 
     public static DateOnly Monday(DateOnly date) => date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
 }

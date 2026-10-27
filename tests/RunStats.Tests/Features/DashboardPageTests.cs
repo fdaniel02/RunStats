@@ -185,4 +185,12 @@ public class DashboardPageTests : BunitContext
         Assert.Equal(["2026-10-12 – 2026-10-18", "0.0", "0 min"], rows[1]);
         Assert.Equal(["This week (from 2026-10-26)", "6.0", "30 min"], rows[3]);
     }
+
+    [Fact]
+    public void The_dashboards_tables_have_no_metric_columns()
+    {
+        var page = Render(Data());
+
+        Assert.Empty(page.FindAll(".metric"));
+    }
 }

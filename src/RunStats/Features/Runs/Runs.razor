@@ -1,6 +1,115 @@
 @page "/runs"
+@using System.Globalization
+@inject IRunListQueries Queries
 
 <PageTitle>Runs · RunStats</PageTitle>
 
 <h1>Runs</h1>
-<p class="muted">Coming in #12.</p>
+
+@if (data is null)
+{
+    return;
+}
+@if (data.TypeKeys.Count == 0)
+{
+    <p class="muted">No runs yet.</p>
+}
+else
+{
+    var filter = data.Filter;
+    <form class="filters" method="get" action="runs">
+        <label>
+            From
+            <input type="date" name="from" value="@DateValue(filter.From)" />
+        </label>
+        <label>
+            To
+            <input type="date" name="to" value="@DateValue(filter.To)" />
+        </label>
+        @if (data.TypeKeys.Count > 1)
+        {
+            <label>
+                Type
+                <select name="type">
+                    <option value="">All types</option>
+                    @foreach (var type in data.TypeKeys)
+                    {
+                        <option value="@type" selected="@(type == filter.TypeKey)">@Format.RunType(type)</option>
+                    }
+                </select>
+            </label>
+        }
+        @if (data.HasRaces)
+        {
+            <label class="check">
+                <input type="checkbox" name="races" value="true" checked="@filter.RacesOnly" />
+                Races only
+            </label>
+        }
+        <div class="actions">
+            <button type="submit">Apply</button>
+            <a href="runs">Clear</a>
+        </div>
+    </form>
+
+    <section class="card">
+        @if (data.Count > 0)
+        {
+            <p class="summary muted">@data.Count @(data.Count == 1 ? "run" : "runs") · @Format.Km(data.DistanceMeters) km · @Format.Hours(data.DurationSeconds)</p>
+        }
+        <RunTable Rows="data.Runs" ShowName="true" ShowMetrics="true" EmptyText="No runs match these filters." />
+        @if (data.PageCount > 1)
+        {
+            <nav class="pager" aria-label="Pages">
+                @if (data.Page > 1)
+                {
+                    <a href="@Link(filter, data.Page - 1)" rel="prev">Newer</a>
+                }
+                <span class="muted">Page @data.Page of @data.PageCount</span>
+                @if (data.Page < data.PageCount)
+                {
+                    <a href="@Link(filter, data.Page + 1)" rel="next">Older</a>
+                }
+            </nav>
+        }
+    </section>
+}
+
+@code {
+    RunListData? data;
+
+    // Strings rather than DateOnly?/int?: the form sends empty fields, and a hand-edited address shouldn't break the page.
+    [SupplyParameterFromQuery(Name = "from")] public string? From { get; set; }
+    [SupplyParameterFromQuery(Name = "to")] public string? To { get; set; }
+    [SupplyParameterFromQuery(Name = "type")] public string? TypeKey { get; set; }
+    [SupplyParameterFromQuery(Name = "races")] public string? Races { get; set; }
+    [SupplyParameterFromQuery(Name = "page")] public string? Page { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var filter = new RunFilter(ParseDate(From), ParseDate(To), string.IsNullOrEmpty(TypeKey) ? null : TypeKey, Races == "true");
+        var page = int.TryParse(Page, NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : 1;
+        data = await Queries.LoadAsync(filter, page, CancellationToken.None);
+    }
+
+    static DateOnly? ParseDate(string? value) =>
+        DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) ? date : null;
+
+    static string? DateValue(DateOnly? date) => date is { } d ? Format.Date(d) : null;
+
+    static string Link(RunFilter filter, int page)
+    {
+        var query = new List<string>();
+        if (filter.From is { } from)
+            query.Add($"from={Format.Date(from)}");
+        if (filter.To is { } to)
+            query.Add($"to={Format.Date(to)}");
+        if (filter.TypeKey is not null)
+            query.Add($"type={Uri.EscapeDataString(filter.TypeKey)}");
+        if (filter.RacesOnly)
+            query.Add("races=true");
+        if (page > 1)
+            query.Add($"page={page}");
+        return query.Count == 0 ? "runs" : $"runs?{string.Join('&', query)}";
+    }
+}
