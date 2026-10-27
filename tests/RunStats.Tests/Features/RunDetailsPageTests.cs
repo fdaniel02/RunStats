@@ -52,7 +52,7 @@ public class RunDetailsPageTests : BunitContext
     static RunDetailsData Data(Run? run = null, IReadOnlyList<RunLap>? laps = null, string? polyline = "abc") =>
         new(run ?? Amsterdam(), laps ?? [Lap(1), Lap(2, meters: 500, seconds: 163)], polyline, Points);
 
-    static readonly ChartPoint[] Points = [new(0, 330, 150, 5, 170, 1.05, 51.6, 5.5), new(7.5, 300, 170, 6, 180, 1.1, 51.61, 5.51)];
+    static readonly ChartPoint[] Points = [new(0, 0, 330, 150, 5, 170, 1.05, 51.6, 5.5), new(7.5, 2397, 300, 170, 6, 180, 1.1, 51.61, 5.51)];
 
     FakeQueries queries = null!;
     readonly List<NotFoundEventArgs> notFound = [];

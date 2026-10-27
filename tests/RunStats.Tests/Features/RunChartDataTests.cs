@@ -36,8 +36,10 @@ public class RunChartDataTests
     {
         var points = RunChartData.Points(Steady(1000), hasRoute: true, maxPoints: 100);
 
-        Assert.Equal(100, points.Count);
+        // The first of the 100 stretches lies within the left-out start.
+        Assert.Equal(99, points.Count);
         Assert.Equal(points.OrderBy(p => p.Km).Select(p => p.Km), points.Select(p => p.Km));
+        Assert.Equal(points.OrderBy(p => p.Seconds).Select(p => p.Seconds), points.Select(p => p.Seconds));
         Assert.InRange(points[^1].Km, 2.95, 3.0);
         Assert.All(points, p =>
         {
@@ -60,19 +62,78 @@ public class RunChartDataTests
     [Fact]
     public void A_short_run_has_a_point_per_sample_at_most()
     {
-        Assert.Equal(20, RunChartData.Points(Steady(20), hasRoute: true).Count);
+        Assert.Equal(20, RunChartData.Points(Steady(30), hasRoute: true).Count);
     }
 
     [Fact]
-    public void A_one_second_spike_is_smoothed_away()
+    public void The_first_ten_seconds_are_left_out_of_every_chart()
+    {
+        var samples = Steady(100);
+        for (var i = 0; i < RunChartData.StartSkipSeconds; i++)
+        {
+            samples[i].SpeedMps = 0.5f;
+            samples[i].CadenceSpm = 60;
+            samples[i].HeartRate = 60;
+        }
+
+        var points = RunChartData.Points(samples, hasRoute: true, maxPoints: 1000);
+
+        Assert.Equal(90, points.Count);
+        Assert.Equal((0.03, 10d), (Math.Round(points[0].Km, 3), points[0].Seconds));
+        Assert.All(points, p => Assert.Equal((150d, 170d), (p.HeartRate, Math.Round(p.CadenceSpm!.Value, 3))));
+    }
+
+    [Fact]
+    public void The_start_is_the_first_sample_not_offset_zero()
+    {
+        var samples = Steady(100);
+        foreach (var sample in samples)
+            sample.OffsetSeconds += 5;
+
+        Assert.Equal(15, RunChartData.Points(samples, hasRoute: true, maxPoints: 1000)[0].Seconds);
+    }
+
+    [Fact]
+    public void Each_point_has_the_time_since_the_start()
+    {
+        var points = RunChartData.Points(Steady(1000), hasRoute: true, maxPoints: 99);
+
+        Assert.All(points, p => Assert.Equal(p.Km * 1000 / 3, p.Seconds, 3));
+    }
+
+    [Fact]
+    public void Elevation_is_smoothed_over_half_a_minute()
     {
         var samples = Steady(600);
-        samples[300].SpeedMps = 30;
+        for (var i = 0; i < samples.Count; i++)
+            samples[i].AltitudeMeters = i % 2 == 0 ? 4.5f : 5.5f;
 
-        var paces = RunChartData.Points(samples, hasRoute: true, maxPoints: 600).Select(p => p.PaceSecondsPerKm!.Value).ToList();
+        var elevations = RunChartData.Points(samples, hasRoute: true, maxPoints: 1000).Select(p => p.ElevationMeters!.Value).ToList();
 
-        // Spread over 15 seconds: 4.8 m/s at most instead of 30.
-        Assert.True(paces.Min() > 1000 / 5.0);
+        Assert.All(elevations, e => Assert.InRange(e, 4.95, 5.05));
+    }
+
+    [Fact]
+    public void The_pace_follows_the_watchs_speed_without_smoothing()
+    {
+        var samples = Steady(600);
+        samples[300].SpeedMps = 4;
+
+        var points = RunChartData.Points(samples, hasRoute: true, maxPoints: 600);
+
+        Assert.Equal(250, points.Single(p => Math.Abs(p.Km - 0.9) < 1e-6).PaceSecondsPerKm!.Value, 3);
+    }
+
+    [Fact]
+    public void A_one_second_cadence_spike_is_smoothed_away()
+    {
+        var samples = Steady(600);
+        samples[300].CadenceSpm = 320;
+
+        var cadences = RunChartData.Points(samples, hasRoute: true, maxPoints: 600).Select(p => p.CadenceSpm!.Value).ToList();
+
+        // Spread over 15 seconds: 180 at most instead of 320.
+        Assert.InRange(cadences.Max(), 179, 180.1);
     }
 
     [Fact]
@@ -145,7 +206,7 @@ public class RunChartDataTests
     public void Samples_without_a_distance_are_left_out()
     {
         var samples = Steady(100);
-        samples.Insert(0, new RunSample { OffsetSeconds = -5, HeartRate = 60 });
+        samples.Insert(20, new RunSample { OffsetSeconds = 20, HeartRate = 60 });
 
         Assert.Equal(150, RunChartData.Points(samples, hasRoute: true)[0].HeartRate);
     }

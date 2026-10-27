@@ -43,6 +43,7 @@ const data = {
     total: 4,
     series: [{ key: "pace", title: "Pace", unit: "/km" }, { key: "hr", title: "Heart rate", unit: "bpm" }],
     km: [0, 1, 2, 3, 4],
+    time: [0, 300, 600, 900, 1200],
     pace: [330, 320, 310, 300, 290],
     hr: [120, 130, 140, 150, 160],
     lat: [51.6, 51.61, null, 51.63, 51.64],
@@ -99,7 +100,7 @@ test("hovering shows the line in every chart, the values and the map position", 
 
     assert.deepEqual(cursors.map(c => [c.hidden, c.style.left]), [[false, "25%"], [false, "25%"]]);
     assert.equal(tip.hidden, false);
-    assert.deepEqual(rows(tip), ["Distance 1.00 km", "Pace 5:20 /km", "Heart rate 130 bpm"]);
+    assert.deepEqual(rows(tip), ["Distance 1.00 km", "Time 5:00", "Pace 5:20 /km", "Heart rate 130 bpm"]);
     assert.deepEqual(positions, [[51.61, 5.51]]);
 });
 

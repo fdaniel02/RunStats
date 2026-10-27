@@ -78,6 +78,7 @@
             ["total"] = Math.Round(view.TotalKm, 3),
             ["series"] = view.Series.Select(s => new { key = s.Key, title = s.Title, unit = s.Unit }),
             ["km"] = Points.Select(p => Math.Round(p.Km, 3)),
+            ["time"] = Points.Select(p => Math.Round(p.Seconds)),
             ["lat"] = Points.Select(p => Round(p.Latitude, 6)),
             ["lon"] = Points.Select(p => Round(p.Longitude, 6))
         };

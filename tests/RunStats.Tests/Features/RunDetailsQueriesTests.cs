@@ -58,7 +58,7 @@ public sealed class RunDetailsQueriesTests(SqlServerFixture sqlServer) : IAsyncL
         Assert.Equal([1, 2, 3], details.Laps.Select(l => l.LapIndex));
         Assert.All(details.Laps, l => Assert.Equal(1, l.RunId));
         Assert.Equal("line1", details.Polyline);
-        Assert.Equal(60, details.ChartPoints.Count);
+        Assert.Equal(50, details.ChartPoints.Count);
         Assert.All(details.ChartPoints, p => Assert.Equal((150d, 5d), (p.HeartRate, p.ElevationMeters)));
     }
 

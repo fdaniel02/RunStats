@@ -17,6 +17,15 @@ export function formatPace(secondsPerKm) {
     return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
+// 4:05 below an hour, 1:02:45 from an hour, like the app's other durations.
+export function formatDuration(totalSeconds) {
+    const seconds = Math.round(totalSeconds);
+    const two = n => String(n).padStart(2, "0");
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor(seconds / 60) % 60;
+    return hours > 0 ? `${hours}:${two(minutes)}:${two(seconds % 60)}` : `${minutes}:${two(seconds % 60)}`;
+}
+
 function formatValue(key, value) {
     if (key === "pace")
         return formatPace(value);
@@ -25,10 +34,12 @@ function formatValue(key, value) {
     return String(Math.round(value));
 }
 
-// The rows of the hover box at point i: the distance, then every chart's value; "–" where nothing was recorded.
+// The rows of the hover box at point i: distance and time since the start, then every chart's value; "–" where
+// nothing was recorded.
 export function readout(data, i) {
     return [
         { label: "Distance", value: `${data.km[i].toFixed(2)} km` },
+        { label: "Time", value: formatDuration(data.time[i]) },
         ...data.series.map(s => {
             const value = data[s.key][i];
             return { label: s.title, value: value == null ? "–" : `${formatValue(s.key, value)} ${s.unit}` };

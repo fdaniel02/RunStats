@@ -8,9 +8,9 @@ public class RunChartsTests : BunitContext
 {
     static List<ChartPoint> Points(bool elevation = true) =>
     [
-        new(0.01, 330.4, 120.2, elevation ? 5.4 : null, 170.4, 1.04567, 51.6000004, 5.5),
-        new(2.5, null, 160, elevation ? 6 : null, null, null, null, null),
-        new(5.004, 300, 170, elevation ? 4 : null, 180, 1.1, 51.61, 5.51)
+        new(0.01, 3.4, 330.4, 120.2, elevation ? 5.4 : null, 170.4, 1.04567, 51.6000004, 5.5),
+        new(2.5, 750, null, 160, elevation ? 6 : null, null, null, null, null),
+        new(5.004, 1501.6, 300, 170, elevation ? 4 : null, 180, 1.1, 51.61, 5.51)
     ];
 
     IRenderedComponent<RunCharts> Render(IReadOnlyList<ChartPoint> points) =>
@@ -57,6 +57,7 @@ public class RunChartsTests : BunitContext
         Assert.Equal(["Pace", "Heart rate", "Elevation", "Cadence", "Stride"],
             data.GetProperty("series").EnumerateArray().Select(s => s.GetProperty("title").GetString()));
         Assert.Equal("[0.01,2.5,5.004]", data.GetProperty("km").GetRawText());
+        Assert.Equal("[3,750,1502]", data.GetProperty("time").GetRawText());
         Assert.Equal("[330,null,300]", data.GetProperty("pace").GetRawText());
         Assert.Equal("[120,160,170]", data.GetProperty("hr").GetRawText());
         Assert.Equal("[1.05,null,1.1]", data.GetProperty("stride").GetRawText());

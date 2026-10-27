@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatPace, nearestIndex, position, readout } from "../../src/RunStats/wwwroot/js/charts.js";
+import { formatDuration, formatPace, nearestIndex, position, readout } from "../../src/RunStats/wwwroot/js/charts.js";
 
 const kms = [0, 0.5, 1.2, 2, 3.5];
 
@@ -34,6 +34,7 @@ const data = {
         { key: "stride", title: "Stride", unit: "m" }
     ],
     km: kms,
+    time: [10, 150, 400, 650, 3725],
     pace: [330, null, 300, 301, 299],
     hr: [120, 150, 160, 170, 171],
     stride: [1.04, 1.1, 1.2, 1.234, 1],
@@ -44,6 +45,7 @@ const data = {
 test("the readout lists the distance and every chart's value with its unit", () => {
     assert.deepEqual(readout(data, 0), [
         { label: "Distance", value: "0.00 km" },
+        { label: "Time", value: "0:10" },
         { label: "Pace", value: "5:30 /km" },
         { label: "Heart rate", value: "120 bpm" },
         { label: "Stride", value: "1.04 m" }
@@ -51,14 +53,25 @@ test("the readout lists the distance and every chart's value with its unit", () 
 });
 
 test("a value that wasn't recorded reads as a dash", () => {
-    assert.deepEqual(readout(data, 1)[1], { label: "Pace", value: "–" });
+    assert.deepEqual(readout(data, 1)[2], { label: "Pace", value: "–" });
 });
 
 test("stride keeps two decimals", () => {
-    assert.equal(readout(data, 4)[3].value, "1.00 m");
+    assert.equal(readout(data, 4)[4].value, "1.00 m");
 });
 
 test("the map position is the point's coordinates, or none without GPS", () => {
     assert.deepEqual(position(data, 3), [51.62, 5.52]);
     assert.equal(position(data, 2), null);
+});
+
+test("durations read like the app's others, with hours only from an hour", () => {
+    assert.equal(formatDuration(0), "0:00");
+    assert.equal(formatDuration(245.4), "4:05");
+    assert.equal(formatDuration(3599), "59:59");
+    assert.equal(formatDuration(3725), "1:02:05");
+});
+
+test("the readout shows the time since the start", () => {
+    assert.deepEqual(readout(data, 4)[1], { label: "Time", value: "1:02:05" });
 });

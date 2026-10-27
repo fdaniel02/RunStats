@@ -5,7 +5,7 @@ namespace RunStats.Tests.Features;
 public class RunChartViewTests
 {
     static ChartPoint Point(double km, double? pace = 300, double? heartRate = 150, double? elevation = 5, double? cadence = 170, double? stride = 1.05) =>
-        new(km, pace, heartRate, elevation, cadence, stride, 51.6, 5.5);
+        new(km, km * 300, pace, heartRate, elevation, cadence, stride, 51.6, 5.5);
 
     static List<ChartPoint> Points(int count, Func<int, ChartPoint> point) => [.. Enumerable.Range(0, count).Select(point)];
 
