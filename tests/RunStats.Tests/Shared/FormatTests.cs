@@ -74,6 +74,24 @@ public class FormatTests
     [InlineData(null, "–")]
     public void Max_pace_comes_from_max_speed(double? maxSpeedMps, string expected) => Assert.Equal(expected, Format.MaxPace(maxSpeedMps));
 
+    [Theory]
+    [InlineData(4.25, "4.3")]
+    [InlineData(0.0, "0.0")]
+    [InlineData(null, "–")]
+    public void One_decimal(double? value, string expected) => Assert.Equal(expected, Format.OneDecimal(value));
+
+    [Theory]
+    [InlineData("WARMUP", "Warm-up")]
+    [InlineData("COOLDOWN", "Cool-down")]
+    [InlineData("ACTIVE", "Active")]
+    [InlineData("INTERVAL", "Interval")]
+    [InlineData("RECOVERY", "Recovery")]
+    [InlineData("REST", "Rest")]
+    [InlineData("SOMETHING_NEW", "Something new")]
+    [InlineData(null, "–")]
+    [InlineData("", "–")]
+    public void Lap_types_have_readable_names(string? intensityType, string expected) => Assert.Equal(expected, Format.LapType(intensityType));
+
     [Fact]
     public void Dates_are_iso_8601() => Assert.Equal("2025-09-07", Format.Date(new DateOnly(2025, 9, 7)));
 
