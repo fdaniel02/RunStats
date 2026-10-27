@@ -51,4 +51,7 @@ public static partial class Log
 
     [LoggerMessage(EventId = 20, Level = LogLevel.Warning, Message = "The sync status couldn't be read")]
     public static partial void SyncStatusFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(EventId = 21, Level = LogLevel.Warning, Message = "The database size couldn't be read")]
+    public static partial void DatabaseSizeFailed(this ILogger logger, Exception exception);
 }
