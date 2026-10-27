@@ -1,0 +1,47 @@
+@* Runs as a table; on a phone only date, distance and pace stay (plus the name where shown). *@
+@if (Rows.Count == 0)
+{
+    <p class="muted">@EmptyText</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="runs">
+            <thead>
+                <tr>
+                    <th scope="col">Date</th>
+                    @if (ShowName)
+                    {
+                        <th scope="col">Name</th>
+                    }
+                    <th scope="col" class="optional">Type</th>
+                    <th scope="col" class="num">km</th>
+                    <th scope="col" class="num optional">Time</th>
+                    <th scope="col" class="num">Pace</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var run in Rows)
+                {
+                    <tr>
+                        <td>@Format.Date(run.Date)</td>
+                        @if (ShowName)
+                        {
+                            <td class="name">@run.Name</td>
+                        }
+                        <td class="optional">@Format.RunType(run.TypeKey)</td>
+                        <td class="num">@Format.Km(run.DistanceMeters)</td>
+                        <td class="num optional">@Format.Duration(run.DurationSeconds)</td>
+                        <td class="num">@Format.Pace(run.DistanceMeters, run.DurationSeconds)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<RunRow> Rows { get; set; } = [];
+    [Parameter] public bool ShowName { get; set; }
+    [Parameter] public string EmptyText { get; set; } = "No runs yet.";
+}

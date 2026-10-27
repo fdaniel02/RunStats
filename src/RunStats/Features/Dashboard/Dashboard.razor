@@ -1,6 +1,81 @@
 @page "/"
+@inject IDashboardQueries Queries
+@inject Clock Clock
 
 <PageTitle>Dashboard · RunStats</PageTitle>
 
 <h1>Dashboard</h1>
-<p class="muted">Coming in #11.</p>
+
+@if (data is not null)
+{
+    <section class="totals" aria-label="Totals">
+        @Total($"This year ({Clock.Today.Year})", data.Year)
+        @Total($"This month ({Clock.Today.ToString("MMMM", System.Globalization.CultureInfo.InvariantCulture)})", data.Month)
+    </section>
+
+    <div class="sections">
+        <section class="card weeks">
+            <h2>Last @data.Weeks.Count weeks</h2>
+            <WeeklyChart Weeks="data.Weeks" />
+        </section>
+
+        <section class="card last-runs">
+            <h2>Last runs</h2>
+            <RunTable Rows="data.LastRuns" />
+        </section>
+
+        <section class="card records">
+            <h2>Personal records</h2>
+            @if (data.Records.Count == 0)
+            {
+                <p class="muted">No personal records yet.</p>
+            }
+            else
+            {
+                <ul class="record-list">
+                    @foreach (var record in data.Records)
+                    {
+                        <li>
+                            <span class="record-name">@RecordTypes.Name(record.TypeId)</span>
+                            <span class="record-value">@RecordTypes.Value(record.TypeId, record.Value)</span>
+                            <span class="muted">@Format.Date(record.Date)</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+
+        <section class="card races" id="races">
+            <div class="section-head">
+                <h2>Races @data.RaceYear</h2>
+                @if (data.RaceYears.Count > 1)
+                {
+                    <nav class="years" aria-label="Race year">
+                        @foreach (var year in data.RaceYears)
+                        {
+                            <a href="?races=@year#races" aria-current="@(year == data.RaceYear ? "page" : null)">@year</a>
+                        }
+                    </nav>
+                }
+            </div>
+            <RunTable Rows="data.Races" ShowName="true" EmptyText="No races yet." />
+        </section>
+    </div>
+}
+
+@code {
+    DashboardData? data;
+
+    [SupplyParameterFromQuery(Name = "races")] public int? RaceYear { get; set; }
+
+    protected override async Task OnParametersSetAsync() => data = await Queries.LoadAsync(RaceYear, CancellationToken.None);
+
+    static RenderFragment Total(string label, Totals totals) => __builder =>
+    {
+        <div class="card total">
+            <span class="total-label">@label</span>
+            <span class="total-value">@Format.Km(totals.DistanceMeters) <small>km</small></span>
+            <span class="muted">@totals.Runs @(totals.Runs == 1 ? "run" : "runs") · @Format.Hours(totals.DurationSeconds)</span>
+        </div>
+    };
+}

@@ -1,0 +1,212 @@
+.weekly {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Hidden but still in the tab order: the labels are the visible buttons. */
+.measure {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.switch {
+    display: inline-flex;
+    align-self: flex-start;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+    .switch label {
+        padding: 6px 14px;
+        cursor: pointer;
+        color: var(--muted);
+        font-size: .9rem;
+    }
+
+#weekly-distance:checked ~ .switch label[for=weekly-distance],
+#weekly-time:checked ~ .switch label[for=weekly-time] {
+    background: var(--line);
+    color: var(--text);
+}
+
+#weekly-distance:focus-visible ~ .switch label[for=weekly-distance],
+#weekly-time:focus-visible ~ .switch label[for=weekly-time] {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+
+#weekly-distance:checked ~ .plot.time,
+#weekly-time:checked ~ .plot.distance {
+    display: none;
+}
+
+.plot {
+    margin: 0;
+}
+
+.area {
+    position: relative;
+    height: 220px;
+    margin: 8px 0 24px 36px;
+}
+
+.grid {
+    position: absolute;
+    inset: 0;
+}
+
+.gridline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px solid var(--line);
+}
+
+    .gridline span {
+        position: absolute;
+        right: calc(100% + 6px);
+        transform: translateY(-50%);
+        font-size: .75rem;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+.bars {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.slot {
+    position: relative;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    outline: none;
+}
+
+.bar {
+    position: relative;
+    width: min(24px, 70%);
+    background: var(--chart-bar);
+    border-radius: 4px 4px 0 0;
+}
+
+.slot.current .bar {
+    opacity: .5;
+}
+
+.slot:hover .bar,
+.slot:focus-visible .bar {
+    filter: brightness(1.25);
+}
+
+.slot:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.value {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: .75rem;
+    color: var(--text);
+    white-space: nowrap;
+}
+
+.tip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: .8rem;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+}
+
+.slot:first-child .tip {
+    left: 0;
+    transform: none;
+}
+
+.slot:last-child .tip {
+    left: auto;
+    right: 0;
+    transform: none;
+}
+
+.slot:hover .tip,
+.slot:focus-visible .tip {
+    opacity: 1;
+}
+
+.x {
+    position: absolute;
+    top: calc(100% + 6px);
+    font-size: .7rem;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+/* Fewer dates where they would run into each other: every other week, every third on a phone. */
+@media (max-width: 1000px) {
+    .slot:nth-last-child(2n) .x {
+        display: none;
+    }
+}
+
+@media (max-width: 560px) {
+    .slot .x {
+        display: none;
+    }
+
+    .slot:nth-last-child(3n + 1) .x {
+        display: block;
+    }
+}
+
+.as-table summary {
+    cursor: pointer;
+    color: var(--muted);
+    font-size: .85rem;
+}
+
+.as-table table {
+    margin-top: 8px;
+    border-collapse: collapse;
+    font-size: .9rem;
+}
+
+.as-table th,
+.as-table td {
+    padding: 4px 12px 4px 0;
+    text-align: left;
+}
+
+.as-table .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.empty {
+    margin: 24px 0;
+}

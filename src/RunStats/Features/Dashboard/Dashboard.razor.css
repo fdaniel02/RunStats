@@ -1,0 +1,125 @@
+.totals {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+    gap: 16px;
+}
+
+.total {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.total-label {
+    color: var(--muted);
+    font-size: .9rem;
+}
+
+.total-value {
+    font-size: 2.2rem;
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+    .total-value small {
+        font-size: 1rem;
+        font-weight: 400;
+        color: var(--muted);
+    }
+
+.sections {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+}
+
+@media (min-width: 900px) {
+    .sections {
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    }
+
+    .weeks,
+    .races {
+        grid-column: 1 / -1;
+    }
+}
+
+h2 {
+    font-size: 1.1rem;
+    margin: 0 0 12px;
+}
+
+.section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 16px;
+    margin-bottom: 12px;
+}
+
+    .section-head h2 {
+        margin: 0;
+    }
+
+.years {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+    .years a {
+        padding: 4px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--muted);
+        text-decoration: none;
+        font-size: .9rem;
+        font-variant-numeric: tabular-nums;
+    }
+
+        .years a:hover {
+            color: var(--text);
+        }
+
+        .years a[aria-current=page] {
+            background: var(--line);
+            color: var(--text);
+        }
+
+        .years a:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+.record-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+    .record-list li {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+    }
+
+.record-name {
+    color: var(--muted);
+    font-size: .85rem;
+}
+
+.record-value {
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.record-list .muted {
+    font-size: .8rem;
+}
