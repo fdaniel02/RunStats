@@ -26,14 +26,11 @@ public class DashboardQueries(IDbContextFactory<AppDbContext> dbFactory, Clock c
     public const int WeekCount = 12;
     public const int LastRunCount = 10;
 
-    // The requested race year if it has races, otherwise this year, otherwise the latest year with races.
     public async Task<DashboardData> LoadAsync(int? raceYear, CancellationToken cancellationToken)
     {
         var today = clock.Today;
         var raceYears = await RaceYearsAsync(cancellationToken);
-        int? year = raceYear is { } requested && raceYears.Contains(requested) ? requested
-            : raceYears.Contains(today.Year) ? today.Year
-            : raceYears.Count > 0 ? raceYears[0] : null;
+        var year = ShownRaceYear(raceYear, raceYears, today.Year);
         return new DashboardData(
             await TotalsSinceAsync(new DateOnly(today.Year, 1, 1), cancellationToken),
             await TotalsSinceAsync(new DateOnly(today.Year, today.Month, 1), cancellationToken),
@@ -84,6 +81,16 @@ public class DashboardQueries(IDbContextFactory<AppDbContext> dbFactory, Clock c
         return Rows(await db.Runs.OrderByDescending(r => r.StartUtc).Take(LastRunCount).Select(RowColumns).ToListAsync(cancellationToken));
     }
 
+    // The requested race year if it has races, otherwise this year, otherwise the latest year with races.
+    static int? ShownRaceYear(int? requested, List<int> raceYears, int thisYear)
+    {
+        if (requested is { } year && raceYears.Contains(year))
+            return year;
+        if (raceYears.Contains(thisYear))
+            return thisYear;
+        return raceYears.Count > 0 ? raceYears[0] : null;
+    }
+
     // By the race's own (Garmin local) date, the date the table shows.
     public async Task<List<int>> RaceYearsAsync(CancellationToken cancellationToken)
     {
@@ -93,7 +100,8 @@ public class DashboardQueries(IDbContextFactory<AppDbContext> dbFactory, Clock c
 
     public async Task<List<RunRow>> RacesAsync(int year, CancellationToken cancellationToken)
     {
-        var from = new DateTime(year, 1, 1);
+        // Unspecified like StartLocal: Garmin's local time, not UTC.
+        var from = new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
         var to = from.AddYears(1);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         return Rows(await db.Runs.Where(r => r.IsRace && r.StartLocal >= from && r.StartLocal < to)

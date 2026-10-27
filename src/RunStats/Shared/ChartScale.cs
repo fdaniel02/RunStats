@@ -5,13 +5,15 @@ public static class ChartScale
 {
     public const int MaxIntervals = 4;
 
+    static readonly int[] Multipliers = [1, 2, 5, 10];
+
     public static (double Max, double Step) Nice(double largest)
     {
         if (largest <= 0)
             return (1, 1);
         var rough = largest / MaxIntervals;
         var power = Math.Pow(10, Math.Floor(Math.Log10(rough)));
-        var step = new[] { 1, 2, 5, 10 }.Select(m => m * power).First(s => s >= rough);
+        var step = Multipliers.Select(m => m * power).First(s => s >= rough);
         return (Math.Ceiling(largest / step) * step, step);
     }
 
