@@ -221,7 +221,7 @@ public class DashboardPageTests : BunitContext
     {
         var page = Render(Data());
 
-        Assert.Equal(["weeks", "activity"], page.FindAll(".sections > section").Take(2).Select(s => s.ClassList.Last()));
+        Assert.Equal(["weeks", "activity"], page.FindAll(".sections > section").Take(2).Select(s => s.ClassList[s.ClassList.Length - 1]));
         Assert.Equal("Days with a run", page.Find(".activity h2").TextContent);
         Assert.Equal(["2026-10-17", "2026-10-26"], page.FindAll(".activity .cell.done").Select(c => c.GetAttribute("title")));
         Assert.Equal("2026-10-27", page.Find(".activity .cell.today").GetAttribute("title"));
