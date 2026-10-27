@@ -1,0 +1,65 @@
+.sync {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+    min-width: 0;
+}
+
+.sync-status {
+    min-width: 0;
+    max-width: 360px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+    font-size: .85rem;
+}
+
+    /* Lighter than --danger: small text on the dark header needs the contrast. */
+    .sync-status.failed {
+        color: #f85149;
+    }
+
+/* Disabled looks the same: the button is also disabled for a moment on every page load, until the connection is up. */
+.sync-button {
+    min-height: 36px;
+    padding: 6px 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: .9rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+    .sync-button:hover:not(:disabled) {
+        border-color: var(--accent);
+    }
+
+    .sync-button:disabled {
+        cursor: default;
+    }
+
+    .sync-button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+
+@media (max-width: 640px) {
+    .sync {
+        flex-direction: column;
+        align-items: stretch;
+        margin-left: 0;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+    }
+
+    .sync-status {
+        max-width: none;
+        white-space: normal;
+    }
+}

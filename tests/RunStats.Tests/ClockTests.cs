@@ -21,6 +21,16 @@ public class ClockTests
         Assert.Equal(DateOnly.Parse(expected), date);
     }
 
+    [Theory]
+    [InlineData("2026-10-24T18:01:00", "2026-10-24T20:01:00")]
+    [InlineData("2026-10-26T19:01:00", "2026-10-26T20:01:00")]
+    public void ToLocalTime_follows_summer_and_winter_time(string utc, string expected)
+    {
+        var fromDb = DateTime.SpecifyKind(DateTime.Parse(utc), DateTimeKind.Unspecified);
+
+        Assert.Equal(DateTime.Parse(expected), clock.ToLocalTime(fromDb));
+    }
+
     [Fact]
     public void ToLocalDate_treats_unspecified_kind_as_utc()
     {

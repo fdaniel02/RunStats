@@ -77,6 +77,10 @@ public class FormatTests
     [Fact]
     public void Dates_are_iso_8601() => Assert.Equal("2025-09-07", Format.Date(new DateOnly(2025, 9, 7)));
 
+    [Fact]
+    public void Date_and_time_are_iso_8601_to_the_minute() =>
+        Assert.Equal("2025-09-07 08:05", Format.DateAndTime(new DateTime(2025, 9, 7, 8, 5, 59)));
+
     [Theory]
     [InlineData("running", "Run")]
     [InlineData("treadmill_running", "Treadmill")]

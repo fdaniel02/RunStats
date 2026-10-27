@@ -1,0 +1,102 @@
+@using RunStats.Sync
+@implements IDisposable
+@inject ISyncStatusQueries Sync
+@inject Clock Clock
+@inject TimeProvider Time
+@inject ILogger<SyncButton> Logger
+
+<div class="sync">
+    @if (state is { Running: null })
+    {
+        @if (state.LastFailure is { } failure)
+        {
+            <span class="sync-status failed" title="@failure.Error">Sync failed @Format.DateAndTime(Clock.ToLocalTime(failure.FinishedAtUtc)): @failure.Error</span>
+        }
+        else if (state.LastSucceededAtUtc is { } succeededAt)
+        {
+            <span class="sync-status">Synced @Format.DateAndTime(Clock.ToLocalTime(succeededAt))</span>
+        }
+        else
+        {
+            <span class="sync-status">Not synced yet</span>
+        }
+    }
+    @* Disabled until the connection is up: before that, a click would do nothing. *@
+    <button type="button" class="sync-button" disabled="@(!RendererInfo.IsInteractive || starting || state?.Running is not null)" @onclick="StartAsync">
+        @(state?.Running is { } progress ? ProgressText(progress) : "Sync now")
+    </button>
+</div>
+
+@code {
+    public static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
+
+    readonly CancellationTokenSource stop = new();
+    SyncState? state;
+    bool starting;
+
+    protected override async Task OnInitializedAsync() => state = await Sync.LoadAsync(stop.Token);
+
+    // Only after an interactive render: a prerendered page has no connection to update.
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+            _ = PollAsync(stop.Token);
+    }
+
+    // Also picks up a sync started elsewhere (the CronJob, another tab); the database is only read while one runs.
+    async Task PollAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (true)
+            {
+                await Task.Delay(PollInterval, Time, cancellationToken);
+                if (state?.Running is null && !Sync.IsRunning)
+                    continue;
+                try
+                {
+                    var latest = await Sync.LoadAsync(cancellationToken);
+                    await InvokeAsync(() =>
+                    {
+                        state = latest;
+                        StateHasChanged();
+                    });
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    Logger.SyncStatusFailed(e);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The component went away.
+        }
+    }
+
+    async Task StartAsync()
+    {
+        starting = true;
+        try
+        {
+            state = await Sync.StartAsync(stop.Token);
+        }
+        finally
+        {
+            starting = false;
+        }
+    }
+
+    public static string ProgressText(SyncProgress progress) => progress switch
+    {
+        { RunsTotal: { } total } when progress.RunsDownloaded < total => $"Syncing… {progress.RunsDownloaded}/{total}",
+        { RunsToProcess: > 0 and var toProcess } => $"Processing… {progress.RunsProcessed}/{toProcess}",
+        _ => "Syncing…"
+    };
+
+    public void Dispose()
+    {
+        stop.Cancel();
+        stop.Dispose();
+    }
+}

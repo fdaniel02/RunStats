@@ -5,8 +5,9 @@ public class Clock(TimeZoneInfo timeZone, TimeProvider time)
 {
     public DateOnly Today => ToLocalDate(time.GetUtcNow().UtcDateTime);
 
-    public DateOnly ToLocalDate(DateTime utc) =>
-        DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), timeZone));
+    public DateOnly ToLocalDate(DateTime utc) => DateOnly.FromDateTime(ToLocalTime(utc));
+
+    public DateTime ToLocalTime(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), timeZone);
 
     public DateTime StartOfDayUtc(DateOnly date)
     {
