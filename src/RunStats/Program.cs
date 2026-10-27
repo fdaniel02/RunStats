@@ -51,6 +51,7 @@ builder.Services.AddHttpClient<IGarminGateway, GarminGatewayClient>((services, c
         ?? throw new InvalidOperationException("Setting 'GarminGateway:BaseUrl' is missing (e.g. 'http://garmin-gateway:8080/').")));
 builder.Services.AddSingleton<SyncMetrics>();
 builder.Services.AddSingleton<SyncCoordinator>();
+builder.Services.AddTransient<ISyncStatusQueries, SyncStatusQueries>();
 builder.Services.AddTransient<RunProcessing>();
 builder.Services.AddTransient<PersonalRecordUpdate>();
 builder.Services.AddTransient<SyncJob>();

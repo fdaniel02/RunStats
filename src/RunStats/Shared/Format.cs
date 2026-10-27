@@ -59,6 +59,8 @@ public static class Format
     // ISO 8601 everywhere: 2026-10-11.
     public static string Date(DateOnly date) => date.ToString("yyyy-MM-dd", Culture);
 
+    public static string DateAndTime(DateTime local) => local.ToString("yyyy-MM-dd HH:mm", Culture);
+
     // Garmin's type keys for runs (parent type 1, and running itself).
     public static string RunType(string typeKey) => typeKey switch
     {

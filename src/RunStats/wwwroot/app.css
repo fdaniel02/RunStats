@@ -30,6 +30,10 @@ h1:focus {
 html, body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; font-size:16px; }
 .app-header { display:flex; flex-wrap:wrap; align-items:center; gap:8px 24px; padding:calc(12px + env(safe-area-inset-top)) 16px 12px; border-bottom:1px solid var(--line); background:var(--card); }
 .brand { color:var(--text); text-decoration:none; font-weight:700; font-size:1.2rem; }
+.menu-toggle { position:absolute; opacity:0; width:1px; height:1px; }
+.menu-button { display:none; margin-left:auto; padding:8px; border-radius:8px; color:var(--text); cursor:pointer; }
+.menu-toggle:focus-visible + .menu-button { outline:2px solid var(--accent); outline-offset:2px; }
+.menu { display:flex; flex:1; align-items:center; gap:8px 24px; min-width:0; }
 .app-nav { display:flex; gap:4px; }
 .app-nav a { color:var(--muted); text-decoration:none; padding:8px 12px; border-radius:8px; }
 .app-nav a:hover { color:var(--text); }
@@ -44,3 +48,10 @@ main.page > * { min-width:0; }
 .visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 /* OpenStreetMap's light tiles turned dark, so the routes stand out; only the tiles, not the routes. */
 .leaflet-tile-pane .dark-tiles { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.85) saturate(.4); }
+@media (max-width: 640px) {
+  .menu-button { display:block; }
+  .menu { display:none; flex-basis:100%; flex-direction:column; align-items:stretch; gap:12px; padding-bottom:4px; }
+  .menu-toggle:checked ~ .menu { display:flex; }
+  .app-nav { flex-direction:column; }
+  .app-nav a { padding:12px; }
+}

@@ -9,6 +9,7 @@ public class MainLayoutTests : BunitContext
 {
     IRenderedComponent<MainLayout> Render(string path)
     {
+        ComponentFactories.AddStub<SyncButton>("<div class=\"sync\">Sync</div>");
         Services.GetRequiredService<NavigationManager>().NavigateTo(path);
         return Render<MainLayout>(p => p.Add(l => l.Body, b => b.AddMarkupContent(0, "<p id=\"body\">Page</p>")));
     }
@@ -32,5 +33,24 @@ public class MainLayoutTests : BunitContext
         var links = layout.FindAll(".app-nav a");
         Assert.Equal(["Dashboard", "Runs", "Heatmap"], links.Select(l => l.TextContent));
         Assert.Equal(screen, Assert.Single(links, l => l.ClassList.Contains("active")).TextContent);
+    }
+
+    [Fact]
+    public void The_menu_holds_the_screens_and_the_sync_button()
+    {
+        var menu = Render("/").Find(".menu");
+
+        Assert.NotNull(menu.QuerySelector(".app-nav"));
+        Assert.Equal("Sync", menu.QuerySelector(".sync")!.TextContent);
+    }
+
+    [Fact]
+    public void The_menu_button_toggles_the_menu_checkbox()
+    {
+        var layout = Render("/");
+
+        var toggle = layout.Find("input.menu-toggle");
+        Assert.Equal(("checkbox", "Menu"), (toggle.GetAttribute("type"), toggle.GetAttribute("aria-label")));
+        Assert.Equal(toggle.Id, layout.Find("label.menu-button").GetAttribute("for"));
     }
 }

@@ -2,12 +2,20 @@
 
 <header class="app-header">
     <a class="brand" href="">RunStats</a>
-    <nav class="app-nav">
-        <NavLink href="" Match="NavLinkMatch.All">Dashboard</NavLink>
-        <NavLink href="runs">Runs</NavLink>
-        @* A full page load: enhanced navigation wouldn't run the map script. *@
-        <NavLink href="heatmap" data-enhance-nav="false">Heatmap</NavLink>
-    </nav>
+    @* A checkbox, so the menu opens without JavaScript; enhanced navigation resets it, closing the menu. *@
+    <input type="checkbox" id="menu-toggle" class="menu-toggle" aria-label="Menu" />
+    <label for="menu-toggle" class="menu-button" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+    </label>
+    <div class="menu">
+        <nav class="app-nav">
+            <NavLink href="" Match="NavLinkMatch.All">Dashboard</NavLink>
+            <NavLink href="runs">Runs</NavLink>
+            @* A full page load: enhanced navigation wouldn't run the map script. *@
+            <NavLink href="heatmap" data-enhance-nav="false">Heatmap</NavLink>
+        </nav>
+        <SyncButton @rendermode="InteractiveServer" />
+    </div>
 </header>
 
 <main class="page">
