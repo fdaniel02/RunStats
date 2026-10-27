@@ -27,35 +27,39 @@ public static class RunChartView
         if (points.Count < 2)
             return null;
         var totalKm = points[^1].Km;
-        var series = new List<ChartSeries?>
-        {
-            Series(points, totalKm, "pace", "Pace", "/km", p => p.PaceSecondsPerKm, PaceLabel, PaceSteps, fasterOnTop: true),
-            Series(points, totalKm, "hr", "Heart rate", "bpm", p => p.HeartRate, Whole),
-            Series(points, totalKm, "elevation", "Elevation", "m", p => p.ElevationMeters, Whole, area: true),
-            Series(points, totalKm, "cadence", "Cadence", "spm", p => p.CadenceSpm, Whole),
-            Series(points, totalKm, "stride", "Stride", "m", p => p.StrideMeters, v => v.ToString("0.00", Culture))
-        };
+        SeriesSpec[] specs =
+        [
+            new("pace", "Pace", "/km", p => p.PaceSecondsPerKm, PaceLabel, PaceSteps, FasterOnTop: true),
+            new("hr", "Heart rate", "bpm", p => p.HeartRate, Whole),
+            new("elevation", "Elevation", "m", p => p.ElevationMeters, Whole, Area: true),
+            new("cadence", "Cadence", "spm", p => p.CadenceSpm, Whole),
+            new("stride", "Stride", "m", p => p.StrideMeters, v => v.ToString("0.00", Culture))
+        ];
+        var series = specs.Select(spec => Series(points, totalKm, spec));
         var kmStep = KmSteps.FirstOrDefault(step => step >= totalKm / KmIntervals, KmSteps[^1]);
         var kmTicks = ChartScale.Ticks(totalKm, kmStep).Where(km => km <= totalKm)
             .Select(km => new AxisTick(km.ToString("0.#", Culture), km / totalKm * 100)).ToList();
         return new ChartView([.. series.OfType<ChartSeries>()], kmTicks, totalKm);
     }
 
-    static ChartSeries? Series(IReadOnlyList<ChartPoint> points, double totalKm, string key, string title, string unit,
-        Func<ChartPoint, double?> value, Func<double, string> label, IReadOnlyList<double>? steps = null, bool fasterOnTop = false, bool area = false)
+    sealed record SeriesSpec(
+        string Key, string Title, string Unit, Func<ChartPoint, double?> Value, Func<double, string> Label,
+        IReadOnlyList<double>? Steps = null, bool FasterOnTop = false, bool Area = false);
+
+    static ChartSeries? Series(IReadOnlyList<ChartPoint> points, double totalKm, SeriesSpec spec)
     {
-        var values = points.Select(value).ToList();
+        var values = points.Select(spec.Value).ToList();
         var present = values.Where(v => v is not null).Select(v => v!.Value).ToList();
         if (present.Count < 2)
             return null;
         // Every value fits: the points are smoothed already, so what's left at the extremes is real (a sprint, a walk).
-        var (min, max, step) = ChartScale.Range(present.Min(), present.Max(), steps);
-        double Y(double v) => (fasterOnTop ? v - min : max - v) / (max - min) * Height;
+        var (min, max, step) = ChartScale.Range(present.Min(), present.Max(), spec.Steps);
+        double Y(double v) => (spec.FasterOnTop ? v - min : max - v) / (max - min) * Height;
         var segments = Segments(points, values, totalKm, Y);
         var ticks = new List<AxisTick>();
         for (var tick = min; tick <= max + step / 2; tick += step)
-            ticks.Add(new AxisTick(label(tick), Math.Round(Y(tick) / Height * 100, 2)));
-        return new ChartSeries(key, title, unit, Line(segments), area ? Area(segments) : null, ticks);
+            ticks.Add(new AxisTick(spec.Label(tick), Math.Round(Y(tick) / Height * 100, 2)));
+        return new ChartSeries(spec.Key, spec.Title, spec.Unit, Line(segments), spec.Area ? Area(segments) : null, ticks);
     }
 
     // Runs of consecutive points with a value; a missing value (a stop, a sensor dropout) leaves a gap in the line.
@@ -71,7 +75,10 @@ public static class RunChartView
                 continue;
             }
             if (current is null)
-                segments.Add(current = []);
+            {
+                current = [];
+                segments.Add(current);
+            }
             current.Add((points[i].Km / totalKm * Width, y(v)));
         }
         return segments;

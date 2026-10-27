@@ -25,9 +25,9 @@
                         </div>
                         <div class="drawing">
                             <svg viewBox="0 0 @RunChartView.Width @RunChartView.Height" preserveAspectRatio="none" aria-hidden="true">
-                                @foreach (var tick in series.Ticks)
+                                @foreach (var y in series.Ticks.Select(t => Number(t.Position)))
                                 {
-                                    <line class="grid" x1="0" x2="@RunChartView.Width" y1="@Number(tick.Position)" y2="@Number(tick.Position)" />
+                                    <line class="grid" x1="0" x2="@RunChartView.Width" y1="@y" y2="@y" />
                                 }
                                 @if (series.Area is not null)
                                 {

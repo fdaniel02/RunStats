@@ -40,7 +40,8 @@ export function position(data, i) {
     return data.lat[i] == null || data.lon[i] == null ? null : [data.lat[i], data.lon[i]];
 }
 
-function setup(root, data) {
+// document and screen come in as parameters, so tests can pass stand-ins.
+export function setup(root, data, { document, screen }) {
     const plots = root.querySelector(".plots");
     const tip = root.querySelector(".chart-tip");
     const cursors = [...root.querySelectorAll(".cursor")];
@@ -121,12 +122,12 @@ function setup(root, data) {
             hide();
     });
 
-    setupFullscreen(root);
+    setupFullscreen(root, document, screen);
 }
 
 // Real full screen turned to landscape where the browser allows it (Firefox and Chrome on Android); otherwise the
 // charts just fill the window, and in portrait a hint asks to turn the phone.
-function setupFullscreen(root) {
+function setupFullscreen(root, document, screen) {
     root.querySelector(".fullscreen-open").addEventListener("click", async () => {
         if (root.requestFullscreen) {
             try {
@@ -140,7 +141,9 @@ function setupFullscreen(root) {
     });
     root.querySelector(".fullscreen-close").addEventListener("click", () => {
         if (document.fullscreenElement)
-            document.exitFullscreen();
+            document.exitFullscreen().catch(() => {
+                // Already left, e.g. with the back gesture.
+            });
         root.classList.remove("is-fullscreen");
     });
     document.addEventListener("fullscreenchange", () => {
@@ -157,4 +160,4 @@ function setupFullscreen(root) {
 
 const root = typeof document === "undefined" ? null : document.getElementById("charts");
 if (root)
-    setup(root, JSON.parse(document.getElementById("chart-data").textContent));
+    setup(root, JSON.parse(document.getElementById("chart-data").textContent), { document, screen });
