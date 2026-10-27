@@ -59,7 +59,7 @@ public static class RunChartView
         var ticks = new List<AxisTick>();
         for (var tick = min; tick <= max + step / 2; tick += step)
             ticks.Add(new AxisTick(spec.Label(tick), Math.Round(Y(tick) / Height * 100, 2)));
-        return new ChartSeries(spec.Key, spec.Title, spec.Unit, Line(segments), spec.Area ? Area(segments) : null, ticks);
+        return new ChartSeries(spec.Key, spec.Title, spec.Unit, LinePath(segments), spec.Area ? AreaPath(segments) : null, ticks);
     }
 
     // Runs of consecutive points with a value; a missing value (a stop, a sensor dropout) leaves a gap in the line.
@@ -84,10 +84,10 @@ public static class RunChartView
         return segments;
     }
 
-    static string Line(List<List<(double X, double Y)>> segments) =>
+    static string LinePath(List<List<(double X, double Y)>> segments) =>
         string.Join(' ', segments.Select(s => "M" + string.Join(" L", s.Select(Point))));
 
-    static string Area(List<List<(double X, double Y)>> segments) =>
+    static string AreaPath(List<List<(double X, double Y)>> segments) =>
         string.Join(' ', segments.Select(s => $"M{Number(s[0].X)},{Number(Height)} L" + string.Join(" L", s.Select(Point)) + $" L{Number(s[^1].X)},{Number(Height)} Z"));
 
     static string Point((double X, double Y) p) => $"{Number(p.X)},{Number(p.Y)}";
