@@ -193,4 +193,16 @@ public class DashboardPageTests : BunitContext
 
         Assert.Empty(page.FindAll(".metric"));
     }
+
+    [Fact]
+    public void Records_and_runs_open_their_run_with_a_full_page_load()
+    {
+        var page = Render(Data(records: [new RecordRow(3, 1429, new DateOnly(2026, 9, 27), 11), new RecordRow(7, 21530, new DateOnly(2025, 10, 12), null)]));
+
+        var records = page.FindAll(".record-list li a");
+        Assert.Equal(("5 km", "runs/11", "false"), (records[0].TextContent, records[0].GetAttribute("href"), records[0].GetAttribute("data-enhance-nav")));
+        Assert.False(records[1].HasAttribute("href"));
+        Assert.Equal(["runs/1", "runs/2"], page.FindAll("a.row-link").Select(a => a.GetAttribute("href")));
+        Assert.All(page.FindAll("a.row-link"), a => Assert.Equal("false", a.GetAttribute("data-enhance-nav")));
+    }
 }

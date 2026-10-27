@@ -1,0 +1,129 @@
+.run-head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+    .run-head p {
+        margin: 0;
+    }
+
+    .run-head a {
+        color: var(--accent);
+    }
+
+.back {
+    align-self: flex-start;
+    font-size: .9rem;
+    text-decoration: none;
+}
+
+.title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+}
+
+.badge {
+    padding: 2px 10px;
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    color: var(--accent);
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+.tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+}
+
+.tile {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 16px;
+}
+
+.tile-label {
+    color: var(--muted);
+    font-size: .8rem;
+}
+
+.tile-value {
+    font-size: 1.35rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.tile-detail {
+    font-size: .8rem;
+}
+
+.map {
+    height: 420px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #262626;
+}
+
+h2 {
+    margin: 0 0 12px;
+    font-size: 1.1rem;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+table.laps {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .95rem;
+}
+
+    table.laps th {
+        padding: 0 8px 8px;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+        font-size: .8rem;
+        font-weight: 600;
+        text-align: left;
+        vertical-align: bottom;
+    }
+
+    table.laps td {
+        padding: 8px;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+    }
+
+    table.laps tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    table.laps tbody tr:hover td {
+        background: rgba(255, 255, 255, .05);
+    }
+
+    table.laps .num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    table.laps .unit {
+        display: block;
+        font-weight: 400;
+    }
+
+@media (max-width: 560px) {
+    table.laps .optional {
+        display: none;
+    }
+
+    .map {
+        height: 320px;
+    }
+}

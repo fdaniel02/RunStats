@@ -33,7 +33,8 @@ else
                 @foreach (var run in Rows)
                 {
                     <tr>
-                        <td>@Format.Date(run.Date)</td>
+                        @* Full page load: the details page's map script wouldn't run after enhanced navigation. *@
+                        <td><a class="row-link" href="runs/@run.Id" data-enhance-nav="false">@Format.Date(run.Date)</a></td>
                         @if (ShowName)
                         {
                             <td class="name">@run.Name</td>

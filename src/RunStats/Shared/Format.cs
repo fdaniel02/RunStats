@@ -50,6 +50,8 @@ public static class Format
 
     public static string Whole(double? value) => value is { } v ? v.ToString("0", Culture) : Missing;
 
+    public static string OneDecimal(double? value) => value is { } v ? v.ToString("0.0", Culture) : Missing;
+
     public static string Meters(double? centimeters) => centimeters is { } cm ? (cm / 100).ToString("0.00", Culture) : Missing;
 
     // 148 / 172; a single missing side keeps its place as "–".
@@ -74,6 +76,19 @@ public static class Format
         "obstacle_run" => "Obstacle run",
         "ultra_run" => "Ultra run",
         _ => Humanize(typeKey)
+    };
+
+    // Garmin's lap intensity types; interval workouts mark their laps with them.
+    public static string LapType(string? intensityType) => intensityType switch
+    {
+        null or "" => Missing,
+        "ACTIVE" => "Active",
+        "INTERVAL" => "Interval",
+        "WARMUP" => "Warm-up",
+        "COOLDOWN" => "Cool-down",
+        "RECOVERY" => "Recovery",
+        "REST" => "Rest",
+        _ => Humanize(intensityType.ToLowerInvariant())
     };
 
     static string Humanize(string typeKey)

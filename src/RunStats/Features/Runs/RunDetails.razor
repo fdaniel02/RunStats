@@ -1,0 +1,127 @@
+@page "/runs/{Id:long}"
+@using System.Text.Json
+@inject IRunDetailsQueries Queries
+@inject IConfiguration Configuration
+@inject NavigationManager Navigation
+
+@if (details is null)
+{
+    return;
+}
+@{
+    var run = details.Run;
+    var showLapType = details.Laps.Select(l => l.IntensityType).Distinct().Count() > 1;
+}
+
+<PageTitle>@Title · RunStats</PageTitle>
+@if (details.Polyline is not null)
+{
+    <HeadContent>
+        <link rel="stylesheet" href="@Assets["lib/leaflet/leaflet.css"]" />
+    </HeadContent>
+}
+
+<div class="run-head">
+    <a class="back" href="runs">← Runs</a>
+    <div class="title">
+        <h1>@Title</h1>
+        @if (run.IsRace)
+        {
+            <span class="badge">Race</span>
+        }
+    </div>
+    <p class="muted">
+        @Format.DateAndTime(run.StartLocal) · @Format.RunType(run.TypeKey) ·
+        <a href="https://connect.garmin.com/modern/activity/@run.Id" target="_blank" rel="noopener noreferrer">Garmin Connect ↗</a>
+    </p>
+</div>
+
+<section class="tiles" aria-label="Summary">
+    @foreach (var tile in RunSummary.Tiles(run))
+    {
+        <div class="card tile">
+            <span class="tile-label">@tile.Label</span>
+            <span class="tile-value">@tile.Value</span>
+            @if (tile.Detail is not null)
+            {
+                <span class="tile-detail muted">@tile.Detail</span>
+            }
+        </div>
+    }
+</section>
+
+@if (details.Polyline is not null)
+{
+    <div id="route" class="map" role="region" aria-label="Map of the route" data-carto-key="@Configuration["Heatmap:CartoApiKey"]"></div>
+    <script type="application/json" id="route-data">@((MarkupString)JsonSerializer.Serialize(new { polyline = details.Polyline }))</script>
+    <script src="@Assets["lib/leaflet/leaflet.js"]"></script>
+    <script type="module" src="@Assets["js/route.js"]"></script>
+}
+
+@if (details.Laps.Count > 0)
+{
+    <section class="card">
+        <h2>Laps</h2>
+        <div class="table-wrap">
+            <table class="laps">
+                <thead>
+                    <tr>
+                        <th scope="col" class="num">#</th>
+                        @if (showLapType)
+                        {
+                            <th scope="col">Type</th>
+                        }
+                        <th scope="col" class="num">km</th>
+                        <th scope="col" class="num">Time</th>
+                        <th scope="col" class="num">Pace<span class="unit optional">avg / max</span></th>
+                        <th scope="col" class="num">HR<span class="unit">avg / max</span></th>
+                        <th scope="col" class="num optional">Cadence<span class="unit">spm</span></th>
+                        <th scope="col" class="num optional">Stride<span class="unit">m</span></th>
+                        <th scope="col" class="num optional">Ascent / descent<span class="unit">m</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var lap in details.Laps)
+                    {
+                        <tr>
+                            <td class="num">@lap.LapIndex</td>
+                            @if (showLapType)
+                            {
+                                <td>@Format.LapType(lap.IntensityType)</td>
+                            }
+                            <td class="num">@Format.Km(lap.DistanceMeters)</td>
+                            <td class="num">@Format.Duration(lap.DurationSeconds)</td>
+                            @if (Format.PaceValue(lap.DistanceMeters, lap.DurationSeconds) is var pace && pace != Format.Missing)
+                            {
+                                <td class="num">@pace<span class="optional"> / @Format.MaxPace(lap.MaxSpeedMps)</span> /km</td>
+                            }
+                            else
+                            {
+                                <td class="num">@Format.Missing</td>
+                            }
+                            <td class="num">@Format.Pair(Format.Whole(lap.AverageHeartRate), Format.Whole(lap.MaxHeartRate))</td>
+                            <td class="num optional">@Format.Whole(lap.AverageCadenceSpm)</td>
+                            <td class="num optional">@Format.Meters(lap.StrideLengthCm)</td>
+                            <td class="num optional">@Format.Pair(Format.Whole(lap.ElevationGainMeters), Format.Whole(lap.ElevationLossMeters))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+@code {
+    RunDetailsData? details;
+
+    [Parameter] public long Id { get; set; }
+
+    string Title => details!.Run.Name.Length > 0 ? details.Run.Name : Format.RunType(details.Run.TypeKey);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        details = await Queries.LoadAsync(Id, CancellationToken.None);
+        if (details is null)
+            Navigation.NotFound();
+    }
+}

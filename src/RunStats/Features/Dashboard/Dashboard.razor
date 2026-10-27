@@ -36,7 +36,8 @@
                     @foreach (var record in data.Records)
                     {
                         <li>
-                            <span class="record-name">@RecordTypes.Name(record.TypeId)</span>
+                            @* Without a run (Garmin doesn't always say which one), a placeholder link without href. *@
+                            <a class="record-name" href="@(record.RunId is { } runId ? $"runs/{runId}" : null)" data-enhance-nav="false">@RecordTypes.Name(record.TypeId)</a>
                             <span class="record-value">@RecordTypes.Value(record.TypeId, record.Value)</span>
                             <span class="muted">@Format.Date(record.Date)</span>
                         </li>
