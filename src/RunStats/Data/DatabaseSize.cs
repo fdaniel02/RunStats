@@ -25,11 +25,7 @@ public class DatabaseSizeMetrics
     static IEnumerable<Measurement<long>> Measurements(IReadOnlyDictionary<string, long>? values, string tag) =>
         values?.Select(v => new Measurement<long>(v.Value, new KeyValuePair<string, object?>(tag, v.Key))) ?? [];
 
-    sealed class Row
-    {
-        public string Name { get; init; } = "";
-        public long Bytes { get; init; }
-    }
+    sealed record Row(string Name, long Bytes);
 
     // Catalog views only: the app's login can read them, while the DMVs would need VIEW DATABASE STATE.
     public static async Task<DatabaseSize> ReadAsync(AppDbContext db, CancellationToken cancellationToken)

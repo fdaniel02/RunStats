@@ -22,7 +22,7 @@ public sealed class DatabaseSizeTests(SqlServerFixture sqlServer) : IAsyncLifeti
 
     public async ValueTask DisposeAsync() => await services.DisposeAsync();
 
-    async Task<DatabaseSize> ReadAsync(IDbContextFactory<AppDbContext> factory)
+    static async Task<DatabaseSize> ReadAsync(IDbContextFactory<AppDbContext> factory)
     {
         await using var context = await factory.CreateDbContextAsync(Ct);
         return await DatabaseSizeMetrics.ReadAsync(context, Ct);
@@ -75,7 +75,9 @@ public sealed class DatabaseSizeTests(SqlServerFixture sqlServer) : IAsyncLifeti
         await using var context = await db.CreateDbContextAsync(Ct);
         var login = $"app_{Guid.NewGuid():N}"[..20];
         const string password = "Size-check-Passw0rd!";
-        // The same roles scripts/setup-cluster-database.sh gives the runstats login.
+        // The same roles scripts/setup-cluster-database.sh gives the runstats login. DDL can't take the login's name as a
+        // parameter; it's generated above, not input.
+#pragma warning disable EF1002
         await context.Database.ExecuteSqlRawAsync($"""
             CREATE LOGIN [{login}] WITH PASSWORD = N'{password}', CHECK_POLICY = OFF;
             CREATE USER [{login}] FOR LOGIN [{login}];
@@ -83,6 +85,7 @@ public sealed class DatabaseSizeTests(SqlServerFixture sqlServer) : IAsyncLifeti
             ALTER ROLE [db_datawriter] ADD MEMBER [{login}];
             ALTER ROLE [db_ddladmin] ADD MEMBER [{login}];
             """, Ct);
+#pragma warning restore EF1002
         var connection = new SqlConnectionStringBuilder(sqlServer.ConnectionString(context.Database.GetDbConnection().Database))
         {
             UserID = login,
