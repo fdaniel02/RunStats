@@ -19,6 +19,11 @@
             <WeeklyChart Weeks="data.Weeks" />
         </section>
 
+        <section class="card activity">
+            <h2>Days with a run</h2>
+            <ActivityCalendar Grid="grid" RunDays="data.RunDays" Today="Clock.Today" />
+        </section>
+
         <section class="card last-runs">
             <h2>Last runs</h2>
             <RunTable Rows="data.LastRuns" />
@@ -66,10 +71,15 @@
 
 @code {
     DashboardData? data;
+    ActivityGrid grid = null!;
 
     [SupplyParameterFromQuery(Name = "races")] public int? RaceYear { get; set; }
 
-    protected override async Task OnParametersSetAsync() => data = await Queries.LoadAsync(RaceYear, CancellationToken.None);
+    protected override async Task OnParametersSetAsync()
+    {
+        grid = new ActivityGrid(Clock.Today, DashboardQueries.GridWeeks);
+        data = await Queries.LoadAsync(RaceYear, CancellationToken.None);
+    }
 
     static RenderFragment Total(string label, Totals totals) => __builder =>
     {

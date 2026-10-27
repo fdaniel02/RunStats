@@ -1,0 +1,35 @@
+@* WorkoutTracker's GitHub-style grid: a column per week, a square per day, filled where there was a run. *@
+<div class="calendar" role="img" aria-label="@Summary">
+    @foreach (var week in Grid.Weeks)
+    {
+        <div class="month">@week.MonthLabel</div>
+        @foreach (var day in week.Days)
+        {
+            <div class="@CellClass(day)" title="@Format.Date(day)"></div>
+        }
+    }
+</div>
+
+@code {
+    HashSet<DateOnly> runDays = [];
+
+    [Parameter, EditorRequired] public ActivityGrid Grid { get; set; } = null!;
+    [Parameter, EditorRequired] public IReadOnlyList<DateOnly> RunDays { get; set; } = [];
+    [Parameter, EditorRequired] public DateOnly Today { get; set; }
+
+    protected override void OnParametersSet() => runDays = [.. RunDays];
+
+    string Summary => $"{runDays.Count(d => d >= Grid.Start && d <= Today)} days with a run in the last {Grid.Weeks.Count} weeks";
+
+    string CellClass(DateOnly day)
+    {
+        var cssClass = "cell";
+        if (day > Today)
+            cssClass += " future";
+        else if (runDays.Contains(day))
+            cssClass += " done";
+        if (day == Today)
+            cssClass += " today";
+        return cssClass;
+    }
+}

@@ -186,4 +186,19 @@ public sealed class DashboardQueriesTests(SqlServerFixture sqlServer) : IAsyncLi
     [InlineData("2026-11-02", "2026-11-02")]
     public void Weeks_start_on_monday(string date, string monday) =>
         Assert.Equal(DateOnly.Parse(monday), DashboardQueries.Monday(DateOnly.Parse(date)));
+
+    [Fact]
+    public async Task Run_days_are_the_dates_with_a_run_in_the_grids_weeks()
+    {
+        // The grid's 16 weeks start on Monday 2026-07-13 (today is Tuesday 2026-10-27).
+        await AddAsync(new DateTime(2026, 7, 12, 8, 0, 0), 5, 30);     // Sunday before the grid
+        await AddAsync(new DateTime(2026, 7, 13, 8, 0, 0), 5, 30);
+        await AddAsync(new DateTime(2026, 10, 17, 13, 0, 0), 7.5, 40);
+        await AddAsync(new DateTime(2026, 10, 17, 17, 0, 0), 3, 20);   // a second run the same day
+        await AddAsync(new DateTime(2026, 10, 26, 22, 30, 0), 6, 35);  // 23:30 in Amsterdam: still the 26th
+
+        var data = await queries.LoadAsync(null, Ct);
+
+        Assert.Equal([new DateOnly(2026, 7, 13), new DateOnly(2026, 10, 17), new DateOnly(2026, 10, 26)], data.RunDays);
+    }
 }
