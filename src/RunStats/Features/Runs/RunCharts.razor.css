@@ -1,0 +1,260 @@
+.charts {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+    .charts:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+
+.charts-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+    .charts-head h2 {
+        margin: 0;
+        font-size: 1.1rem;
+    }
+
+    .charts-head button {
+        display: none;
+        margin-left: auto;
+        min-height: 36px;
+        padding: 6px 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        font-size: .9rem;
+        cursor: pointer;
+    }
+
+        .charts-head button:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+/* Only on touch screens: a desktop window is wide enough already. */
+@media (pointer: coarse) {
+    .charts-head .fullscreen-open {
+        display: inline-block;
+    }
+}
+
+.rotate-hint {
+    display: none;
+    margin: 0;
+    font-size: .85rem;
+}
+
+.plots {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chart-title {
+    margin-bottom: 10px;
+    font-size: .85rem;
+}
+
+.plot {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    height: 110px;
+}
+
+.y-ticks {
+    position: relative;
+}
+
+    .y-ticks span {
+        position: absolute;
+        right: 8px;
+        transform: translateY(-50%);
+        color: var(--muted);
+        font-size: .75rem;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+/* Vertical swipes still scroll the page; horizontal ones move the readout. */
+.drawing {
+    position: relative;
+    min-width: 0;
+    touch-action: pan-y;
+    cursor: crosshair;
+}
+
+    /* Absolute, so the SVG takes the box's size instead of setting it from its own aspect ratio. Visible overflow keeps
+       the full width of a line that touches the top or bottom. */
+    .drawing svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+    }
+
+/* The SVG is stretched to the box; non-scaling strokes keep the lines their width either way. */
+.grid {
+    stroke: var(--line);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+
+.line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.area {
+    fill: var(--accent);
+    fill-opacity: .12;
+}
+
+.cursor {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--text);
+    opacity: .6;
+    pointer-events: none;
+}
+
+.x-ticks {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    font-size: .75rem;
+}
+
+    .x-ticks > .muted {
+        order: -1;
+        padding-right: 8px;
+        text-align: right;
+    }
+
+.ticks {
+    position: relative;
+    height: 16px;
+}
+
+    .ticks span {
+        position: absolute;
+        transform: translateX(-50%);
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+.chart-tip {
+    position: absolute;
+    top: 0;
+    z-index: 2;
+    min-width: 150px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .4);
+    font-size: .85rem;
+    pointer-events: none;
+}
+
+    /* The readout's rows are built by charts.js, so they don't carry this component's scope attribute. */
+    .chart-tip ::deep .tip-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        white-space: nowrap;
+    }
+
+    .chart-tip ::deep .tip-label {
+        color: var(--muted);
+    }
+
+    .chart-tip ::deep .tip-value {
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+
+.charts.is-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    padding: 8px 12px;
+    border-radius: 0;
+    overflow: auto;
+}
+
+    .charts.is-fullscreen .fullscreen-open {
+        display: none;
+    }
+
+    .charts.is-fullscreen .fullscreen-close {
+        display: inline-block;
+    }
+
+    /* Room for the half of each chart's top and bottom label that sticks out. */
+    .charts.is-fullscreen .plots {
+        flex: 1;
+        min-height: 0;
+        gap: 16px;
+        padding-top: 8px;
+    }
+
+    .charts.is-fullscreen .charts-head h2 {
+        font-size: 1rem;
+    }
+
+    .charts.is-fullscreen .chart {
+        position: relative;
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    /* Over the chart's top left corner, so the lines get the whole height. */
+    .charts.is-fullscreen .chart-title {
+        position: absolute;
+        top: 0;
+        left: 52px;
+        z-index: 1;
+        margin: 0;
+        padding: 0 6px;
+        background: var(--card);
+        font-size: .75rem;
+    }
+
+    .charts.is-fullscreen .plot {
+        flex: 1;
+        height: auto;
+        min-height: 36px;
+    }
+
+    .charts.is-fullscreen .y-ticks span:not(:first-child):not(:last-child) {
+        display: none;
+    }
+
+@media (orientation: portrait) {
+    .charts.is-fullscreen .rotate-hint {
+        display: block;
+    }
+}
+
+@media (max-width: 560px) {
+    .plot {
+        height: 90px;
+    }
+}

@@ -4,7 +4,7 @@ using RunStats.Data;
 namespace RunStats.Features.Runs;
 
 // Polyline is the simplified route the heatmap uses too; null for runs without GPS.
-public sealed record RunDetailsData(Run Run, IReadOnlyList<RunLap> Laps, string? Polyline);
+public sealed record RunDetailsData(Run Run, IReadOnlyList<RunLap> Laps, string? Polyline, IReadOnlyList<ChartPoint> ChartPoints);
 
 public interface IRunDetailsQueries
 {
@@ -21,6 +21,7 @@ public class RunDetailsQueries(IDbContextFactory<AppDbContext> dbFactory) : IRun
             return null;
         var laps = await db.RunLaps.AsNoTracking().Where(l => l.RunId == id).OrderBy(l => l.LapIndex).ToListAsync(cancellationToken);
         var polyline = await db.RunTracks.Where(t => t.RunId == id).Select(t => t.EncodedPolyline).SingleOrDefaultAsync(cancellationToken);
-        return new RunDetailsData(run, laps, polyline);
+        var samples = await db.RunSamples.AsNoTracking().Where(s => s.RunId == id).ToListAsync(cancellationToken);
+        return new RunDetailsData(run, laps, polyline, RunChartData.Points(samples, hasRoute: polyline is not null));
     }
 }

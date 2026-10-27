@@ -50,7 +50,9 @@ public class RunDetailsPageTests : BunitContext
     };
 
     static RunDetailsData Data(Run? run = null, IReadOnlyList<RunLap>? laps = null, string? polyline = "abc") =>
-        new(run ?? Amsterdam(), laps ?? [Lap(1), Lap(2, meters: 500, seconds: 163)], polyline);
+        new(run ?? Amsterdam(), laps ?? [Lap(1), Lap(2, meters: 500, seconds: 163)], polyline, Points);
+
+    static readonly ChartPoint[] Points = [new(0, 330, 150, 5, 170, 1.05, 51.6, 5.5), new(7.5, 300, 170, 6, 180, 1.1, 51.61, 5.51)];
 
     FakeQueries queries = null!;
     readonly List<NotFoundEventArgs> notFound = [];
@@ -125,7 +127,15 @@ public class RunDetailsPageTests : BunitContext
         var page = Render(Data(polyline: null));
 
         Assert.Empty(page.FindAll("#route"));
-        Assert.Empty(page.FindAll("script"));
+        Assert.Empty(page.FindAll("#route-data"));
+    }
+
+    [Fact]
+    public void The_charts_come_after_the_map()
+    {
+        var page = Render(Data());
+
+        Assert.Equal(["route", "charts"], page.FindAll("#route, #charts").Select(e => e.Id));
     }
 
     [Fact]
