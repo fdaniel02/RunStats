@@ -132,7 +132,16 @@ public class RunsPageTests : BunitContext
         var rows = Render(Data()).FindAll("tbody tr");
 
         Assert.Equal(2, rows.Count);
-        Assert.Equal(["2026-10-17", "Amsterdam Running", "Run", "7.5", "39:57", "5:20 / 3:42 /km"], rows[0].Children.Take(6).Select(c => c.TextContent));
+        Assert.Equal(["2026-10-17", "Amsterdam Running", "Run", "7.5", "39:57", "5:20 / 3:42"], rows[0].Children.Take(6).Select(c => c.TextContent));
+    }
+
+    [Fact]
+    public void The_pace_unit_is_in_the_header_like_the_other_columns()
+    {
+        var page = Render(Data());
+
+        Assert.Equal("Pace/km", page.FindAll("thead th")[5].TextContent);
+        Assert.Equal("/km", page.FindAll("thead th")[5].QuerySelector(".unit")!.TextContent);
     }
 
     [Fact]
@@ -146,7 +155,7 @@ public class RunsPageTests : BunitContext
     [Fact]
     public void Without_a_max_speed_the_max_pace_is_missing()
     {
-        Assert.Equal("5:45 / – /km", Render(Data()).FindAll("tbody tr")[1].Children[5].TextContent);
+        Assert.Equal("5:45 / –", Render(Data()).FindAll("tbody tr")[1].Children[5].TextContent);
     }
 
     [Fact]

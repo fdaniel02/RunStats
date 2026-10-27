@@ -17,7 +17,7 @@ else
                     <th scope="col" class="optional">Type</th>
                     <th scope="col" class="num">km</th>
                     <th scope="col" class="num optional">Time</th>
-                    <th scope="col" class="num">Pace</th>
+                    <th scope="col" class="num">Pace<span class="unit">/km</span></th>
                     @if (ShowMetrics)
                     {
                         @MetricHeader("Speed", "km/h")
@@ -44,11 +44,11 @@ else
                         <td class="num optional">@Format.Duration(run.DurationSeconds)</td>
                         @if (ShowMetrics && Format.PaceValue(run.DistanceMeters, run.DurationSeconds) is var pace && pace != Format.Missing)
                         {
-                            <td class="num">@pace<span class="metric"> / @Format.MaxPace(run.Metrics?.MaxSpeedMps)</span> /km</td>
+                            <td class="num">@pace<span class="metric"> / @Format.MaxPace(run.Metrics?.MaxSpeedMps)</span></td>
                         }
                         else
                         {
-                            <td class="num">@Format.Pace(run.DistanceMeters, run.DurationSeconds)</td>
+                            <td class="num">@Format.PaceValue(run.DistanceMeters, run.DurationSeconds)</td>
                         }
                         @if (ShowMetrics)
                         {

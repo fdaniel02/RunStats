@@ -15,6 +15,7 @@ table.runs {
         font-size: .8rem;
         padding: 0 8px 8px;
         border-bottom: 1px solid var(--line);
+        vertical-align: bottom;
     }
 
     table.runs td {
@@ -69,10 +70,6 @@ table.runs {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-    }
-
-    table.runs th.metric {
-        vertical-align: bottom;
     }
 
     table.runs .unit {

@@ -68,7 +68,7 @@ public class DashboardPageTests : BunitContext
         var page = Render(Data());
 
         var cells = page.Find(".last-runs tbody tr").QuerySelectorAll("td").Select(c => c.TextContent).ToList();
-        Assert.Equal(["2026-10-26", "Treadmill", "6.1", "35:04", "5:45 /km"], cells);
+        Assert.Equal(["2026-10-26", "Treadmill", "6.1", "35:04", "5:45"], cells);
         Assert.Empty(page.Find(".last-runs").QuerySelectorAll("td.name"));
     }
 
@@ -87,7 +87,7 @@ public class DashboardPageTests : BunitContext
 
         Assert.Equal("Races 2026", page.Find(".races h2").TextContent);
         var cells = page.Find(".races tbody tr").QuerySelectorAll("td").Select(c => c.TextContent).ToList();
-        Assert.Equal(["2026-10-17", "Amsterdam Running", "Run", "7.5", "39:57", "5:20 /km"], cells);
+        Assert.Equal(["2026-10-17", "Amsterdam Running", "Run", "7.5", "39:57", "5:20"], cells);
     }
 
     [Fact]
