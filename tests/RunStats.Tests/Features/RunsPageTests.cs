@@ -171,6 +171,27 @@ public class RunsPageTests : BunitContext
     }
 
     [Fact]
+    public void Races_are_tinted_and_say_so_to_screen_readers()
+    {
+        var page = Render(Data(runs: [Amsterdam with { IsRace = true }, Treadmill]));
+
+        var rows = page.FindAll("tbody tr");
+        Assert.Equal(["race", null], rows.Select(r => r.GetAttribute("class")));
+        Assert.Equal("Amsterdam Running (race)", rows[0].QuerySelector(".name")!.TextContent);
+        Assert.Equal(" (race)", rows[0].QuerySelector(".name .visually-hidden")!.TextContent);
+        Assert.Equal("Race", page.Find(".race-key").TextContent);
+    }
+
+    [Fact]
+    public void Without_races_on_the_page_there_is_no_key()
+    {
+        var page = Render(Data());
+
+        Assert.Empty(page.FindAll("tr.race"));
+        Assert.Empty(page.FindAll(".race-key"));
+    }
+
+    [Fact]
     public void An_empty_selection_says_so()
     {
         var page = Render(Data(count: 0, runs: []));

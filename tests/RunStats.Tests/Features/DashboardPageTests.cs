@@ -205,4 +205,12 @@ public class DashboardPageTests : BunitContext
         Assert.Equal(["runs/1", "runs/2"], page.FindAll("a.row-link").Select(a => a.GetAttribute("href")));
         Assert.All(page.FindAll("a.row-link"), a => Assert.Equal("false", a.GetAttribute("data-enhance-nav")));
     }
+
+    [Fact]
+    public void The_dashboards_tables_do_not_tint_races()
+    {
+        var page = Render(Data(races: [new RunRow(2, new DateOnly(2026, 10, 17), "running", "Amsterdam Running", 7500, 2397, IsRace: true)]));
+
+        Assert.Empty(page.FindAll("tr.race"));
+    }
 }

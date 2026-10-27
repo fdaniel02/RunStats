@@ -55,9 +55,15 @@ else
     <section class="card">
         @if (data.Count > 0)
         {
-            <p class="summary muted">@data.Count @(data.Count == 1 ? "run" : "runs") · @Format.Km(data.DistanceMeters) km · @Format.Hours(data.DurationSeconds)</p>
+            <div class="summary-row">
+                <p class="summary muted">@data.Count @(data.Count == 1 ? "run" : "runs") · @Format.Km(data.DistanceMeters) km · @Format.Hours(data.DurationSeconds)</p>
+                @if (data.Runs.Any(r => r.IsRace))
+                {
+                    <span class="race-key muted">Race</span>
+                }
+            </div>
         }
-        <RunTable Rows="data.Runs" ShowName="true" ShowMetrics="true" EmptyText="No runs match these filters." />
+        <RunTable Rows="data.Runs" ShowName="true" ShowMetrics="true" MarkRaces="true" EmptyText="No runs match these filters." />
         @if (data.PageCount > 1)
         {
             <nav class="pager" aria-label="Pages">

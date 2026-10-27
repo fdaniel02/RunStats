@@ -32,12 +32,15 @@ else
             <tbody>
                 @foreach (var run in Rows)
                 {
-                    <tr>
+                    <tr class="@(MarkRaces && run.IsRace ? "race" : null)">
                         @* Full page load: the details page's map script wouldn't run after enhanced navigation. *@
                         <td><a class="row-link" href="runs/@run.Id" data-enhance-nav="false">@Format.Date(run.Date)</a></td>
                         @if (ShowName)
                         {
-                            <td class="name">@run.Name</td>
+                            <td class="name">@run.Name@if (MarkRaces && run.IsRace)
+                                {
+                                    <span class="visually-hidden"> (race)</span>
+                                }</td>
                         }
                         <td class="optional">@Format.RunType(run.TypeKey)</td>
                         <td class="num">@Format.Km(run.DistanceMeters)</td>
@@ -71,6 +74,8 @@ else
     [Parameter, EditorRequired] public IReadOnlyList<RunRow> Rows { get; set; } = [];
     [Parameter] public bool ShowName { get; set; }
     [Parameter] public bool ShowMetrics { get; set; }
+    // A tinted background for races, where they're mixed with other runs.
+    [Parameter] public bool MarkRaces { get; set; }
     [Parameter] public string EmptyText { get; set; } = "No runs yet.";
 
     static RenderFragment MetricHeader(string name, string unit) => __builder =>

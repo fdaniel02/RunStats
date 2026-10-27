@@ -143,8 +143,16 @@ public class RunDetailsPageTests : BunitContext
     {
         var rows = Render(Data()).FindAll("table.laps tbody tr");
 
-        Assert.Equal(["1", "1.0", "5:29", "5:29 / 4:27 /km", "154 / 181", "172", "1.05", "2 / 0"], rows[0].Children.Select(c => c.TextContent));
-        Assert.Equal(["2", "0.5", "2:43", "5:26 / 4:27 /km"], rows[1].Children.Take(4).Select(c => c.TextContent));
+        Assert.Equal(["1", "1.0", "5:29", "5:29 / 4:27", "154 / 181", "172", "1.05", "2 / 0"], rows[0].Children.Select(c => c.TextContent));
+        Assert.Equal(["2", "0.5", "2:43", "5:26 / 4:27"], rows[1].Children.Take(4).Select(c => c.TextContent));
+    }
+
+    [Fact]
+    public void The_lap_pace_unit_is_in_the_header()
+    {
+        var header = Render(Data()).FindAll("table.laps th")[3];
+
+        Assert.Equal(("Pace/km", "/km"), (header.TextContent, header.QuerySelector(".unit")!.TextContent));
     }
 
     [Fact]

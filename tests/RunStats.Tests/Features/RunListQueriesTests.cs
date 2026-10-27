@@ -147,6 +147,16 @@ public sealed class RunListQueriesTests(SqlServerFixture sqlServer) : IAsyncLife
     }
 
     [Fact]
+    public async Task Rows_say_whether_the_run_was_a_race()
+    {
+        await AddRunsAsync();
+
+        var data = await Load(queries);
+
+        Assert.Equal(["Buffel run", "Eindhoven"], data.Runs.Where(r => r.IsRace).Select(r => r.Name));
+    }
+
+    [Fact]
     public async Task Races_only()
     {
         await AddRunsAsync();

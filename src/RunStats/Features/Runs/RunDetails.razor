@@ -75,7 +75,7 @@
                         }
                         <th scope="col" class="num">km</th>
                         <th scope="col" class="num">Time</th>
-                        <th scope="col" class="num">Pace<span class="unit optional">avg / max</span></th>
+                        <th scope="col" class="num">Pace<span class="unit">/km</span></th>
                         <th scope="col" class="num">HR<span class="unit">avg / max</span></th>
                         <th scope="col" class="num optional">Cadence<span class="unit">spm</span></th>
                         <th scope="col" class="num optional">Stride<span class="unit">m</span></th>
@@ -95,7 +95,7 @@
                             <td class="num">@Format.Duration(lap.DurationSeconds)</td>
                             @if (Format.PaceValue(lap.DistanceMeters, lap.DurationSeconds) is var pace && pace != Format.Missing)
                             {
-                                <td class="num">@pace<span class="optional"> / @Format.MaxPace(lap.MaxSpeedMps)</span> /km</td>
+                                <td class="num">@pace<span class="optional"> / @Format.MaxPace(lap.MaxSpeedMps)</span></td>
                             }
                             else
                             {
