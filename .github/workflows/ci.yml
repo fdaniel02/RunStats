@@ -56,7 +56,7 @@ jobs:
           /d:sonar.cs.opencover.reportsPaths=TestResults/coverage.opencover.*.xml
           /d:sonar.exclusions=**/Migrations/**,**/wwwroot/lib/**
           /d:sonar.coverage.exclusions=**/Migrations/**,**/ReconnectModal.razor.js,gateway/tests/**,tests/js/**
-          /d:sonar.javascript.lcov.reportPaths=TestResults/js-lcov.info
+          /d:sonar.javascript.lcov.reportPaths=${{ github.workspace }}/TestResults/js-lcov.info
           /d:sonar.python.version=3.14
           /d:sonar.python.coverage.reportPaths=gateway/coverage.xml
 
@@ -76,11 +76,9 @@ jobs:
       - working-directory: gateway
         run: uv run --frozen --no-build pytest --cov --cov-report=xml
 
-      - run: >
-          node --test --experimental-test-coverage --test-coverage-include="src/**/*.js"
-          --test-reporter=spec --test-reporter-destination=stdout
-          --test-reporter=lcov --test-reporter-destination=TestResults/js-lcov.info
-          "tests/js/*.test.mjs"
+      - run: |
+          node --test --experimental-test-coverage --test-coverage-include="src/**/*.js"             --test-reporter=spec --test-reporter-destination=stdout             --test-reporter=lcov --test-reporter-destination=TestResults/js-lcov.info             "tests/js/*.test.mjs"
+          sed -i "s|^SF:|SF:$GITHUB_WORKSPACE/|" TestResults/js-lcov.info
 
       - if: env.SONAR_TOKEN != ''
         run: dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
