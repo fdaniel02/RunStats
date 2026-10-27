@@ -1,0 +1,84 @@
+@* Distance or time per week. The switch is two radio buttons and CSS, so the page needs no connection to the server. *@
+<div class="weekly">
+    <input type="radio" name="weekly-measure" id="weekly-distance" class="measure" checked />
+    <input type="radio" name="weekly-measure" id="weekly-time" class="measure" />
+    <div class="switch" role="group" aria-label="Measure">
+        <label for="weekly-distance">Distance</label>
+        <label for="weekly-time">Time</label>
+    </div>
+
+    @if (Weeks.All(w => w.DistanceMeters == 0 && w.DurationSeconds == 0))
+    {
+        <p class="muted empty">No runs in the last @Weeks.Count weeks.</p>
+    }
+    else
+    {
+        @Plot("distance", "Distance per week in km", w => w.DistanceMeters / 1000, v => $"{Format.Km(v * 1000)} km", t => t.ToString("0.##", Culture))
+        @Plot("time", "Time per week in hours", w => w.DurationSeconds / 3600, v => Format.Hours(v * 3600), t => $"{t:0.##} h")
+
+        <details class="as-table">
+            <summary>Show as table</summary>
+            <table>
+                <thead>
+                    <tr><th scope="col">Week</th><th scope="col" class="num">km</th><th scope="col" class="num">Time</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var week in Weeks)
+                    {
+                        <tr>
+                            <td>@WeekName(week)</td>
+                            <td class="num">@Format.Km(week.DistanceMeters)</td>
+                            <td class="num">@Format.Hours(week.DurationSeconds)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </details>
+    }
+</div>
+
+@code {
+    static readonly System.Globalization.CultureInfo Culture = System.Globalization.CultureInfo.InvariantCulture;
+
+    [Parameter, EditorRequired] public IReadOnlyList<WeekTotal> Weeks { get; set; } = [];
+
+    static string WeekName(WeekTotal week) =>
+        week.IsCurrent ? $"This week (from {Format.Date(week.Monday)})" : $"{Format.Date(week.Monday)} – {Format.Date(week.Monday.AddDays(6))}";
+
+    RenderFragment Plot(string measure, string title, Func<WeekTotal, double> value, Func<double, string> label, Func<double, string> tickLabel) => __builder =>
+    {
+        var values = Weeks.Select(value).ToList();
+        var (max, step) = ChartScale.Nice(values.Max());
+        var largest = values.IndexOf(values.Max());
+        <figure class="plot @measure">
+            <figcaption class="visually-hidden">@title</figcaption>
+            <div class="area">
+                <div class="grid" aria-hidden="true">
+                    @foreach (var tick in ChartScale.Ticks(max, step))
+                    {
+                        <div class="gridline" style="bottom: @Percent(tick / max)"><span>@tickLabel(tick)</span></div>
+                    }
+                </div>
+                <ol class="bars">
+                    @for (var i = 0; i < Weeks.Count; i++)
+                    {
+                        var week = Weeks[i];
+                        var text = $"{WeekName(week)}: {label(values[i])}";
+                        <li class="slot @(week.IsCurrent ? "current" : "")" tabindex="0" aria-label="@text">
+                            <span class="bar" style="height: @Percent(values[i] / max)">
+                                @if (i == largest && values[i] > 0)
+                                {
+                                    <span class="value" aria-hidden="true">@label(values[i])</span>
+                                }
+                            </span>
+                            <span class="tip" aria-hidden="true">@text</span>
+                            <span class="x" aria-hidden="true">@(week.IsCurrent ? "This week" : Format.Date(week.Monday))</span>
+                        </li>
+                    }
+                </ol>
+            </div>
+        </figure>
+    };
+
+    static string Percent(double fraction) => (Math.Clamp(fraction, 0, 1) * 100).ToString("0.##", Culture) + "%";
+}

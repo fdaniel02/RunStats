@@ -44,7 +44,7 @@ public sealed class StartupTests : IDisposable
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
-        Assert.Contains($"<h1>{heading}</h1>", html);
+        Assert.Matches($"<h1[^>]*>{heading}</h1>", html);
         Assert.Contains("_framework/blazor.web", html);
     }
 

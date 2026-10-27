@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using RunStats;
 using RunStats.Components;
 using RunStats.Data;
+using RunStats.Features.Dashboard;
 using RunStats.Garmin;
 using RunStats.Processing;
 using RunStats.Sync;
@@ -40,6 +41,7 @@ builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
 builder.Services.AddAppTelemetry(builder.Configuration);
 
 builder.Services.AddSingleton<DatabaseMigrator>();
+builder.Services.AddTransient<IDashboardQueries, DashboardQueries>();
 builder.Services.AddHttpClient<IGarminGateway, GarminGatewayClient>((services, client) =>
     client.BaseAddress = new Uri(services.GetRequiredService<IConfiguration>()["GarminGateway:BaseUrl"]
         ?? throw new InvalidOperationException("Setting 'GarminGateway:BaseUrl' is missing (e.g. 'http://garmin-gateway:8080/').")));
