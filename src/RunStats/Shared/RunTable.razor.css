@@ -23,6 +23,10 @@ table.runs {
         border-bottom: 1px solid var(--line);
     }
 
+    table.runs tbody tr:hover td {
+        background: rgba(255, 255, 255, .05);
+    }
+
     table.runs tbody tr:last-child td {
         border-bottom: 0;
     }
@@ -41,6 +45,21 @@ table.runs {
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+
+    table.runs th.metric {
+        vertical-align: bottom;
+    }
+
+    table.runs .unit {
+        display: block;
+        font-weight: 400;
+    }
+
+@media (max-width: 1099px) {
+    table.runs .metric {
+        display: none;
+    }
+}
 
 @media (max-width: 560px) {
     table.runs .optional {

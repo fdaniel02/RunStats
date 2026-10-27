@@ -8,7 +8,7 @@ public class FormatTests
     [InlineData(10012.5, "10.0")]
     [InlineData(21097.5, "21.1")]
     [InlineData(960, "1.0")]
-    [InlineData(0, "0.0")]
+    [InlineData(0.0, "0.0")]
     public void Km_has_one_decimal(double meters, string expected) => Assert.Equal(expected, Format.Km(meters));
 
     [Theory]
@@ -19,6 +19,32 @@ public class FormatTests
     [InlineData(3765, "1:02:45")]
     [InlineData(36000, "10:00:00")]
     public void Duration_shows_hours_only_from_an_hour(double seconds, string expected) => Assert.Equal(expected, Format.Duration(seconds));
+
+    [Theory]
+    [InlineData(3.13, "11.3")]
+    [InlineData(0.0, "0.0")]
+    [InlineData(null, "–")]
+    public void Speed_is_in_km_per_hour(double? metersPerSecond, string expected) => Assert.Equal(expected, Format.Speed(metersPerSecond));
+
+    [Theory]
+    [InlineData(171.4, "171")]
+    [InlineData(512.5, "513")]
+    [InlineData(null, "–")]
+    public void Whole_rounds_to_a_whole_number(double? value, string expected) => Assert.Equal(expected, Format.Whole(value));
+
+    [Theory]
+    [InlineData(109.7, "1.10")]
+    [InlineData(84.0, "0.84")]
+    [InlineData(null, "–")]
+    public void Meters_from_centimeters_with_two_decimals(double? centimeters, string expected) => Assert.Equal(expected, Format.Meters(centimeters));
+
+    [Theory]
+    [InlineData("148", "172", "148 / 172")]
+    [InlineData("148", "–", "148 / –")]
+    [InlineData("–", "172", "– / 172")]
+    [InlineData("–", "–", "–")]
+    public void Pair_shows_both_sides_unless_both_are_missing(string first, string second, string expected) =>
+        Assert.Equal(expected, Format.Pair(first, second));
 
     [Theory]
     [InlineData(0, "0 min")]
@@ -35,6 +61,18 @@ public class FormatTests
     [InlineData(0.5, 1800, "–")]
     [InlineData(5000, 0, "–")]
     public void Pace_per_km(double meters, double seconds, string expected) => Assert.Equal(expected, Format.Pace(meters, seconds));
+
+    [Theory]
+    [InlineData(1000, 344, "5:44")]
+    [InlineData(0, 300, "–")]
+    public void Pace_value_has_no_unit(double meters, double seconds, string expected) => Assert.Equal(expected, Format.PaceValue(meters, seconds));
+
+    [Theory]
+    [InlineData(3.75, "4:27")]
+    [InlineData(2.0, "8:20")]
+    [InlineData(0.0, "–")]
+    [InlineData(null, "–")]
+    public void Max_pace_comes_from_max_speed(double? maxSpeedMps, string expected) => Assert.Equal(expected, Format.MaxPace(maxSpeedMps));
 
     [Fact]
     public void Dates_are_iso_8601() => Assert.Equal("2025-09-07", Format.Date(new DateOnly(2025, 9, 7)));

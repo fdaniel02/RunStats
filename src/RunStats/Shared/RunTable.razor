@@ -18,6 +18,15 @@ else
                     <th scope="col" class="num">km</th>
                     <th scope="col" class="num optional">Time</th>
                     <th scope="col" class="num">Pace</th>
+                    @if (ShowMetrics)
+                    {
+                        @MetricHeader("Speed", "km/h")
+                        @MetricHeader("HR", "bpm")
+                        @MetricHeader("Cadence", "spm")
+                        @MetricHeader("Stride", "m")
+                        @MetricHeader("Energy", "kcal")
+                        @MetricHeader("Ascent / descent", "m")
+                    }
                 </tr>
             </thead>
             <tbody>
@@ -32,7 +41,24 @@ else
                         <td class="optional">@Format.RunType(run.TypeKey)</td>
                         <td class="num">@Format.Km(run.DistanceMeters)</td>
                         <td class="num optional">@Format.Duration(run.DurationSeconds)</td>
-                        <td class="num">@Format.Pace(run.DistanceMeters, run.DurationSeconds)</td>
+                        @if (ShowMetrics && Format.PaceValue(run.DistanceMeters, run.DurationSeconds) is var pace && pace != Format.Missing)
+                        {
+                            <td class="num">@pace<span class="metric"> / @Format.MaxPace(run.Metrics?.MaxSpeedMps)</span> /km</td>
+                        }
+                        else
+                        {
+                            <td class="num">@Format.Pace(run.DistanceMeters, run.DurationSeconds)</td>
+                        }
+                        @if (ShowMetrics)
+                        {
+                            var m = run.Metrics;
+                            <td class="num metric">@Format.Pair(Format.Speed(m?.AverageSpeedMps), Format.Speed(m?.MaxSpeedMps))</td>
+                            <td class="num metric">@Format.Pair(Format.Whole(m?.AverageHeartRate), Format.Whole(m?.MaxHeartRate))</td>
+                            <td class="num metric">@Format.Pair(Format.Whole(m?.AverageCadenceSpm), Format.Whole(m?.MaxCadenceSpm))</td>
+                            <td class="num metric">@Format.Meters(m?.StrideLengthCm)</td>
+                            <td class="num metric">@Format.Whole(m?.Calories)</td>
+                            <td class="num metric">@Format.Pair(Format.Whole(m?.ElevationGainMeters), Format.Whole(m?.ElevationLossMeters))</td>
+                        }
                     </tr>
                 }
             </tbody>
@@ -43,5 +69,11 @@ else
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<RunRow> Rows { get; set; } = [];
     [Parameter] public bool ShowName { get; set; }
+    [Parameter] public bool ShowMetrics { get; set; }
     [Parameter] public string EmptyText { get; set; } = "No runs yet.";
+
+    static RenderFragment MetricHeader(string name, string unit) => __builder =>
+    {
+        <th scope="col" class="num metric">@name<span class="unit">@unit</span></th>
+    };
 }

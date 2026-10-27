@@ -29,11 +29,32 @@ public static class Format
 
     public static string Pace(double meters, double seconds)
     {
-        if (meters < 1 || seconds <= 0)
-            return Missing;
-        var perKm = TimeSpan.FromSeconds(Math.Round(seconds / (meters / 1000)));
-        return $"{(int)perKm.TotalMinutes}:{perKm.Seconds:00} /km";
+        var pace = PaceValue(meters, seconds);
+        return pace == Missing ? Missing : $"{pace} /km";
     }
+
+    // Minutes per km without the unit, e.g. to sit next to the max pace.
+    public static string PaceValue(double meters, double seconds) =>
+        meters < 1 || seconds <= 0 ? Missing : MinutesPerKm(seconds / (meters / 1000));
+
+    // The fastest pace, from Garmin's max speed; without the unit.
+    public static string MaxPace(double? maxSpeedMps) => maxSpeedMps > 0 ? MinutesPerKm(1000 / maxSpeedMps.Value) : Missing;
+
+    static string MinutesPerKm(double secondsPerKm)
+    {
+        var perKm = TimeSpan.FromSeconds(Math.Round(secondsPerKm));
+        return $"{(int)perKm.TotalMinutes}:{perKm.Seconds:00}";
+    }
+
+    public static string Speed(double? metersPerSecond) => metersPerSecond is { } mps ? (mps * 3.6).ToString("0.0", Culture) : Missing;
+
+    public static string Whole(double? value) => value is { } v ? v.ToString("0", Culture) : Missing;
+
+    public static string Meters(double? centimeters) => centimeters is { } cm ? (cm / 100).ToString("0.00", Culture) : Missing;
+
+    // 148 / 172; a single missing side keeps its place as "–".
+    public static string Pair(string first, string second) =>
+        first == Missing && second == Missing ? Missing : $"{first} / {second}";
 
     // ISO 8601 everywhere: 2026-10-11.
     public static string Date(DateOnly date) => date.ToString("yyyy-MM-dd", Culture);
