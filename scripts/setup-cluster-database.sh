@@ -86,6 +86,9 @@ RESTORE DATABASE [RunStats] FROM DISK = N'/var/opt/mssql/restore/RunStats-transf
          MOVE N'RunStats_log' TO N'/var/opt/mssql/data/RunStats_log.ldf',
          CHECKSUM, REPLACE, RECOVERY;
 ALTER DATABASE [RunStats] SET MULTI_USER;
+-- Everything can be synced from Garmin again, so there's no point-in-time restore to keep log backups for; under FULL
+-- the log would only grow between the daily full backups.
+ALTER DATABASE [RunStats] SET RECOVERY SIMPLE;
 -- The backup's owner is the local server's sa, which this server doesn't know.
 ALTER AUTHORIZATION ON DATABASE::[RunStats] TO [sa];
 SQL
