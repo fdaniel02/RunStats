@@ -1,0 +1,93 @@
+@using System.Globalization
+@using System.Text
+@if (Months.All(m => m.MedianPercent is null))
+{
+    <p class="muted">No outdoor runs yet.</p>
+}
+else
+{
+    var (max, step) = ChartScale.Nice(Months.Max(m => m.MedianPercent ?? 0));
+    var count = Months.Count;
+    <figure class="chart">
+        <figcaption class="visually-hidden">Median pace variation of the month's outdoor runs, in percent</figcaption>
+        <div class="area">
+            <div class="grid" aria-hidden="true">
+                @foreach (var tick in ChartScale.Ticks(max, step))
+                {
+                    <div class="gridline" style="bottom: @Percent(tick / max)"><span>±@tick.ToString("0.#", Culture)%</span></div>
+                }
+            </div>
+            <svg viewBox="0 0 @count 100" preserveAspectRatio="none" aria-hidden="true">
+                <path class="line" d="@Path(max)" />
+            </svg>
+            <ol class="months">
+                @for (var i = 0; i < count; i++)
+                {
+                    var month = Months[i];
+                    var text = Describe(month);
+                    <li class="slot @(i >= count / 2 ? "right" : "")" tabindex="0" aria-label="@text">
+                        @if (month.MedianPercent is { } median)
+                        {
+                            <span class="dot" style="bottom: @Percent(median / max)"></span>
+                        }
+                        <span class="tip" aria-hidden="true">@text</span>
+                        @if (month.Month.Month % 3 == 1)
+                        {
+                            <span class="x" aria-hidden="true">@month.Month.ToString("MMM yy", Culture)</span>
+                        }
+                    </li>
+                }
+            </ol>
+        </div>
+    </figure>
+
+    <details class="as-table">
+        <summary>Show as table</summary>
+        <table>
+            <thead>
+                <tr><th scope="col">Month</th><th scope="col" class="num">Median ±%</th><th scope="col" class="num">Runs</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var month in Months.Reverse())
+                {
+                    <tr>
+                        <td>@month.Month.ToString("yyyy-MM", Culture)</td>
+                        <td class="num">@Format.OneDecimal(month.MedianPercent)</td>
+                        <td class="num">@month.Runs</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </details>
+}
+
+@code {
+    static readonly CultureInfo Culture = CultureInfo.InvariantCulture;
+
+    [Parameter, EditorRequired] public IReadOnlyList<PaceVariationMonth> Months { get; set; } = [];
+
+    static string Describe(PaceVariationMonth month) => month.MedianPercent is { } median
+        ? $"{month.Month.ToString("yyyy-MM", Culture)}: {Format.Variation(median)}, the median of {month.Runs} outdoor {(month.Runs == 1 ? "run" : "runs")}"
+        : $"{month.Month.ToString("yyyy-MM", Culture)}: no outdoor runs";
+
+    // A gap where a month has no runs, instead of a line across it.
+    string Path(double max)
+    {
+        var path = new StringBuilder();
+        var drawing = false;
+        for (var i = 0; i < Months.Count; i++)
+        {
+            if (Months[i].MedianPercent is not { } median)
+            {
+                drawing = false;
+                continue;
+            }
+            var y = 100 - median / max * 100;
+            path.Append(drawing ? " L" : " M").Append((i + 0.5).ToString("0.###", Culture)).Append(' ').Append(y.ToString("0.###", Culture));
+            drawing = true;
+        }
+        return path.ToString().Trim();
+    }
+
+    static string Percent(double fraction) => (Math.Clamp(fraction, 0, 1) * 100).ToString("0.##", Culture) + "%";
+}

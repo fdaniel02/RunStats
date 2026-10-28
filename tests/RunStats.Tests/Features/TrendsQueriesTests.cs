@@ -31,7 +31,9 @@ public sealed class TrendsQueriesTests(SqlServerFixture sqlServer) : IAsyncLifet
 
     static RunPaceBand Band(short pace, double minutes) => new() { PaceSecondsPerKm = pace, Seconds = (int)(minutes * 60), FlatSeconds = (int)(minutes * 60) };
 
-    async Task AddAsync(DateTime startUtc, string typeKey, params RunPaceBand[] bands)
+    async Task AddAsync(DateTime startUtc, string typeKey, params RunPaceBand[] bands) => await AddAsync(startUtc, typeKey, null, bands);
+
+    async Task AddAsync(DateTime startUtc, string typeKey, double? paceVariation, params RunPaceBand[] bands)
     {
         await using var context = await db.CreateDbContextAsync(Ct);
         context.Runs.Add(new Run
@@ -43,6 +45,7 @@ public sealed class TrendsQueriesTests(SqlServerFixture sqlServer) : IAsyncLifet
             StartUtc = DateTime.SpecifyKind(startUtc, DateTimeKind.Utc),
             StartLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(startUtc, DateTimeKind.Utc), Amsterdam),
             DurationSeconds = bands.Sum(b => b.Seconds),
+            PaceVariationPercent = paceVariation,
             PaceBands = [.. bands]
         });
         await context.SaveChangesAsync(Ct);
@@ -142,4 +145,26 @@ public sealed class TrendsQueriesTests(SqlServerFixture sqlServer) : IAsyncLifet
              (WarningKind.VolumeJump, 10, 11, "VolumeJump on 10")],
             episodes.Select(e => (e.Kind, e.From.Day, e.To.Day, e.Message)));
     }
+
+    [Fact]
+    public async Task Pace_variation_is_the_median_of_each_months_outdoor_runs()
+    {
+        await AddAsync(new DateTime(2026, 7, 3, 7, 0, 0), "running", 3.0);
+        await AddAsync(new DateTime(2026, 7, 10, 7, 0, 0), "running", 20.0);
+        await AddAsync(new DateTime(2026, 7, 17, 7, 0, 0), "running", 2.5);
+        await AddAsync(new DateTime(2026, 9, 3, 7, 0, 0), "running", 4.0);
+        await AddAsync(new DateTime(2026, 9, 10, 7, 0, 0), "running", 5.0);
+        // Left out: the treadmill, and runs without a value.
+        await AddAsync(new DateTime(2026, 9, 11, 7, 0, 0), "treadmill_running", 1.0);
+        await AddAsync(new DateTime(2026, 9, 12, 7, 0, 0), "running", (double?)null);
+
+        var data = await queries.LoadAsync(Ct);
+
+        Assert.Equal(
+            [new PaceVariationMonth(new DateOnly(2026, 7, 1), 3.0, 3), new PaceVariationMonth(new DateOnly(2026, 8, 1), null, 0), new PaceVariationMonth(new DateOnly(2026, 9, 1), 4.5, 2)],
+            data.PaceVariation);
+    }
+
+    [Fact]
+    public async Task Without_outdoor_runs_there_is_no_pace_variation() => Assert.Empty((await queries.LoadAsync(Ct)).PaceVariation);
 }

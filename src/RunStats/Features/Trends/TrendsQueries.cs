@@ -14,9 +14,12 @@ public sealed record LoadWeek(DateOnly Monday, double Seconds, double FastSecond
 // One warning on consecutive days; the message is the first day's. To is today while it's still active.
 public sealed record WarningEpisode(WarningKind Kind, DateOnly From, DateOnly To, string Message);
 
+// The median of the month's outdoor runs; null in a month without one.
+public sealed record PaceVariationMonth(DateOnly Month, double? MedianPercent, int Runs);
+
 public sealed record TrendsData(
     IReadOnlyList<Warning> Active, IReadOnlyList<WarningEpisode> Episodes, IReadOnlyList<LoadWeek> Weeks,
-    double? TypicalPaceSecondsPerKm, int FastPaceSecondsPerKm, int VeryFastPaceSecondsPerKm);
+    double? TypicalPaceSecondsPerKm, int FastPaceSecondsPerKm, int VeryFastPaceSecondsPerKm, IReadOnlyList<PaceVariationMonth> PaceVariation);
 
 public interface ITrendsQueries
 {
@@ -42,8 +45,32 @@ public class TrendsQueries(
             await WeeksAsync(firstMonday, thisMonday, cancellationToken),
             await TypicalPaceAsync(today, cancellationToken),
             settings.Value.FastPaceSecondsPerKm,
-            settings.Value.VeryFastPaceSecondsPerKm);
+            settings.Value.VeryFastPaceSecondsPerKm,
+            await PaceVariationAsync(cancellationToken));
     }
+
+    // The median, not the mean: one interval session would pull a month's average far up.
+    async Task<List<PaceVariationMonth>> PaceVariationAsync(CancellationToken cancellationToken)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var runs = await db.Runs.AsNoTracking()
+            .Where(r => r.TypeKey == "running" && r.PaceVariationPercent != null)
+            .Select(r => new { r.StartLocal, Percent = r.PaceVariationPercent!.Value })
+            .ToListAsync(cancellationToken);
+        if (runs.Count == 0)
+            return [];
+        var byMonth = runs.ToLookup(r => new DateOnly(r.StartLocal.Year, r.StartLocal.Month, 1), r => r.Percent);
+        var months = new List<PaceVariationMonth>();
+        for (var month = byMonth.Min(g => g.Key); month <= byMonth.Max(g => g.Key); month = month.AddMonths(1))
+        {
+            var values = byMonth[month].Order().ToList();
+            months.Add(new PaceVariationMonth(month, values.Count == 0 ? null : Median(values), values.Count));
+        }
+        return months;
+    }
+
+    static double Median(List<double> sorted) =>
+        sorted.Count % 2 == 1 ? sorted[sorted.Count / 2] : (sorted[sorted.Count / 2 - 1] + sorted[sorted.Count / 2]) / 2;
 
     // Newest first.
     public static List<WarningEpisode> Episodes(IReadOnlyList<DayWarnings> days, DateOnly today)

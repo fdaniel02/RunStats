@@ -112,4 +112,10 @@ public class FormatTests
     [InlineData("hill_running", "Hill running")]
     [InlineData("", "Run")]
     public void Run_types_get_readable_names(string typeKey, string expected) => Assert.Equal(expected, Format.RunType(typeKey));
+
+    [Theory]
+    [InlineData(3.24, "±3.2%")]
+    [InlineData(0.0, "±0.0%")]
+    [InlineData(null, "–")]
+    public void Pace_variation_is_plus_minus_percent(double? percent, string text) => Assert.Equal(text, RunStats.Shared.Format.Variation(percent));
 }

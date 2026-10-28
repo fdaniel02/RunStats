@@ -26,6 +26,8 @@ public class Run : RunMetrics
     public double? Vo2Max { get; set; }
     public int? Steps { get; set; }
     public double? AverageTemperatureCelsius { get; set; }
+    // Not Garmin's: calculated from the samples (PaceVariation).
+    public double? PaceVariationPercent { get; set; }
 
     public double? StartLatitude { get; set; }
     public double? StartLongitude { get; set; }

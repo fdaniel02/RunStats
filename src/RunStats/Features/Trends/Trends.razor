@@ -57,6 +57,14 @@
         </p>
         <LoadChart Weeks="data.Weeks" FastPaceSecondsPerKm="data.FastPaceSecondsPerKm" VeryFastPaceSecondsPerKm="data.VeryFastPaceSecondsPerKm" />
     </section>
+
+    <section class="card" aria-labelledby="variation-title">
+        <h2 id="variation-title">Pace variation</h2>
+        <p class="intro muted">
+            How evenly the runs were paced: the median of each month's outdoor runs. Lower is more even; interval sessions vary most.
+        </p>
+        <PaceVariationChart Months="data.PaceVariation" />
+    </section>
 }
 
 @if (form is not null)

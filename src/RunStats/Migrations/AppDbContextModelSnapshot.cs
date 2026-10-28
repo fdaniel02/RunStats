@@ -167,6 +167,9 @@ namespace RunStats.Migrations
                     b.Property<double?>("NormalizedPowerWatts")
                         .HasColumnType("float");
 
+                    b.Property<double?>("PaceVariationPercent")
+                        .HasColumnType("float");
+
                     b.Property<int>("ParentTypeId")
                         .HasColumnType("int");
 
@@ -299,6 +302,9 @@ namespace RunStats.Migrations
                         .HasColumnType("float");
 
                     b.Property<double?>("NormalizedPowerWatts")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("PaceVariationPercent")
                         .HasColumnType("float");
 
                     b.Property<DateTime>("StartUtc")

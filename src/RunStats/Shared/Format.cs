@@ -46,6 +46,9 @@ public static class Format
         return $"{(int)perKm.TotalMinutes}:{perKm.Seconds:00}";
     }
 
+    // How evenly a run or lap was paced, e.g. ±3.2%.
+    public static string Variation(double? percent) => percent is { } p ? "±" + p.ToString("0.0", Culture) + "%" : Missing;
+
     public static string Speed(double? metersPerSecond) => metersPerSecond is { } mps ? (mps * 3.6).ToString("0.0", Culture) : Missing;
 
     public static string Whole(double? value) => value is { } v ? v.ToString("0", Culture) : Missing;

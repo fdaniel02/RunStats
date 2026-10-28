@@ -76,6 +76,7 @@ public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
         Calories = 720,
         Steps = 7750,
         AverageTemperatureCelsius = -3.5,
+        PaceVariationPercent = 3.24,
         StartLatitude = 52.37,
         StartLongitude = -4.89,
         EndLatitude = 52.38,
@@ -93,7 +94,7 @@ public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
         },
         Laps =
         [
-            new RunLap { LapIndex = 1, StartUtc = new DateTime(2026, 10, 25, 9, 30, 0, DateTimeKind.Utc), IntensityType = "ACTIVE", DistanceMeters = 1000, DurationSeconds = 270, AverageHeartRate = 150, GroundContactBalanceLeftPercent = 51.45 },
+            new RunLap { LapIndex = 1, StartUtc = new DateTime(2026, 10, 25, 9, 30, 0, DateTimeKind.Utc), IntensityType = "ACTIVE", DistanceMeters = 1000, DurationSeconds = 270, AverageHeartRate = 150, GroundContactBalanceLeftPercent = 51.45, PaceVariationPercent = 2.9 },
             new RunLap { LapIndex = 2, StartUtc = new DateTime(2026, 10, 25, 9, 34, 30, DateTimeKind.Utc), DistanceMeters = 1000, DurationSeconds = 265 }
         ],
         Samples =
