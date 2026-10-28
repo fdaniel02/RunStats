@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
 using RunStats.Data;
+using RunStats.Features.Warnings;
 using RunStats.Tests.Data;
 
 namespace RunStats.Tests;
@@ -69,6 +70,18 @@ public sealed class StartupTests : IDisposable
         Assert.Equal(ConsoleFormatterNames.Json, console.FormatterName);
         Assert.False(loggers.CreateLogger("Microsoft.EntityFrameworkCore.Database.Command").IsEnabled(LogLevel.Information));
         Assert.True(loggers.CreateLogger("Microsoft.EntityFrameworkCore.Migrations").IsEnabled(LogLevel.Information));
+    }
+
+    [Fact]
+    public void Warning_settings_have_their_defaults_and_can_be_overridden()
+    {
+        using var overridden = factory.WithWebHostBuilder(b => b.UseSetting("Warnings:VeryFastPaceSecondsPerKm", "250"));
+
+        var defaults = factory.Services.GetRequiredService<IOptions<WarningSettings>>().Value;
+        var settings = overridden.Services.GetRequiredService<IOptions<WarningSettings>>().Value;
+
+        Assert.Equal((310, 255), (defaults.FastPaceSecondsPerKm, defaults.VeryFastPaceSecondsPerKm));
+        Assert.Equal((310, 250), (settings.FastPaceSecondsPerKm, settings.VeryFastPaceSecondsPerKm));
     }
 
     [Fact]
