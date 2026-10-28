@@ -165,6 +165,37 @@ public sealed class DatabaseSizeTests(SqlServerFixture sqlServer) : IAsyncLifeti
         await monitor.StopAsync(Ct);
     }
 
+    // Like SQL Server: a read cancelled by the stop fails with its own error, not with OperationCanceledException.
+    sealed class FailingWhenStopped : IDbContextFactory<AppDbContext>
+    {
+        public TaskCompletionSource Reading { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public AppDbContext CreateDbContext() => throw new NotSupportedException();
+
+        public async Task<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default)
+        {
+            Reading.TrySetResult();
+            await Task.Delay(Timeout.Infinite, cancellationToken).ContinueWith(_ => { }, TaskScheduler.Default);
+            throw new InvalidOperationException("A severe error occurred on the current command. Operation cancelled by user.");
+        }
+    }
+
+    [Fact]
+    public async Task Stopping_during_a_read_is_no_error()
+    {
+        var logger = new FakeLogger<DatabaseSizeMonitor>();
+        var factory = new FailingWhenStopped();
+        var metrics = new DatabaseSizeMetrics(services.GetRequiredService<IMeterFactory>());
+        using var monitor = new DatabaseSizeMonitor(factory, metrics, new FakeTimeProvider(DateTimeOffset.UtcNow), logger);
+
+        await monitor.StartAsync(Ct);
+        await factory.Reading.Task.WaitAsync(Ct);
+        await monitor.StopAsync(Ct);
+
+        Assert.True(monitor.ExecuteTask!.IsCompletedSuccessfully);
+        Assert.Equal(0, logger.Collector.Count);
+    }
+
     [Fact]
     public void The_gauges_report_nothing_before_the_first_read_and_then_each_file_and_table()
     {
