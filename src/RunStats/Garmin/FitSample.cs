@@ -14,5 +14,6 @@ public sealed record FitSample(
     double? GroundContactTimeMs,
     double? VerticalOscillationMm,
     double? VerticalRatioPercent,
+    double? GroundContactBalanceLeftPercent,
     int? PowerWatts,
     int? TemperatureCelsius);

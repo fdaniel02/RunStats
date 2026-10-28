@@ -86,6 +86,7 @@ public static class RunProcessor
         metrics.GroundContactTimeMs = Number(e, "groundContactTime");
         metrics.VerticalOscillationCm = Number(e, "verticalOscillation");
         metrics.VerticalRatioPercent = Number(e, "verticalRatio");
+        metrics.GroundContactBalanceLeftPercent = Number(e, "groundContactBalanceLeft");
         metrics.AveragePowerWatts = Number(e, "averagePower");
         metrics.MaxPowerWatts = Number(e, "maxPower");
         metrics.NormalizedPowerWatts = Number(e, "normalizedPower");
@@ -111,6 +112,7 @@ public static class RunProcessor
             GroundContactTimeMs = (float?)s.GroundContactTimeMs,
             VerticalOscillationMm = (float?)s.VerticalOscillationMm,
             VerticalRatioPercent = (float?)s.VerticalRatioPercent,
+            GroundContactBalanceLeftPercent = (float?)s.GroundContactBalanceLeftPercent,
             PowerWatts = Small(s.PowerWatts),
             TemperatureCelsius = Small(s.TemperatureCelsius)
         })
