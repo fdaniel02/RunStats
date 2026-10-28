@@ -39,8 +39,8 @@ def test_health_check_requests_are_not_logged(restore_logging, capsys):
     configure_logging()
     access = logging.getLogger("uvicorn.access")
 
-    access.info('%s - "%s %s HTTP/%s" %d', "10.42.0.1:5000", "GET", "/healthz/live", "1.1", 200)
-    access.info('%s - "%s %s HTTP/%s" %d', "10.42.0.1:5000", "GET", "/activities", "1.1", 200)
+    access.info('%s - "%s %s HTTP/%s" %d', "127.0.0.1:5000", "GET", "/healthz/live", "1.1", 200)
+    access.info('%s - "%s %s HTTP/%s" %d', "127.0.0.1:5000", "GET", "/activities", "1.1", 200)
 
     [entry] = lines(capsys)
     assert "/activities" in entry["Message"]
