@@ -77,3 +77,8 @@ strong {
     .pace strong {
         color: var(--text);
     }
+
+.intro {
+    margin-bottom: 4px;
+    font-size: .9rem;
+}

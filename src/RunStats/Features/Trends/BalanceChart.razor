@@ -1,0 +1,46 @@
+@using System.Globalization
+@* One dot per strap run, in date order, around an even 50%. *@
+@if (Runs.Count == 0)
+{
+    <p class="muted">No runs with a chest strap yet: only the strap measures left/right balance.</p>
+}
+else
+{
+    <figure class="chart">
+        <figcaption class="visually-hidden">Left foot's share of ground contact time per strap run, in percent</figcaption>
+        <div class="area">
+            <div class="grid" aria-hidden="true">
+                @foreach (var tick in new[] { Min, 50.0, Max })
+                {
+                    <div class="gridline @(tick == 50 ? "even" : "")" style="bottom: @Percent((tick - Min) / (Max - Min))">
+                        <span>@tick.ToString("0", Culture)%</span>
+                    </div>
+                }
+            </div>
+            <ol class="runs">
+                @for (var i = 0; i < Runs.Count; i++)
+                {
+                    var run = Runs[i];
+                    var text = $"{Format.Date(run.Date)}: {run.LeftPercent.ToString("0.0", Culture)}% left, {(100 - run.LeftPercent).ToString("0.0", Culture)}% right";
+                    <li class="slot @(i >= Runs.Count / 2 ? "right" : "")" tabindex="0" aria-label="@text">
+                        <span class="dot" style="bottom: @Percent((run.LeftPercent - Min) / (Max - Min))"></span>
+                        <span class="tip" aria-hidden="true">@text</span>
+                    </li>
+                }
+            </ol>
+        </div>
+        <p class="range muted">@Format.Date(Runs[0].Date) – @Format.Date(Runs[^1].Date) · above 50% leans left</p>
+    </figure>
+}
+
+@code {
+    static readonly CultureInfo Culture = CultureInfo.InvariantCulture;
+
+    // Strap runs stay within a point or two of even; values outside are drawn at the edge.
+    const double Min = 45;
+    const double Max = 55;
+
+    [Parameter, EditorRequired] public IReadOnlyList<BalanceRun> Runs { get; set; } = [];
+
+    static string Percent(double fraction) => (Math.Clamp(fraction, 0, 1) * 100).ToString("0.##", Culture) + "%";
+}

@@ -35,7 +35,7 @@ public sealed class WarningSettings
     // both sides.
     [Range(5, 60)] public int FormBandWidthSecondsPerKm { get; set; } = 15;
     [Range(0, 600)] public double FormBandMinMinutes { get; set; } = 5;
-    [Range(0, 50)] public double StepLengthIncreasePercent { get; set; } = 4;
+    [Range(0, 50)] public double StrideLengthIncreasePercent { get; set; } = 4;
     [Range(0, 50)] public double CadenceDropSpm { get; set; } = 3;
 
     // Left/right balance on strap runs, over the same periods as the form.

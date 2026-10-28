@@ -120,7 +120,7 @@ defaults, in `WarningSettings`, were tuned on the history up to 2026-10 to about
 | `LongRunRatio`, `LongRunMinMinutes` | 1.3, 75 | The longest run of the last 7 days against the longest of the 4 weeks before |
 | `HardRunFastMinutes`, `HardRunMinutes`, `HardRunsWithinHours` | 20, 75, 72 | Two hard runs (this many fast minutes, or this long) this close together |
 | `FormBandWidthSecondsPerKm`, `FormBandMinMinutes` | 15, 5 | Form is compared in pace bands this wide with this much time on both sides |
-| `StepLengthIncreasePercent`, `CadenceDropSpm` | 4, 3 | Form change at the same pace, last 2 weeks against the 8 before (outdoor runs) |
+| `StrideLengthIncreasePercent`, `CadenceDropSpm` | 4, 3 | Form change at the same pace, last 2 weeks against the 8 before (outdoor runs) |
 | `BalanceShiftPoints`, `BalanceMinMinutes` | 1.5, 20 | Left/right balance change on strap runs, same periods |
 
 ### Logging

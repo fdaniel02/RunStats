@@ -1,0 +1,42 @@
+@using System.Globalization
+<ul class="tiles">
+    @foreach (var tile in Tiles)
+    {
+        var info = FormQueries.Info(tile.Metric);
+        <li class="card tile">
+            <span class="title">@info.Title</span>
+            @if (tile.Comparison is { } c)
+            {
+                <span class="value">
+                    @Signed(c.Change, info.Format) <small>@info.ChangeUnit</small>
+                    @if (info.ShowPercent)
+                    {
+                        <small class="percent">@Signed(c.Percent, "0.0")%</small>
+                    }
+                </span>
+                <span class="from-to">@Value(c.Before, info) → @Value(c.Now, info) @info.Unit</span>
+                <span class="muted">over @Format.Hours(c.Seconds) at comparable paces</span>
+            }
+            else
+            {
+                <span class="value missing">@Format.Missing</span>
+                <span class="muted">Not enough running at comparable paces</span>
+            }
+        </li>
+    }
+</ul>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<FormTile> Tiles { get; set; } = [];
+
+    public static string Value(double value, FormMetricInfo info) => value.ToString(info.Format, CultureInfo.InvariantCulture);
+
+    public static string Signed(double value, string format)
+    {
+        var rounded = value.ToString(format, CultureInfo.InvariantCulture);
+        // −0.0 and +0.0 read as a change; an unchanged value has no sign.
+        if (rounded.TrimStart('-').All(c => c is '0' or '.'))
+            return rounded.TrimStart('-');
+        return (value > 0 ? "+" : "−") + Math.Abs(value).ToString(format, CultureInfo.InvariantCulture);
+    }
+}

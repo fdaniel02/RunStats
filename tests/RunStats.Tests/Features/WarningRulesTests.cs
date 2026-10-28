@@ -189,8 +189,8 @@ public class WarningRulesTests
 
         var warning = Assert.Single(Evaluate(runs), w => w.Kind == WarningKind.FormChange);
 
-        Assert.Equal("At the same pace, step length +5.0% and cadence +0.0 spm in the last 2 weeks, against the 8 weeks before (over 1 h 0 min at comparable paces).",
-            warning.Message);
+        Assert.Equal("At the same pace, stride length 102.0 → 107.1 cm (+5.0%) and cadence 174.0 → 174.0 spm in the last 2 weeks against the 8 weeks before " +
+            "(over 1 h 0 min at comparable paces).", warning.Message);
     }
 
     [Fact]
@@ -198,7 +198,7 @@ public class WarningRulesTests
     {
         var runs = FormBaseline().Append(Run(3, "running", Band(EasyPace, 30, cadence: 170)));
 
-        Assert.Contains("cadence −4.0 spm", Assert.Single(Evaluate(runs), w => w.Kind == WarningKind.FormChange).Message);
+        Assert.Contains("cadence 174.0 → 170.0 spm", Assert.Single(Evaluate(runs), w => w.Kind == WarningKind.FormChange).Message);
     }
 
     [Fact]
