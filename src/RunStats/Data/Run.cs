@@ -29,6 +29,16 @@ public class Run : RunMetrics
     // Not Garmin's: calculated from the samples (PaceVariation).
     public double? PaceVariationPercent { get; set; }
 
+    // From Garmin's weather record: the nearest weather station's reading around the start. Empty for indoor runs.
+    public double? WeatherTemperatureCelsius { get; set; }
+    public double? WeatherFeelsLikeCelsius { get; set; }
+    public double? WeatherDewPointCelsius { get; set; }
+    public int? WeatherHumidityPercent { get; set; }
+    public double? WeatherWindSpeedKmh { get; set; }
+    // A compass point, e.g. "SSW".
+    public string? WeatherWindDirection { get; set; }
+    public string? WeatherStation { get; set; }
+
     public double? StartLatitude { get; set; }
     public double? StartLongitude { get; set; }
     public double? EndLatitude { get; set; }

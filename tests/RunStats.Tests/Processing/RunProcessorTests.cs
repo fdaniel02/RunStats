@@ -21,8 +21,64 @@ public class RunProcessorTests
           "startTimeGMT":"2026-10-25T09:30:00.0","trainingEffectLabel":"AEROBIC_BASE"}}
         """;
 
-    static RunRawData Raw(string detail = FullSummary, string list = """{"activityId":7,"vO2MaxValue":52.0}""") =>
-        new() { DetailJson = detail, ListJson = list };
+    static RunRawData Raw(string detail = FullSummary, string list = """{"activityId":7,"vO2MaxValue":52.0}""", string? weather = null) =>
+        new() { DetailJson = detail, ListJson = list, WeatherJson = weather };
+
+    // Garmin's record for the run of 2026-10-26, as Garmin Connect showed it: 11.1 °C, 13 km/h S wind, 82% humidity.
+    const string Weather = """
+        {"issueDate":"2026-10-26T16:55:00.000+00:00","temp":52,"apparentTemp":49,"dewPoint":46,"relativeHumidity":82,
+         "windDirection":170,"windDirectionCompassPoint":"s","windSpeed":7,"windGust":null,"latitude":51.65,"longitude":5.7,
+         "weatherStationDTO":{"id":"EHVK","name":"Volkel"},"weatherTypeDTO":{}}
+        """;
+
+    // Indoor runs get every value null.
+    const string IndoorWeather = """
+        {"issueDate":null,"temp":null,"apparentTemp":null,"dewPoint":null,"relativeHumidity":null,"windDirection":null,
+         "windDirectionCompassPoint":null,"windSpeed":null,"windGust":null,"latitude":0.0,"longitude":0.0,"weatherStationDTO":null,"weatherTypeDTO":null}
+        """;
+
+    [Fact]
+    public void Weather_comes_in_celsius_and_kilometres_per_hour()
+    {
+        var run = new Run { Id = 7 };
+
+        RunProcessor.ApplySummary(run, Raw(weather: Weather));
+
+        Assert.Equal(11.111, run.WeatherTemperatureCelsius!.Value, 3);
+        Assert.Equal(9.444, run.WeatherFeelsLikeCelsius!.Value, 3);
+        Assert.Equal(7.778, run.WeatherDewPointCelsius!.Value, 3);
+        Assert.Equal(82, run.WeatherHumidityPercent);
+        // Knots: Garmin Connect shows 7 as 13 km/h.
+        Assert.Equal(12.964, run.WeatherWindSpeedKmh!.Value, 3);
+        Assert.Equal(("S", "Volkel"), (run.WeatherWindDirection, run.WeatherStation));
+    }
+
+    [Theory]
+    [InlineData(IndoorWeather)]
+    [InlineData(null)]
+    [InlineData("null")]
+    public void Indoor_runs_have_no_weather(string? weather)
+    {
+        var run = new Run { Id = 7, WeatherTemperatureCelsius = 10, WeatherHumidityPercent = 80, WeatherStation = "Volkel", WeatherWindDirection = "S" };
+
+        RunProcessor.ApplySummary(run, Raw(weather: weather));
+
+        Assert.Null(run.WeatherTemperatureCelsius);
+        Assert.Null(run.WeatherHumidityPercent);
+        Assert.Null(run.WeatherWindSpeedKmh);
+        Assert.Null(run.WeatherWindDirection);
+        Assert.Null(run.WeatherStation);
+    }
+
+    [Fact]
+    public void Long_station_names_are_shortened()
+    {
+        var run = new Run { Id = 7 };
+
+        RunProcessor.ApplySummary(run, Raw(weather: $$$"""{"temp":50,"weatherStationDTO":{"name":"{{{new string('X', 150)}}}"}}"""));
+
+        Assert.Equal(100, run.WeatherStation!.Length);
+    }
 
     [Fact]
     public void Summary_fills_the_runs_stats()

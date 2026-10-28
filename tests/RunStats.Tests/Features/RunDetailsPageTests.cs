@@ -308,4 +308,12 @@ public class RunDetailsPageTests : BunitContext
 
         Assert.Contains("Against your treadmill runs", Text(Render(Data(run)).Find("#usual-title").ParentElement!.QuerySelector(".intro")!));
     }
+
+    [Fact]
+    public void The_summary_tiles_are_in_groups_with_headings()
+    {
+        var headings = Render(Data()).FindAll("section[aria-label=Summary] .group-title").Select(h => h.TextContent);
+
+        Assert.Equal(["Overview", "Effort"], headings);
+    }
 }

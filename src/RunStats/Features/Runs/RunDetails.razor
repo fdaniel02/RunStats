@@ -43,16 +43,24 @@
     </p>
 </div>
 
-<section class="tiles" aria-label="Summary">
-    @foreach (var tile in RunSummary.Tiles(run))
+<section class="summary" aria-label="Summary">
+    @foreach (var group in RunSummary.Groups(run))
     {
-        <div class="card tile">
-            <span class="tile-label">@tile.Label</span>
-            <span class="tile-value">@tile.Value</span>
-            @if (tile.Detail is not null)
-            {
-                <span class="tile-detail muted">@tile.Detail</span>
-            }
+        <div class="group">
+            <h2 class="group-title">@group.Title</h2>
+            <div class="tiles">
+                @foreach (var tile in group.Tiles)
+                {
+                    <div class="card tile">
+                        <span class="tile-label">@tile.Label</span>
+                        <span class="tile-value">@tile.Value</span>
+                        @if (tile.Detail is not null)
+                        {
+                            <span class="tile-detail muted">@tile.Detail</span>
+                        }
+                    </div>
+                }
+            </div>
         </div>
     }
 </section>

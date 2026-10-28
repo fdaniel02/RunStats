@@ -9,10 +9,14 @@ namespace RunStats.Processing;
 public static class RunProcessor
 {
     // Raise when the processing changes: every stored run is then processed again at the next sync.
-    public const int Version = 4;
+    public const int Version = 5;
 
     const int MaxIntensityTypeLength = 50;
     const int MaxTrainingEffectLabelLength = 50;
+    const int MaxWindDirectionLength = 3;
+    const int MaxStationLength = 100;
+    // Garmin's weather record has °F and wind in knots: 7 shows as 13 km/h in Garmin Connect.
+    const double KmhPerKnot = 1.852;
 
     public static void ApplySummary(Run run, RunRawData raw)
     {
@@ -39,6 +43,38 @@ public static class RunProcessor
         // Only the activity list has VO2max.
         using var listEntry = JsonDocument.Parse(raw.ListJson);
         run.Vo2Max = Number(listEntry.RootElement, "vO2MaxValue");
+
+        ApplyWeather(run, raw.WeatherJson);
+    }
+
+    // Indoor runs get a record with every value null (or none at all): then all stay empty.
+    static void ApplyWeather(Run run, string? weatherJson)
+    {
+        using var weather = weatherJson is null ? null : JsonDocument.Parse(weatherJson);
+        if (weather?.RootElement is not { ValueKind: JsonValueKind.Object } w)
+        {
+            (run.WeatherTemperatureCelsius, run.WeatherFeelsLikeCelsius, run.WeatherDewPointCelsius) = (null, null, null);
+            (run.WeatherHumidityPercent, run.WeatherWindSpeedKmh, run.WeatherWindDirection, run.WeatherStation) = (null, null, null, null);
+            return;
+        }
+        run.WeatherTemperatureCelsius = Celsius(Number(w, "temp"));
+        run.WeatherFeelsLikeCelsius = Celsius(Number(w, "apparentTemp"));
+        run.WeatherDewPointCelsius = Celsius(Number(w, "dewPoint"));
+        run.WeatherHumidityPercent = Number(w, "relativeHumidity") is { } humidity ? (int)Math.Round(humidity) : null;
+        run.WeatherWindSpeedKmh = Number(w, "windSpeed") * KmhPerKnot;
+        run.WeatherWindDirection = Cut(Text(w, "windDirectionCompassPoint")?.ToUpperInvariant(), MaxWindDirectionLength);
+        run.WeatherStation = w.TryGetProperty("weatherStationDTO", out var station) && station.ValueKind == JsonValueKind.Object
+            ? Cut(Text(station, "name"), MaxStationLength)
+            : null;
+    }
+
+    static double? Celsius(double? fahrenheit) => (fahrenheit - 32) * 5 / 9;
+
+    static string? Cut(string? text, int length)
+    {
+        if (string.IsNullOrEmpty(text))
+            return null;
+        return text.Length > length ? text[..length] : text;
     }
 
     public static List<RunLap> Laps(long runId, string? splitsJson)
