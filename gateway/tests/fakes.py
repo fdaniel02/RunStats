@@ -89,15 +89,18 @@ class CollectedTelemetry:
     def points(self, name: str) -> dict[frozenset[tuple[str, Any]], Any]:
         """Data points of one metric by their attributes: the count for counters, the data point for histograms."""
         data = self.reader.get_metrics_data()
-        result: dict[frozenset[tuple[str, Any]], Any] = {}
-        for resource in data.resource_metrics if data else []:
-            for scope in resource.scope_metrics:
-                for metric in scope.metrics:
-                    if metric.name == name:
-                        for point in metric.data.data_points:
-                            key = frozenset(point.attributes.items())
-                            result[key] = getattr(point, "value", point)
-        return result
+        metrics = (
+            metric
+            for resource in (data.resource_metrics if data else [])
+            for scope in resource.scope_metrics
+            for metric in scope.metrics
+            if metric.name == name
+        )
+        return {
+            frozenset(point.attributes.items()): getattr(point, "value", point)
+            for metric in metrics
+            for point in metric.data.data_points
+        }
 
 
 ATTRIBUTE_NAMES = {"operation": "garmin.operation", "outcome": "garmin.outcome", "method": "garmin.login.method"}

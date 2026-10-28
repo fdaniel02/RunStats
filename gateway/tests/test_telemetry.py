@@ -52,7 +52,7 @@ def test_traces_and_metrics_go_to_the_collector(installed):
     assert providers["tracing"].resource.attributes["service.name"] == "garmin-gateway"
 
 
-def test_service_name_comes_from_OTEL_SERVICE_NAME(installed):
+def test_service_name_comes_from_otel_service_name(installed):
     providers, _ = installed
 
     telemetry.configure_telemetry({"OTEL_EXPORTER_OTLP_ENDPOINT": "http://alloy:4318", "OTEL_SERVICE_NAME": "gw-test"})

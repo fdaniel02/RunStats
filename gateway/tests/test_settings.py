@@ -19,14 +19,14 @@ def test_values_from_the_environment():
         {
             "GARMIN_EMAIL": "runner@example.com",
             "GARMIN_PASSWORD": "secret",
-            "GARMIN_TOKEN_DIR": "/tmp/tokens",
+            "GARMIN_TOKEN_DIR": "/var/lib/garmin-tokens",
             "GARMIN_MIN_SECONDS_BETWEEN_CALLS": "0.5",
             "GARMIN_RATE_LIMIT_COOLDOWN_SECONDS": "60",
             "GARMIN_LOGIN_FAILURE_COOLDOWN_SECONDS": "0",
         }
     )
 
-    assert (s.email, s.password, s.token_dir) == ("runner@example.com", "secret", "/tmp/tokens")
+    assert (s.email, s.password, s.token_dir) == ("runner@example.com", "secret", "/var/lib/garmin-tokens")
     assert (s.min_seconds_between_calls, s.rate_limit_cooldown_seconds, s.login_failure_cooldown_seconds) == (
         0.5,
         60,

@@ -212,7 +212,7 @@ def test_each_garmin_call_is_a_client_span(garmin, time, token_dir, telemetry):
     assert call.kind is SpanKind.CLIENT
     assert call.attributes["garmin.operation"] == "get_activity"
     assert call.attributes["garmin.outcome"] == "ok"
-    assert call.attributes["garmin.throttle_wait_seconds"] == 0.75
+    assert call.attributes["garmin.throttle_wait_seconds"] == pytest.approx(0.75)
     assert call.status.status_code is StatusCode.UNSET
 
 
@@ -264,7 +264,7 @@ def test_call_duration_leaves_out_the_throttle_wait(garmin, time, token_dir, tel
 
     point = telemetry.points("garmin.call.duration")[attrs(operation="get_activity", outcome="ok")]
     assert time.sleeps == [1.0]
-    assert point.sum == 2.5
+    assert point.sum == pytest.approx(2.5)
 
 
 def test_rate_limits_are_counted(garmin, time, token_dir, telemetry):
