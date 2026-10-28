@@ -40,5 +40,6 @@ public class Run : RunMetrics
     public RunRawData? RawData { get; set; }
     public List<RunLap> Laps { get; set; } = [];
     public List<RunSample> Samples { get; set; } = [];
+    public List<RunPaceBand> PaceBands { get; set; } = [];
     public RunTrack? Track { get; set; }
 }
