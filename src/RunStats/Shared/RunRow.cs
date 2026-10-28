@@ -5,7 +5,7 @@ namespace RunStats.Shared;
 
 // A run as the tables show it; Date is Garmin's local date of the run.
 public sealed record RunRow(long Id, DateOnly Date, string TypeKey, string Name, double DistanceMeters, double DurationSeconds,
-    RunRowMetrics? Metrics = null, bool IsRace = false);
+    RunRowMetrics? Metrics = null, bool IsRace = false, string? TrainingEffectLabel = null);
 
 public sealed record RunRowMetrics(
     double? AverageSpeedMps, double? MaxSpeedMps, short? AverageHeartRate, short? MaxHeartRate,
@@ -18,10 +18,10 @@ public static class RunRowQueries
     {
         var rows = await runs.Select(r => new
         {
-            r.Id, r.StartLocal, r.TypeKey, r.Name, r.DistanceMeters, r.DurationSeconds, r.IsRace,
+            r.Id, r.StartLocal, r.TypeKey, r.Name, r.DistanceMeters, r.DurationSeconds, r.IsRace, r.TrainingEffectLabel,
             Metrics = new RunRowMetrics(r.AverageSpeedMps, r.MaxSpeedMps, r.AverageHeartRate, r.MaxHeartRate,
                 r.AverageCadenceSpm, r.MaxCadenceSpm, r.StrideLengthCm, r.Calories, r.ElevationGainMeters, r.ElevationLossMeters)
         }).ToListAsync(cancellationToken);
-        return [.. rows.Select(r => new RunRow(r.Id, DateOnly.FromDateTime(r.StartLocal), r.TypeKey, r.Name, r.DistanceMeters, r.DurationSeconds, r.Metrics, r.IsRace))];
+        return [.. rows.Select(r => new RunRow(r.Id, DateOnly.FromDateTime(r.StartLocal), r.TypeKey, r.Name, r.DistanceMeters, r.DurationSeconds, r.Metrics, r.IsRace, r.TrainingEffectLabel))];
     }
 }

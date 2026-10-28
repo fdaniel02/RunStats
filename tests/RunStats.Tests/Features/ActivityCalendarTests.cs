@@ -8,7 +8,9 @@ public class ActivityCalendarTests : BunitContext
     // Tuesday; the grid's last column is the week of Monday 2026-10-26.
     static readonly DateOnly Today = new(2026, 10, 27);
 
-    IRenderedComponent<ActivityCalendar> Render(params DateOnly[] runDays) =>
+    IRenderedComponent<ActivityCalendar> Render(params DateOnly[] runDays) => RenderDays([.. runDays.Select(d => new RunDay(d, null))]);
+
+    IRenderedComponent<ActivityCalendar> RenderDays(params RunDay[] runDays) =>
         Render<ActivityCalendar>(p => p
             .Add(c => c.Grid, new ActivityGrid(Today, 16))
             .Add(c => c.RunDays, runDays)
@@ -56,5 +58,37 @@ public class ActivityCalendarTests : BunitContext
         var calendar = Render(new DateOnly(2026, 10, 17), new DateOnly(2026, 10, 26), new DateOnly(2026, 7, 1));
 
         Assert.Equal("2 days with a run in the last 16 weeks", calendar.Find(".calendar").GetAttribute("aria-label"));
+    }
+
+    [Fact]
+    public void Days_are_shaded_by_their_training_effect_and_name_it()
+    {
+        var calendar = RenderDays(
+            new RunDay(new DateOnly(2026, 10, 12), "RECOVERY"),
+            new RunDay(new DateOnly(2026, 10, 17), "VO2MAX"),
+            new RunDay(new DateOnly(2026, 10, 20), "SPRINT"));
+
+        Assert.Equal(["cell done effect-1", "cell done effect-5", "cell done effect-6"],
+            calendar.FindAll(".cell.done").Select(c => c.GetAttribute("class")));
+        Assert.Equal(["2026-10-12 · Recovery", "2026-10-17 · VO2 max", "2026-10-20 · Sprint"],
+            calendar.FindAll(".cell.done").Select(c => c.GetAttribute("title")));
+    }
+
+    [Fact]
+    public void A_run_without_a_known_label_stays_plain_blue()
+    {
+        var calendar = RenderDays(new RunDay(new DateOnly(2026, 10, 12), null), new RunDay(new DateOnly(2026, 10, 13), "SOMETHING_NEW"));
+
+        Assert.Equal(["cell done", "cell done"], calendar.FindAll(".cell.done").Select(c => c.GetAttribute("class")));
+        Assert.Equal(["2026-10-12", "2026-10-13 · Something new"], calendar.FindAll(".cell.done").Select(c => c.GetAttribute("title")));
+    }
+
+    [Fact]
+    public void The_legend_runs_from_recovery_to_anaerobic()
+    {
+        var legend = Render().Find(".legend");
+
+        Assert.Equal(["Recovery", "Anaerobic"], legend.QuerySelectorAll("span:not(.key)").Select(s => s.TextContent));
+        Assert.Equal(Enumerable.Range(1, 6).Select(l => $"key effect-{l}"), legend.QuerySelectorAll(".key").Select(k => k.GetAttribute("class")));
     }
 }

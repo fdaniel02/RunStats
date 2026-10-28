@@ -27,6 +27,7 @@ public class RunSummaryTests
         run.Calories = 521;
         run.AerobicTrainingEffect = 4.3;
         run.AnaerobicTrainingEffect = 0.4;
+        run.TrainingEffectLabel = "TEMPO";
         run.TrainingLoad = 180.4;
         run.Vo2Max = 50;
         run.AverageTemperatureCelsius = 21;
@@ -51,6 +52,7 @@ public class RunSummaryTests
             new SummaryTile("Ascent / descent", "10 / 11 m"),
             new SummaryTile("Calories", "521 kcal"),
             new SummaryTile("Training effect", "4.3 / 0.4", "Aerobic / anaerobic"),
+            new SummaryTile("Primary benefit", "Tempo"),
             new SummaryTile("Training load", "180"),
             new SummaryTile("VO2max", "50"),
             new SummaryTile("Temperature", "21 °C"),

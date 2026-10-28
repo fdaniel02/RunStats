@@ -147,6 +147,20 @@ public sealed class RunListQueriesTests(SqlServerFixture sqlServer) : IAsyncLife
     }
 
     [Fact]
+    public async Task Rows_carry_garmins_training_effect_label()
+    {
+        await using (var context = await db.CreateDbContextAsync(Ct))
+        {
+            var run = NewRun(new DateTime(2026, 10, 17, 10, 0, 0));
+            run.TrainingEffectLabel = "TEMPO";
+            context.Runs.Add(run);
+            await context.SaveChangesAsync(Ct);
+        }
+
+        Assert.Equal("TEMPO", (await Load(queries)).Runs.Single().TrainingEffectLabel);
+    }
+
+    [Fact]
     public async Task Rows_say_whether_the_run_was_a_race()
     {
         await AddRunsAsync();

@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Id).ValueGeneratedNever();
             e.Property(x => x.Name).HasMaxLength(200);
             e.Property(x => x.TypeKey).HasMaxLength(50).IsUnicode(false);
+            e.Property(x => x.TrainingEffectLabel).HasMaxLength(50).IsUnicode(false);
             e.HasIndex(x => x.StartUtc);
             e.Property(x => x.ProcessingError).HasMaxLength(1000);
             e.HasOne(x => x.RawData).WithOne().HasForeignKey<RunRawData>(x => x.RunId).OnDelete(DeleteBehavior.Cascade);

@@ -20,6 +20,8 @@ public class Run : RunMetrics
 
     public double? AerobicTrainingEffect { get; set; }
     public double? AnaerobicTrainingEffect { get; set; }
+    // Garmin's name for the run's main training benefit, e.g. TEMPO or VO2MAX.
+    public string? TrainingEffectLabel { get; set; }
     public double? TrainingLoad { get; set; }
     public double? Vo2Max { get; set; }
     public int? Steps { get; set; }

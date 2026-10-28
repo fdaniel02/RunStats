@@ -30,7 +30,7 @@ public class DashboardPageTests : BunitContext
     static DashboardData Data(
         IReadOnlyList<WeekTotal>? weeks = null, IReadOnlyList<RunRow>? lastRuns = null, IReadOnlyList<RecordRow>? records = null,
         IReadOnlyList<int>? raceYears = null, int? raceYear = 2026, IReadOnlyList<RunRow>? races = null,
-        IReadOnlyList<DateOnly>? runDays = null) => new(
+        IReadOnlyList<RunDay>? runDays = null) => new(
         new Totals(84, 710_800, 68 * 3600 + 55 * 60),
         new Totals(1, 23_700, 2 * 3600 + 15 * 60),
         weeks ?? Weeks((12, 1), (0, 0), (33.1, 3.2), (6, 0.5)),
@@ -39,7 +39,7 @@ public class DashboardPageTests : BunitContext
         raceYears ?? [2026, 2025],
         raceYear,
         races ?? [new RunRow(2, new DateOnly(2026, 10, 17), "running", "Amsterdam Running", 7500, 2397)],
-        runDays ?? [new DateOnly(2026, 10, 17), new DateOnly(2026, 10, 26)]);
+        runDays ?? [new RunDay(new DateOnly(2026, 10, 17), "TEMPO"), new RunDay(new DateOnly(2026, 10, 26), null)]);
 
     FakeQueries queries = null!;
 
@@ -70,7 +70,7 @@ public class DashboardPageTests : BunitContext
         var page = Render(Data());
 
         var cells = page.Find(".last-runs tbody tr").QuerySelectorAll("td").Select(c => c.TextContent).ToList();
-        Assert.Equal(["2026-10-26", "Treadmill", "6.1", "35:04", "5:45"], cells);
+        Assert.Equal(["2026-10-26", "Treadmill", "–", "6.1", "35:04", "5:45"], cells);
         Assert.Empty(page.Find(".last-runs").QuerySelectorAll("td.name"));
     }
 
@@ -89,7 +89,7 @@ public class DashboardPageTests : BunitContext
 
         Assert.Equal("Races 2026", page.Find(".races h2").TextContent);
         var cells = page.Find(".races tbody tr").QuerySelectorAll("td").Select(c => c.TextContent).ToList();
-        Assert.Equal(["2026-10-17", "Amsterdam Running", "Run", "7.5", "39:57", "5:20"], cells);
+        Assert.Equal(["2026-10-17", "Amsterdam Running", "Run", "–", "7.5", "39:57", "5:20"], cells);
     }
 
     [Fact]
@@ -223,7 +223,7 @@ public class DashboardPageTests : BunitContext
 
         Assert.Equal(["weeks", "activity"], page.FindAll(".sections > section").Take(2).Select(s => s.ClassList[s.ClassList.Length - 1]));
         Assert.Equal("Days with a run", page.Find(".activity h2").TextContent);
-        Assert.Equal(["2026-10-17", "2026-10-26"], page.FindAll(".activity .cell.done").Select(c => c.GetAttribute("title")));
+        Assert.Equal(["2026-10-17 · Tempo", "2026-10-26"], page.FindAll(".activity .cell.done").Select(c => c.GetAttribute("title")));
         Assert.Equal("2026-10-27", page.Find(".activity .cell.today").GetAttribute("title"));
     }
 }

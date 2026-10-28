@@ -9,9 +9,10 @@ namespace RunStats.Processing;
 public static class RunProcessor
 {
     // Raise when the processing changes: every stored run is then processed again at the next sync.
-    public const int Version = 1;
+    public const int Version = 2;
 
     const int MaxIntensityTypeLength = 50;
+    const int MaxTrainingEffectLabelLength = 50;
 
     public static void ApplySummary(Run run, RunRawData raw)
     {
@@ -25,6 +26,8 @@ public static class RunProcessor
         run.MaxElevationMeters = Number(summary, "maxElevation");
         run.AerobicTrainingEffect = Number(summary, "trainingEffect");
         run.AnaerobicTrainingEffect = Number(summary, "anaerobicTrainingEffect");
+        var label = Text(summary, "trainingEffectLabel");
+        run.TrainingEffectLabel = label is { Length: > MaxTrainingEffectLabelLength } ? label[..MaxTrainingEffectLabelLength] : label;
         run.TrainingLoad = Number(summary, "activityTrainingLoad");
         run.Steps = Number(summary, "steps") is { } steps ? (int)Math.Round(steps) : null;
         run.AverageTemperatureCelsius = Number(summary, "averageTemperature");

@@ -192,6 +192,11 @@ namespace RunStats.Migrations
                     b.Property<double?>("StrideLengthCm")
                         .HasColumnType("float");
 
+                    b.Property<string>("TrainingEffectLabel")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
                     b.Property<double?>("TrainingLoad")
                         .HasColumnType("float");
 

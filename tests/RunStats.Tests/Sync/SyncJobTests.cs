@@ -137,7 +137,7 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
         garmin.Activities.AddRange([Activity(1), Activity(2)]);
         await SyncAsync();
         await using (var context = await db.CreateDbContextAsync(Ct))
-            await context.Runs.ExecuteUpdateAsync(r => r.SetProperty(x => x.ProcessorVersion, 1), Ct);
+            await context.Runs.ExecuteUpdateAsync(r => r.SetProperty(x => x.ProcessorVersion, RunProcessor.Version), Ct);
         garmin.Activities[1] = Activity(2, name: "Renamed", race: true);
         garmin.Calls.Clear();
         time.UtcNow = time.UtcNow.AddHours(3);

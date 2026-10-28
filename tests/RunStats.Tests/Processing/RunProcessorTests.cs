@@ -39,6 +39,7 @@ public class RunProcessorTests
         Assert.Equal((310.0, 520.0, 318.0), (run.AveragePowerWatts, run.MaxPowerWatts, run.NormalizedPowerWatts));
         Assert.Equal((42.0, 40.0, -2.4, 18.6), (run.ElevationGainMeters, run.ElevationLossMeters, run.MinElevationMeters, run.MaxElevationMeters));
         Assert.Equal((3.4, 1.2, 145.7), (run.AerobicTrainingEffect, run.AnaerobicTrainingEffect, run.TrainingLoad));
+        Assert.Equal("AEROBIC_BASE", run.TrainingEffectLabel);
         Assert.Equal((720.0, 7750, -3.5), (run.Calories, run.Steps, run.AverageTemperatureCelsius));
         Assert.Equal((52.37, -4.89, 52.38, -4.9), (run.StartLatitude, run.StartLongitude, run.EndLatitude, run.EndLongitude));
         Assert.Equal(52.0, run.Vo2Max);
@@ -56,6 +57,17 @@ public class RunProcessorTests
         Assert.Null(run.StrideLengthCm);
         Assert.Null(run.Steps);
         Assert.Null(run.Vo2Max);
+        Assert.Null(run.TrainingEffectLabel);
+    }
+
+    [Fact]
+    public void A_training_effect_label_longer_than_its_column_is_cut()
+    {
+        var run = new Run();
+
+        RunProcessor.ApplySummary(run, Raw($$$"""{"summaryDTO":{"trainingEffectLabel":"{{{new string('X', 60)}}}"}}"""));
+
+        Assert.Equal(new string('X', 50), run.TrainingEffectLabel);
     }
 
     [Theory]

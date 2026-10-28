@@ -38,6 +38,7 @@ public static class RunSummary
         if (run.AerobicTrainingEffect is not null || run.AnaerobicTrainingEffect is not null)
             tiles.Add(new SummaryTile("Training effect",
                 Format.Pair(Format.OneDecimal(run.AerobicTrainingEffect), Format.OneDecimal(run.AnaerobicTrainingEffect)), "Aerobic / anaerobic"));
+        Add("Primary benefit", TrainingEffect.Name(run.TrainingEffectLabel) ?? Format.Missing);
         Add("Training load", Format.Whole(run.TrainingLoad));
         Add("VO2max", Format.Whole(run.Vo2Max));
         Add("Temperature", Format.Whole(run.AverageTemperatureCelsius), "°C");

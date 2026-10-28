@@ -25,7 +25,8 @@ public sealed class DashboardQueriesTests(SqlServerFixture sqlServer) : IAsyncLi
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    async Task AddAsync(DateTime startUtc, double km, double minutes, string typeKey = "running", bool race = false, string name = "Run")
+    async Task AddAsync(DateTime startUtc, double km, double minutes, string typeKey = "running", bool race = false, string name = "Run",
+        string? trainingEffect = null)
     {
         await using var context = await db.CreateDbContextAsync(Ct);
         context.Runs.Add(new Run
@@ -39,7 +40,8 @@ public sealed class DashboardQueriesTests(SqlServerFixture sqlServer) : IAsyncLi
             StartUtc = DateTime.SpecifyKind(startUtc, DateTimeKind.Utc),
             StartLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(startUtc, DateTimeKind.Utc), Amsterdam),
             DistanceMeters = km * 1000,
-            DurationSeconds = minutes * 60
+            DurationSeconds = minutes * 60,
+            TrainingEffectLabel = trainingEffect
         });
         await context.SaveChangesAsync(Ct);
     }
@@ -199,6 +201,19 @@ public sealed class DashboardQueriesTests(SqlServerFixture sqlServer) : IAsyncLi
 
         var data = await queries.LoadAsync(null, Ct);
 
-        Assert.Equal([new DateOnly(2026, 7, 13), new DateOnly(2026, 10, 17), new DateOnly(2026, 10, 26)], data.RunDays);
+        Assert.Equal([new DateOnly(2026, 7, 13), new DateOnly(2026, 10, 17), new DateOnly(2026, 10, 26)], data.RunDays.Select(d => d.Date));
+    }
+
+    [Fact]
+    public async Task A_day_with_two_runs_takes_the_harder_ones_training_effect()
+    {
+        await AddAsync(new DateTime(2026, 10, 17, 7, 0, 0), 3, 20, trainingEffect: "LACTATE_THRESHOLD");
+        await AddAsync(new DateTime(2026, 10, 17, 17, 0, 0), 5, 30, trainingEffect: "RECOVERY");
+        await AddAsync(new DateTime(2026, 10, 18, 7, 0, 0), 5, 30);
+        await AddAsync(new DateTime(2026, 10, 18, 17, 0, 0), 5, 30, trainingEffect: "TEMPO");
+
+        var data = await queries.LoadAsync(null, Ct);
+
+        Assert.Equal([new RunDay(new DateOnly(2026, 10, 17), "LACTATE_THRESHOLD"), new RunDay(new DateOnly(2026, 10, 18), "TEMPO")], data.RunDays);
     }
 }

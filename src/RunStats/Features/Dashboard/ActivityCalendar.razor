@@ -1,35 +1,48 @@
-@* WorkoutTracker's GitHub-style grid: a column per week, a square per day, filled where there was a run. *@
+@* WorkoutTracker's GitHub-style grid: a column per week, a square per day, shaded by the day's hardest training effect. *@
 <div class="calendar" role="img" aria-label="@Summary">
     @foreach (var week in Grid.Weeks)
     {
         <div class="month">@week.MonthLabel</div>
         @foreach (var day in week.Days)
         {
-            <div class="@CellClass(day)" title="@Format.Date(day)"></div>
+            <div class="@CellClass(day)" title="@Title(day)"></div>
         }
     }
 </div>
+<div class="legend" aria-hidden="true">
+    <span>Recovery</span>
+    @for (var level = 1; level <= TrainingEffect.MaxLevel; level++)
+    {
+        <span class="key effect-@level"></span>
+    }
+    <span>Anaerobic</span>
+</div>
 
 @code {
-    HashSet<DateOnly> runDays = [];
+    Dictionary<DateOnly, string?> runDays = [];
 
     [Parameter, EditorRequired] public ActivityGrid Grid { get; set; } = null!;
-    [Parameter, EditorRequired] public IReadOnlyList<DateOnly> RunDays { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlyList<RunDay> RunDays { get; set; } = [];
     [Parameter, EditorRequired] public DateOnly Today { get; set; }
 
-    protected override void OnParametersSet() => runDays = [.. RunDays];
+    protected override void OnParametersSet() => runDays = RunDays.ToDictionary(d => d.Date, d => d.TrainingEffectLabel);
 
-    string Summary => $"{runDays.Count(d => d >= Grid.Start && d <= Today)} days with a run in the last {Grid.Weeks.Count} weeks";
+    string Summary => $"{runDays.Keys.Count(d => d >= Grid.Start && d <= Today)} days with a run in the last {Grid.Weeks.Count} weeks";
 
     string CellClass(DateOnly day)
     {
         var cssClass = "cell";
         if (day > Today)
             cssClass += " future";
-        else if (runDays.Contains(day))
-            cssClass += " done";
+        else if (runDays.TryGetValue(day, out var label))
+            cssClass += TrainingEffect.CssClass(label) is { } effect ? $" done {effect}" : " done";
         if (day == Today)
             cssClass += " today";
         return cssClass;
     }
+
+    string Title(DateOnly day) =>
+        day <= Today && runDays.TryGetValue(day, out var label) && TrainingEffect.Name(label) is { } name
+            ? $"{Format.Date(day)} · {name}"
+            : Format.Date(day);
 }
