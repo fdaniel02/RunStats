@@ -1,0 +1,214 @@
+.load {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: .85rem;
+    color: var(--muted);
+}
+
+    .legend li {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+.key {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+}
+
+/* One blue, darker for faster, like the training effect. */
+.easy {
+    background: var(--effect-1);
+}
+
+.fast {
+    background: var(--effect-3);
+}
+
+.very-fast {
+    background: var(--effect-5);
+}
+
+.marker {
+    display: inline-grid;
+    place-items: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--danger);
+    color: #fff;
+    font-size: .65rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.plot {
+    margin: 0;
+}
+
+.area {
+    position: relative;
+    height: 220px;
+    margin: 20px 0 24px 36px;
+}
+
+.grid {
+    position: absolute;
+    inset: 0;
+}
+
+.gridline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px solid var(--line);
+}
+
+    .gridline span {
+        position: absolute;
+        right: calc(100% + 6px);
+        transform: translateY(-50%);
+        font-size: .75rem;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+.bars {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.slot {
+    position: relative;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    outline: none;
+}
+
+/* Top to bottom: slower, fast, very fast on the baseline. */
+.bar {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: min(18px, 80%);
+}
+
+.segment {
+    flex-basis: 0;
+    min-height: 2px;
+}
+
+    .segment:first-child {
+        border-radius: 4px 4px 0 0;
+    }
+
+.bar > .marker {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.slot.current .segment {
+    opacity: .5;
+}
+
+.slot:hover .segment,
+.slot:focus-visible .segment {
+    filter: brightness(1.2);
+}
+
+.slot:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.tip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    z-index: 1;
+    width: max-content;
+    max-width: min(260px, 70vw);
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: .8rem;
+    pointer-events: none;
+    opacity: 0;
+}
+
+/* The right half opens to the left, so no tip runs off the screen. */
+.slot:nth-child(n + 14) .tip {
+    left: auto;
+    right: 0;
+}
+
+.slot:hover .tip,
+.slot:focus-visible .tip {
+    opacity: 1;
+}
+
+.x {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    font-size: .7rem;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.as-table summary {
+    cursor: pointer;
+    color: var(--muted);
+    font-size: .85rem;
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+.as-table table {
+    margin-top: 8px;
+    border-collapse: collapse;
+    font-size: .9rem;
+}
+
+.as-table th,
+.as-table td {
+    padding: 4px 12px 4px 0;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.as-table tbody tr:hover td {
+    background: rgba(255, 255, 255, .05);
+}
+
+.as-table .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}

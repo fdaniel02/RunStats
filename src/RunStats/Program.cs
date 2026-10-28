@@ -10,6 +10,7 @@ using RunStats.Data;
 using RunStats.Features.Dashboard;
 using RunStats.Features.Heatmap;
 using RunStats.Features.Runs;
+using RunStats.Features.Trends;
 using RunStats.Features.Warnings;
 using RunStats.Garmin;
 using RunStats.Processing;
@@ -50,6 +51,7 @@ builder.Services.AddTransient<IRunListQueries, RunListQueries>();
 builder.Services.AddTransient<IRunDetailsQueries, RunDetailsQueries>();
 builder.Services.AddOptions<WarningSettings>().BindConfiguration(WarningSettings.Section).ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddTransient<IWarningQueries, WarningQueries>();
+builder.Services.AddTransient<ITrendsQueries, TrendsQueries>();
 builder.Services.AddHttpClient<IGarminGateway, GarminGatewayClient>((services, client) =>
     client.BaseAddress = new Uri(services.GetRequiredService<IConfiguration>()["GarminGateway:BaseUrl"]
         ?? throw new InvalidOperationException("Setting 'GarminGateway:BaseUrl' is missing (e.g. 'http://garmin-gateway:8080/').")));

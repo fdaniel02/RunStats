@@ -202,6 +202,10 @@
     text-align: left;
 }
 
+.as-table tbody tr:hover td {
+    background: rgba(255, 255, 255, .05);
+}
+
 .as-table .num {
     text-align: right;
     font-variant-numeric: tabular-nums;

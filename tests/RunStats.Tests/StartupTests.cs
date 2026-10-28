@@ -35,6 +35,7 @@ public sealed class StartupTests : IDisposable
     [Theory]
     [InlineData("/", "Dashboard")]
     [InlineData("/runs", "Runs")]
+    [InlineData("/trends", "Trends")]
     [InlineData("/heatmap", "Heatmap")]
     public async Task App_starts_and_serves_the_pages(string path, string heading)
     {

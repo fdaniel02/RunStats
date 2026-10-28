@@ -1,0 +1,106 @@
+@using RunStats.Features.Warnings
+@* Running time per week, the fast and very fast minutes at the bottom so they line up from week to week. *@
+<div class="load">
+    <ul class="legend" aria-label="Legend">
+        <li><span class="key very-fast"></span>Very fast (faster than @Format.Pace(1000, VeryFastPaceSecondsPerKm))</li>
+        <li><span class="key fast"></span>Fast (faster than @Format.Pace(1000, FastPaceSecondsPerKm))</li>
+        <li><span class="key easy"></span>Slower</li>
+        <li><span class="marker" aria-hidden="true">!</span>Week with a warning</li>
+    </ul>
+
+    @if (Weeks.All(w => w.Seconds == 0))
+    {
+        <p class="muted">No runs in the last @Weeks.Count weeks.</p>
+    }
+    else
+    {
+        var (max, step) = ChartScale.Nice(Weeks.Max(w => w.Seconds) / 3600);
+        <figure class="plot">
+            <figcaption class="visually-hidden">Running time per week in hours, with the fast and very fast part</figcaption>
+            <div class="area">
+                <div class="grid" aria-hidden="true">
+                    @foreach (var tick in ChartScale.Ticks(max, step))
+                    {
+                        <div class="gridline" style="bottom: @Percent(tick / max)"><span>@tick.ToString("0.#", Culture) h</span></div>
+                    }
+                </div>
+                <ol class="bars">
+                    @foreach (var week in Weeks)
+                    {
+                        var text = Describe(week);
+                        <li class="slot @(week.IsCurrent ? "current" : "")" tabindex="0" aria-label="@text">
+                            <span class="bar" style="height: @Percent(week.Seconds / 3600 / max)">
+                                @Segment("easy", week.Seconds - week.FastSeconds)
+                                @Segment("fast", week.FastSeconds - week.VeryFastSeconds)
+                                @Segment("very-fast", week.VeryFastSeconds)
+                                @if (week.Warnings.Count > 0)
+                                {
+                                    <span class="marker" aria-hidden="true">!</span>
+                                }
+                            </span>
+                            <span class="tip" aria-hidden="true">@text</span>
+                            @if (week.Monday.Day <= 7)
+                            {
+                                <span class="x" aria-hidden="true">@week.Monday.ToString("MMM", Culture)</span>
+                            }
+                        </li>
+                    }
+                </ol>
+            </div>
+        </figure>
+
+        <details class="as-table">
+            <summary>Show as table</summary>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Week</th><th scope="col" class="num">Time</th><th scope="col" class="num">Fast</th>
+                            <th scope="col" class="num">Very fast</th><th scope="col">Warnings</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var week in Weeks.Reverse())
+                        {
+                            <tr>
+                                <td>@WeekName(week)</td>
+                                <td class="num">@Format.Hours(week.Seconds)</td>
+                                <td class="num">@Format.Hours(week.FastSeconds)</td>
+                                <td class="num">@Format.Hours(week.VeryFastSeconds)</td>
+                                <td>@string.Join(", ", week.Warnings.Select(WarningTitles.Title))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </details>
+    }
+</div>
+
+@code {
+    static readonly System.Globalization.CultureInfo Culture = System.Globalization.CultureInfo.InvariantCulture;
+
+    [Parameter, EditorRequired] public IReadOnlyList<LoadWeek> Weeks { get; set; } = [];
+    [Parameter, EditorRequired] public int FastPaceSecondsPerKm { get; set; }
+    [Parameter, EditorRequired] public int VeryFastPaceSecondsPerKm { get; set; }
+
+    static string WeekName(LoadWeek week) =>
+        week.IsCurrent ? $"This week (from {Format.Date(week.Monday)})" : $"{Format.Date(week.Monday)} – {Format.Date(week.Monday.AddDays(6))}";
+
+    static string Describe(LoadWeek week)
+    {
+        var text = $"{WeekName(week)}: {Format.Hours(week.Seconds)}, fast {Format.Hours(week.FastSeconds)}, very fast {Format.Hours(week.VeryFastSeconds)}";
+        return week.Warnings.Count == 0 ? text : $"{text}. Warnings: {string.Join(", ", week.Warnings.Select(WarningTitles.Title))}";
+    }
+
+    // Flex-grow by the seconds: the segments share the bar's height, less the gaps between them.
+    static RenderFragment Segment(string kind, double seconds) => __builder =>
+    {
+        if (seconds > 0)
+        {
+            <span class="segment @kind" style="flex-grow: @seconds.ToString("0", Culture)"></span>
+        }
+    };
+
+    static string Percent(double fraction) => (Math.Clamp(fraction, 0, 1) * 100).ToString("0.##", Culture) + "%";
+}

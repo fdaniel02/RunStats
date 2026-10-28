@@ -25,13 +25,14 @@ public class MainLayoutTests : BunitContext
     [Theory]
     [InlineData("/", "Dashboard")]
     [InlineData("/runs", "Runs")]
+    [InlineData("/trends", "Trends")]
     [InlineData("/heatmap", "Heatmap")]
     public void Highlights_the_current_screen(string path, string screen)
     {
         var layout = Render(path);
 
         var links = layout.FindAll(".app-nav a");
-        Assert.Equal(["Dashboard", "Runs", "Heatmap"], links.Select(l => l.TextContent));
+        Assert.Equal(["Dashboard", "Runs", "Trends", "Heatmap"], links.Select(l => l.TextContent));
         Assert.Equal(screen, Assert.Single(links, l => l.ClassList.Contains("active")).TextContent);
     }
 

@@ -1,0 +1,60 @@
+.attention p {
+    margin: 0;
+}
+
+.attention.quiet {
+    padding: 10px 16px;
+    color: var(--muted);
+}
+
+.ok {
+    margin-right: 6px;
+    color: var(--text);
+}
+
+.attention:not(.quiet) {
+    border-color: var(--danger);
+}
+
+h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.1rem;
+    margin: 0 0 12px;
+}
+
+.icon {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--danger);
+    color: #fff;
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+ul {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+}
+
+strong {
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+.footnote {
+    font-size: .85rem;
+}
+
+a {
+    color: var(--accent);
+    white-space: nowrap;
+}
