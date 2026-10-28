@@ -92,6 +92,8 @@
             values["cadence"] = Points.Select(p => Round(p.CadenceSpm, 0));
         if (keys.Contains("stride"))
             values["stride"] = Points.Select(p => Round(p.StrideMeters, 2));
+        if (keys.Contains("balance"))
+            values["balance"] = Points.Select(p => Round(p.BalanceLeftPercent, 1));
         return JsonSerializer.Serialize(values);
     }
 }

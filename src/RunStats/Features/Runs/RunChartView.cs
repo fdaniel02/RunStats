@@ -33,7 +33,8 @@ public static class RunChartView
             new("hr", "Heart rate", "bpm", p => p.HeartRate, Whole),
             new("elevation", "Elevation", "m", p => p.ElevationMeters, Whole, Area: true),
             new("cadence", "Cadence", "spm", p => p.CadenceSpm, Whole),
-            new("stride", "Stride", "m", p => p.StrideMeters, v => v.ToString("0.00", Culture))
+            new("stride", "Stride", "m", p => p.StrideMeters, v => v.ToString("0.00", Culture)),
+            new("balance", "Balance", "% left", p => p.BalanceLeftPercent, v => v.ToString("0.0", Culture))
         ];
         var series = specs.Select(spec => Series(points, totalKm, spec));
         var kmStep = KmSteps.FirstOrDefault(step => step >= totalKm / KmIntervals, KmSteps[^1]);

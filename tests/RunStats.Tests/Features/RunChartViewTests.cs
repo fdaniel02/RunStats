@@ -4,8 +4,9 @@ namespace RunStats.Tests.Features;
 
 public class RunChartViewTests
 {
-    static ChartPoint Point(double km, double? pace = 300, double? heartRate = 150, double? elevation = 5, double? cadence = 170, double? stride = 1.05) =>
-        new(km, km * 300, pace, heartRate, elevation, cadence, stride, 51.6, 5.5);
+    static ChartPoint Point(double km, double? pace = 300, double? heartRate = 150, double? elevation = 5, double? cadence = 170, double? stride = 1.05,
+        double? balance = null) =>
+        new(km, km * 300, pace, heartRate, elevation, cadence, stride, 51.6, 5.5, balance);
 
     static List<ChartPoint> Points(int count, Func<int, ChartPoint> point) => [.. Enumerable.Range(0, count).Select(point)];
 
@@ -120,5 +121,13 @@ public class RunChartViewTests
 
         Assert.Equal(expected, view.KmTicks.Select(t => t.Label));
         Assert.Equal(0, view.KmTicks[0].Position);
+    }
+
+    [Fact]
+    public void Strap_runs_get_a_balance_chart_last()
+    {
+        var view = RunChartView.For(Points(10, i => Point(i * 0.5, balance: 50 + i * 0.1)))!;
+
+        Assert.Equal(("balance", "Balance", "% left"), (view.Series[^1].Key, view.Series[^1].Title, view.Series[^1].Unit));
     }
 }

@@ -31,6 +31,8 @@ function formatValue(key, value) {
         return formatPace(value);
     if (key === "stride")
         return value.toFixed(2);
+    if (key === "balance")
+        return value.toFixed(1);
     return String(Math.round(value));
 }
 

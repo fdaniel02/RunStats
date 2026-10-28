@@ -66,9 +66,14 @@ else
 
     [Parameter, EditorRequired] public IReadOnlyList<PaceVariationMonth> Months { get; set; } = [];
 
-    static string Describe(PaceVariationMonth month) => month.MedianPercent is { } median
-        ? $"{month.Month.ToString("yyyy-MM", Culture)}: {Format.Variation(median)}, the median of {month.Runs} outdoor {(month.Runs == 1 ? "run" : "runs")}"
-        : $"{month.Month.ToString("yyyy-MM", Culture)}: no outdoor runs";
+    static string Describe(PaceVariationMonth month)
+    {
+        var name = month.Month.ToString("yyyy-MM", Culture);
+        if (month.MedianPercent is not { } median)
+            return $"{name}: no outdoor runs";
+        var runs = month.Runs == 1 ? "run" : "runs";
+        return $"{name}: {Format.Variation(median)}, the median of {month.Runs} outdoor {runs}";
+    }
 
     // A gap where a month has no runs, instead of a line across it.
     string Path(double max)

@@ -37,12 +37,13 @@ public static class RunSummary
             ("Max", Format.Whole(run.MaxHeartRate)), ("Min", Format.Whole(run.MinHeartRate)));
         Add("Cadence", Format.Whole(run.AverageCadenceSpm), "spm", ("Max", Format.Whole(run.MaxCadenceSpm)));
         Add("Stride", Format.Meters(run.StrideLengthCm), "m");
+        if (run.GroundContactBalanceLeftPercent is { } left)
+            tiles.Add(new SummaryTile("Left/right balance", $"{Format.OneDecimal(left)}% / {Format.OneDecimal(100 - left)}%", "Ground contact, left / right"));
         Add("Ascent / descent", Format.Pair(Format.Whole(run.ElevationGainMeters), Format.Whole(run.ElevationLossMeters)), "m");
         Add("Calories", Format.Whole(run.Calories), "kcal");
         if (run.AerobicTrainingEffect is not null || run.AnaerobicTrainingEffect is not null)
             tiles.Add(new SummaryTile("Training effect",
                 Format.Pair(Format.OneDecimal(run.AerobicTrainingEffect), Format.OneDecimal(run.AnaerobicTrainingEffect)), "Aerobic / anaerobic"));
-        Add("Primary benefit", TrainingEffect.Name(run.TrainingEffectLabel) ?? Format.Missing);
         Add("Training load", Format.Whole(run.TrainingLoad));
         Add("VO2max", Format.Whole(run.Vo2Max));
         Add("Temperature", Format.Whole(run.AverageTemperatureCelsius), "°C");

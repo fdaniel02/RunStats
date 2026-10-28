@@ -1,0 +1,97 @@
+@using Microsoft.Extensions.Options
+@using RunStats.Features.Trends
+@using RunStats.Features.Warnings
+@inject IOptions<WarningSettings> Settings
+
+<section class="card" aria-labelledby="usual-title">
+    <h2 id="usual-title">Compared to your usual</h2>
+    <p class="intro muted">
+        Against your @Kind runs of the 8 weeks before this one (@Usual.BaselineRuns @(Usual.BaselineRuns == 1 ? "run" : "runs")),
+        at the same pace. Ground contact and vertical oscillation only against runs @(Usual.HasStrap ? "with" : "without") the chest strap.
+    </p>
+    <FormTiles Tiles="Tiles" />
+
+    @if (Usual.Bands.Count > 0)
+    {
+        var metrics = RunAnalysisQueries.UsualMetrics(Usual.HasStrap);
+        <div class="table-wrap">
+            <table class="bands">
+                <thead>
+                    <tr>
+                        <th scope="col">Pace<span class="unit">/km</span></th>
+                        <th scope="col" class="num">Time</th>
+                        @foreach (var metric in metrics)
+                        {
+                            <th scope="col" class="num">@FormQueries.Info(metric).Title<span class="unit">@FormQueries.Info(metric).Unit</span></th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var band in Usual.Bands)
+                    {
+                        <tr>
+                            <td>@PaceRange(band.PaceSecondsPerKm!.Value)</td>
+                            <td class="num">@Format.Hours(band.Seconds)</td>
+                            @if (band.Metrics.Values.All(c => c is null))
+                            {
+                                <td colspan="@metrics.Count" class="new">New pace: no running at it in the 8 weeks before</td>
+                            }
+                            else
+                            {
+                                @foreach (var metric in metrics)
+                                {
+                                    @Cell(metric, band.Metrics[metric])
+                                }
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <p class="footnote muted">Paces with at least @Settings.Value.FormBandMinMinutes.ToString("0") min in this run. A ! marks a change past the warning thresholds.</p>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public UsualForm Usual { get; set; } = null!;
+    [Parameter, EditorRequired] public string TypeKey { get; set; } = "";
+
+    // Runs are compared with runs of the same type only: treadmill speed comes from step counting, trails change the stride.
+    string Kind => TypeKey switch
+    {
+        "running" => "outdoor",
+        "treadmill_running" => "treadmill",
+        _ => Format.RunType(TypeKey).ToLowerInvariant().Replace(" run", "")
+    };
+
+    IReadOnlyList<FormTile> Tiles => [.. Usual.Overall.Metrics.Select(m => new FormTile(m.Key, m.Value))];
+
+    string PaceRange(int pace) => $"{Format.PaceValue(1000, pace)}–{Format.PaceValue(1000, pace + Settings.Value.FormBandWidthSecondsPerKm)}";
+
+    // The same thresholds as the form warning: longer strides or a lower cadence at the same pace.
+    bool PastThreshold(FormMetric metric, Comparison comparison) => metric switch
+    {
+        FormMetric.StrideLength => comparison.Percent > Settings.Value.StrideLengthIncreasePercent,
+        FormMetric.Cadence => comparison.Change < -Settings.Value.CadenceDropSpm,
+        _ => false
+    };
+
+    RenderFragment Cell(FormMetric metric, Comparison? comparison) => __builder =>
+    {
+        var info = FormQueries.Info(metric);
+        if (comparison is null)
+        {
+            <td class="num muted">@Format.Missing</td>
+            return;
+        }
+        var flagged = PastThreshold(metric, comparison);
+        <td class="num @(flagged ? "flag" : "")">
+            @if (flagged)
+            {
+                <span class="icon" title="Past the warning threshold">!</span>
+            }
+            @FormTiles.Value(comparison.Before, info) → @FormTiles.Value(comparison.Now, info)
+            <span class="change muted">@FormTiles.Signed(comparison.Change, info.Format) · @FormTiles.Signed(comparison.Percent, "0.0")%</span>
+        </td>
+    };
+}

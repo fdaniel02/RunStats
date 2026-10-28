@@ -31,13 +31,15 @@ const data = {
     series: [
         { key: "pace", title: "Pace", unit: "/km" },
         { key: "hr", title: "Heart rate", unit: "bpm" },
-        { key: "stride", title: "Stride", unit: "m" }
+        { key: "stride", title: "Stride", unit: "m" },
+        { key: "balance", title: "Balance", unit: "% left" }
     ],
     km: kms,
     time: [10, 150, 400, 650, 3725],
     pace: [330, null, 300, 301, 299],
     hr: [120, 150, 160, 170, 171],
     stride: [1.04, 1.1, 1.2, 1.234, 1],
+    balance: [50.3, 50.25, null, 49.9, 50],
     lat: [51.6, 51.61, null, 51.62, 51.63],
     lon: [5.5, 5.51, null, 5.52, 5.53]
 };
@@ -48,7 +50,8 @@ test("the readout lists the distance and every chart's value with its unit", () 
         { label: "Time", value: "0:10" },
         { label: "Pace", value: "5:30 /km" },
         { label: "Heart rate", value: "120 bpm" },
-        { label: "Stride", value: "1.04 m" }
+        { label: "Stride", value: "1.04 m" },
+        { label: "Balance", value: "50.3 % left" }
     ]);
 });
 
@@ -74,4 +77,8 @@ test("durations read like the app's others, with hours only from an hour", () =>
 
 test("the readout shows the time since the start", () => {
     assert.deepEqual(readout(data, 4)[1], { label: "Time", value: "1:02:05" });
+});
+
+test("balance keeps one decimal", () => {
+    assert.equal(readout(data, 4)[5].value, "50.0 % left");
 });
