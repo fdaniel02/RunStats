@@ -15,6 +15,7 @@ else
                         <th scope="col">Name</th>
                     }
                     <th scope="col" class="optional">Type</th>
+                    <th scope="col" class="optional">Benefit</th>
                     <th scope="col" class="num">km</th>
                     <th scope="col" class="num optional">Time</th>
                     <th scope="col" class="num">Pace<span class="unit">/km</span></th>
@@ -43,6 +44,7 @@ else
                                 }</td>
                         }
                         <td class="optional">@Format.RunType(run.TypeKey)</td>
+                        <td class="optional">@Benefit(run.TrainingEffectLabel)</td>
                         <td class="num">@Format.Km(run.DistanceMeters)</td>
                         <td class="num optional">@Format.Duration(run.DurationSeconds)</td>
                         @if (ShowMetrics && Format.PaceValue(run.DistanceMeters, run.DurationSeconds) is var pace && pace != Format.Missing)
@@ -77,6 +79,18 @@ else
     // A tinted background for races, where they're mixed with other runs.
     [Parameter] public bool MarkRaces { get; set; }
     [Parameter] public string EmptyText { get; set; } = "No runs yet.";
+
+    static RenderFragment Benefit(string? label) => __builder =>
+    {
+        if (TrainingEffect.Name(label) is { } name)
+        {
+            <span class="effect-swatch @TrainingEffect.CssClass(label)" aria-hidden="true"></span>@name
+        }
+        else
+        {
+            @Format.Missing
+        }
+    };
 
     static RenderFragment MetricHeader(string name, string unit) => __builder =>
     {

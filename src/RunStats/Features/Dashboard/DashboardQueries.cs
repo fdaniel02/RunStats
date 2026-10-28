@@ -10,12 +10,15 @@ public sealed record WeekTotal(DateOnly Monday, double DistanceMeters, double Du
 
 public sealed record RecordRow(int TypeId, double Value, DateOnly Date, long? RunId);
 
+// A day with at least one run; TrainingEffectLabel is the hardest of that day's runs.
+public sealed record RunDay(DateOnly Date, string? TrainingEffectLabel);
+
 // Races are shown one year at a time: RaceYear of RaceYears, the years that have races (newest first). RunDays are the
 // dates with a run in the activity grid's weeks.
 public sealed record DashboardData(
     Totals Year, Totals Month, IReadOnlyList<WeekTotal> Weeks, IReadOnlyList<RunRow> LastRuns,
     IReadOnlyList<RecordRow> Records, IReadOnlyList<int> RaceYears, int? RaceYear, IReadOnlyList<RunRow> Races,
-    IReadOnlyList<DateOnly> RunDays);
+    IReadOnlyList<RunDay> RunDays);
 
 public interface IDashboardQueries
 {
@@ -113,12 +116,17 @@ public class DashboardQueries(IDbContextFactory<AppDbContext> dbFactory, Clock c
     }
 
     // By the run's own (Garmin local) date, the date the run tables show.
-    public async Task<List<DateOnly>> RunDaysAsync(DateOnly from, CancellationToken cancellationToken)
+    public async Task<List<RunDay>> RunDaysAsync(DateOnly from, CancellationToken cancellationToken)
     {
         var start = from.ToDateTime(TimeOnly.MinValue);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var days = await db.Runs.Where(r => r.StartLocal >= start).Select(r => r.StartLocal.Date).Distinct().ToListAsync(cancellationToken);
-        return [.. days.Select(DateOnly.FromDateTime).Order()];
+        var runs = await db.Runs.Where(r => r.StartLocal >= start).Select(r => new { r.StartLocal, r.TrainingEffectLabel }).ToListAsync(cancellationToken);
+        return
+        [
+            .. runs.GroupBy(r => DateOnly.FromDateTime(r.StartLocal))
+                .OrderBy(g => g.Key)
+                .Select(g => new RunDay(g.Key, g.Select(r => r.TrainingEffectLabel).Aggregate((string?)null, TrainingEffect.Harder)))
+        ];
     }
 
     public async Task<List<RecordRow>> RecordsAsync(CancellationToken cancellationToken)

@@ -25,7 +25,16 @@ h1:focus {
     }
 
 /* ---- RunStats theme ---- */
-:root { --bg:#0d1117; --card:#161b22; --line:#30363d; --text:#e6edf3; --muted:#8b949e; --accent:#2f81f7; --danger:#da3633; --chart-bar:#2f81f7; }
+/* --effect-1 to 6: training effect from recovery to anaerobic, one blue from light to dark: the darker, the harder. */
+:root { --bg:#0d1117; --card:#161b22; --line:#30363d; --text:#e6edf3; --muted:#8b949e; --accent:#2f81f7; --danger:#da3633; --chart-bar:#2f81f7;
+        --effect-1:#a5d6ff; --effect-2:#79c0ff; --effect-3:#58a6ff; --effect-4:#388bfd; --effect-5:#1f6feb; --effect-6:#1158c7; }
+.effect-swatch { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; background:var(--accent); vertical-align:baseline; }
+.effect-1 { background:var(--effect-1); }
+.effect-2 { background:var(--effect-2); }
+.effect-3 { background:var(--effect-3); }
+.effect-4 { background:var(--effect-4); }
+.effect-5 { background:var(--effect-5); }
+.effect-6 { background:var(--effect-6); }
 * { box-sizing: border-box; }
 html, body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; font-size:16px; }
 .app-header { display:flex; flex-wrap:wrap; align-items:center; gap:8px 24px; padding:calc(12px + env(safe-area-inset-top)) 16px 12px; border-bottom:1px solid var(--line); background:var(--card); }
