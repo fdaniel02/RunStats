@@ -1,0 +1,24 @@
+@* The dashboard's warnings: a quiet line when there are none, so it doesn't push the rest down. *@
+@if (Warnings.Count == 0)
+{
+    <section class="card attention quiet" aria-label="Warnings">
+        <p><span class="ok" aria-hidden="true">✓</span> No warnings in the last days and weeks. <a href="trends">See trends</a></p>
+    </section>
+}
+else
+{
+    <section class="card attention" aria-labelledby="attention-title">
+        <h2 id="attention-title"><span class="icon" aria-hidden="true">!</span> Attention</h2>
+        <ul>
+            @foreach (var warning in Warnings)
+            {
+                <li><strong>@WarningTitles.Title(warning.Kind)</strong> <span class="muted">@warning.Message</span></li>
+            }
+        </ul>
+        <p class="footnote muted">Prompts to look closer, not medical advice. <a href="trends">See trends</a></p>
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<Warning> Warnings { get; set; } = [];
+}

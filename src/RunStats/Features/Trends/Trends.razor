@@ -1,0 +1,65 @@
+@page "/trends"
+@using RunStats.Features.Warnings
+@inject ITrendsQueries Queries
+
+<PageTitle>Trends · RunStats</PageTitle>
+
+<h1>Trends</h1>
+
+@if (data is not null)
+{
+    <section class="card warnings" aria-labelledby="warnings-title">
+        <h2 id="warnings-title">Warnings</h2>
+        @if (data.Active.Count == 0)
+        {
+            <p class="muted">No warnings now.</p>
+        }
+        else
+        {
+            <ul class="active">
+                @foreach (var warning in data.Active)
+                {
+                    <li><span class="icon" aria-hidden="true">!</span><strong>@WarningTitles.Title(warning.Kind)</strong> <span class="muted">@warning.Message</span></li>
+                }
+            </ul>
+        }
+
+        <h3>Last @TrendsQueries.WeekCount weeks</h3>
+        @if (data.Episodes.Count == 0)
+        {
+            <p class="muted">No warnings in the last @TrendsQueries.WeekCount weeks.</p>
+        }
+        else
+        {
+            <ul class="episodes">
+                @foreach (var episode in data.Episodes)
+                {
+                    <li>
+                        <span class="when">@Format.Date(episode.From)@(episode.To > episode.From ? $" – {Format.Date(episode.To)}" : "")</span>
+                        <strong>@WarningTitles.Title(episode.Kind)</strong>
+                        <span class="muted">@episode.Message</span>
+                    </li>
+                }
+            </ul>
+        }
+        <p class="footnote muted">
+            The rules compare the last days and weeks with the weeks before. They're prompts to look closer, not medical advice.
+        </p>
+    </section>
+
+    <section class="card" aria-labelledby="load-title">
+        <h2 id="load-title">Running time per week</h2>
+        <p class="pace muted">
+            Typical pace (median of the last @(TrendsQueries.TypicalPaceDays / 7) weeks, outdoor runs):
+            <strong>@(data.TypicalPaceSecondsPerKm is { } pace ? Format.Pace(1000, pace) : Format.Missing)</strong>
+            · fast is faster than <strong>@Format.Pace(1000, data.FastPaceSecondsPerKm)</strong>
+        </p>
+        <LoadChart Weeks="data.Weeks" FastPaceSecondsPerKm="data.FastPaceSecondsPerKm" VeryFastPaceSecondsPerKm="data.VeryFastPaceSecondsPerKm" />
+    </section>
+}
+
+@code {
+    TrendsData? data;
+
+    protected override async Task OnInitializedAsync() => data = await Queries.LoadAsync(CancellationToken.None);
+}

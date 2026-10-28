@@ -85,4 +85,19 @@ public sealed class WarningQueriesTests(SqlServerFixture sqlServer) : IAsyncLife
         Assert.Equal(Enumerable.Range(24, 7).Select(d => new DateOnly(2026, 9, d)), days.Select(d => d.Date));
         Assert.All(days, d => Assert.Equal(WarningKind.FastJump, Assert.Single(d.Warnings).Kind));
     }
+
+    [Fact]
+    public async Task Warnings_at_several_moments_come_in_their_order()
+    {
+        await AddUsualWeeksAsync();
+        await AddAsync(new DateTime(2026, 9, 24, 15, 0, 0), 60, fastMinutes: 50);
+
+        var warnings = await queries.AtAsync(
+            [new DateTime(2026, 9, 25, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 9, 24, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 10, 2, 0, 0, 0, DateTimeKind.Utc)], Ct);
+
+        Assert.Equal([[WarningKind.FastJump], [], []], warnings.Select(w => w.Select(x => x.Kind).ToList()));
+    }
+
+    [Fact]
+    public async Task No_moments_no_warnings() => Assert.Empty(await queries.AtAsync([], Ct));
 }

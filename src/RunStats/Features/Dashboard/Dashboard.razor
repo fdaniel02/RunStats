@@ -1,5 +1,7 @@
 @page "/"
+@using RunStats.Features.Warnings
 @inject IDashboardQueries Queries
+@inject IWarningQueries WarningQueries
 @inject Clock Clock
 
 <PageTitle>Dashboard · RunStats</PageTitle>
@@ -8,6 +10,8 @@
 
 @if (data is not null)
 {
+    <AttentionCard Warnings="warnings" />
+
     <section class="totals" aria-label="Totals">
         @Total($"This year ({Clock.Today.Year})", data.Year)
         @Total($"This month ({Clock.Today.ToString("MMMM", System.Globalization.CultureInfo.InvariantCulture)})", data.Month)
@@ -71,6 +75,7 @@
 
 @code {
     DashboardData? data;
+    IReadOnlyList<Warning> warnings = [];
     ActivityGrid grid = null!;
 
     [SupplyParameterFromQuery(Name = "races")] public int? RaceYear { get; set; }
@@ -79,6 +84,7 @@
     {
         grid = new ActivityGrid(Clock.Today, DashboardQueries.GridWeeks);
         data = await Queries.LoadAsync(RaceYear, CancellationToken.None);
+        warnings = await WarningQueries.ActiveAsync(CancellationToken.None);
     }
 
     static RenderFragment Total(string label, Totals totals) => __builder =>

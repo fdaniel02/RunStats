@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using RunStats.Data;
 using RunStats.Features.Dashboard;
+using RunStats.Features.Warnings;
 using RunStats.Shared;
 
 namespace RunStats.Tests.Features;
@@ -18,6 +19,14 @@ public class DashboardPageTests : BunitContext
             RequestedRaceYears.Add(raceYear);
             return Task.FromResult(data);
         }
+    }
+
+    sealed class FakeWarnings(List<Warning> active) : IWarningQueries
+    {
+        public Task<List<Warning>> ActiveAsync(CancellationToken cancellationToken) => Task.FromResult(active);
+        public Task<List<DayWarnings>> DailyAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken) => Task.FromResult(new List<DayWarnings>());
+        public Task<List<List<Warning>>> AtAsync(IReadOnlyList<DateTime> momentsUtc, CancellationToken cancellationToken) =>
+            Task.FromResult(momentsUtc.Select(_ => new List<Warning>()).ToList());
     }
 
     static readonly DateOnly ThisMonday = new(2026, 10, 26);
@@ -43,10 +52,11 @@ public class DashboardPageTests : BunitContext
 
     FakeQueries queries = null!;
 
-    IRenderedComponent<RunStats.Features.Dashboard.Dashboard> Render(DashboardData data, string uri = "/")
+    IRenderedComponent<RunStats.Features.Dashboard.Dashboard> Render(DashboardData data, string uri = "/", List<Warning>? warnings = null)
     {
         queries = new FakeQueries(data);
         Services.AddSingleton<IDashboardQueries>(queries);
+        Services.AddSingleton<IWarningQueries>(new FakeWarnings(warnings ?? []));
         Services.AddSingleton(new Clock(TimeZoneInfo.FindSystemTimeZoneById("Europe/Amsterdam"),
             new FixedTimeProvider(new DateTimeOffset(2026, 10, 27, 9, 0, 0, TimeSpan.Zero))));
         Services.GetRequiredService<NavigationManager>().NavigateTo(uri);
@@ -225,5 +235,23 @@ public class DashboardPageTests : BunitContext
         Assert.Equal("Days with a run", page.Find(".activity h2").TextContent);
         Assert.Equal(["2026-10-17 · Tempo", "2026-10-26"], page.FindAll(".activity .cell.done").Select(c => c.GetAttribute("title")));
         Assert.Equal("2026-10-27", page.Find(".activity .cell.today").GetAttribute("title"));
+    }
+
+    [Fact]
+    public void Active_warnings_come_first()
+    {
+        var page = Render(Data(), warnings: [new Warning(WarningKind.VeryFastJump, "9 min faster than 4:15 /km in the last 7 days.")]);
+
+        var sections = page.FindAll("section").Select(s => s.ClassName ?? "").ToList();
+        Assert.StartsWith("card attention", sections[0]);
+        Assert.Contains("Very fast running 9 min faster than 4:15 /km", Text(page.Find(".attention")));
+    }
+
+    [Fact]
+    public void Without_warnings_the_card_is_one_quiet_line()
+    {
+        var page = Render(Data());
+
+        Assert.Contains("quiet", page.Find(".attention").ClassName);
     }
 }
