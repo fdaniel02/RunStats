@@ -63,9 +63,9 @@ public class FormQueries(IDbContextFactory<AppDbContext> dbFactory, IOptions<War
 
     public static FormMetricInfo Info(FormMetric metric) => Metrics.Single(m => m.Metric == metric);
 
-    sealed record Run(DateTime StartUtc, DateTime StartLocal, long Id, List<RunPaceBand> Bands)
+    sealed record Run(DateTime StartUtc, DateTime StartLocal, long Id, List<RunPaceBand> PaceBands)
     {
-        public bool HasStrap => Bands.Any(b => b.GroundContactBalanceLeftPercent is not null);
+        public bool HasStrap => PaceBands.Any(b => b.GroundContactBalanceLeftPercent is not null);
     }
 
     public async Task<FormData> LoadAsync(CancellationToken cancellationToken)
@@ -125,7 +125,7 @@ public class FormQueries(IDbContextFactory<AppDbContext> dbFactory, IOptions<War
 
     static List<BalanceRun> Balance(List<Run> runs) =>
     [
-        .. runs.Select(r => (Run: r, Mean: SamePace.Mean(r.Bands, b => b.GroundContactBalanceLeftPercent)))
+        .. runs.Select(r => (Run: r, Mean: SamePace.Mean(r.PaceBands, b => b.GroundContactBalanceLeftPercent)))
             .Where(r => r.Mean is not null)
             .Select(r => new BalanceRun(r.Run.Id, DateOnly.FromDateTime(r.Run.StartLocal), r.Mean!.Value.Value))
     ];
@@ -135,5 +135,5 @@ public class FormQueries(IDbContextFactory<AppDbContext> dbFactory, IOptions<War
 
     static IEnumerable<RunPaceBand> Bands(IEnumerable<Run> runs, Sensor sensor) => runs
         .Where(r => sensor == Sensor.Any || r.HasStrap == (sensor == Sensor.Strap))
-        .SelectMany(r => r.Bands);
+        .SelectMany(r => r.PaceBands);
 }

@@ -108,7 +108,12 @@
             $"{FormTiles.Value(c.Before, info)} {info.Unit} at the same pace ({change}), over {Format.Hours(c.Seconds)}";
     }
 
-    static string TickFormat(double step) => step >= 1 ? "0" : step >= 0.1 ? "0.0" : "0.00";
+    static string TickFormat(double step)
+    {
+        if (step >= 1)
+            return "0";
+        return step >= 0.1 ? "0.0" : "0.00";
+    }
 
     // A gap where a month has no value, instead of a line across it.
     static string Path(IReadOnlyList<FormMonth> months, double min, double max)

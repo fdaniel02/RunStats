@@ -10,9 +10,9 @@ else
         <figcaption class="visually-hidden">Left foot's share of ground contact time per strap run, in percent</figcaption>
         <div class="area">
             <div class="grid" aria-hidden="true">
-                @foreach (var tick in new[] { Min, 50.0, Max })
+                @foreach (var (tick, kind) in new[] { (Min, ""), (Even, "even"), (Max, "") })
                 {
-                    <div class="gridline @(tick == 50 ? "even" : "")" style="bottom: @Percent((tick - Min) / (Max - Min))">
+                    <div class="gridline @kind" style="bottom: @Percent((tick - Min) / (Max - Min))">
                         <span>@tick.ToString("0", Culture)%</span>
                     </div>
                 }
@@ -38,6 +38,7 @@ else
 
     // Strap runs stay within a point or two of even; values outside are drawn at the edge.
     const double Min = 45;
+    const double Even = 50;
     const double Max = 55;
 
     [Parameter, EditorRequired] public IReadOnlyList<BalanceRun> Runs { get; set; } = [];
