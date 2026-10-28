@@ -70,7 +70,12 @@ public static class RunProcessor
 
     static double? Celsius(double? fahrenheit) => (fahrenheit - 32) * 5 / 9;
 
-    static string? Cut(string? text, int length) => text is { Length: > 0 } t ? (t.Length > length ? t[..length] : t) : null;
+    static string? Cut(string? text, int length)
+    {
+        if (string.IsNullOrEmpty(text))
+            return null;
+        return text.Length > length ? text[..length] : text;
+    }
 
     public static List<RunLap> Laps(long runId, string? splitsJson)
     {

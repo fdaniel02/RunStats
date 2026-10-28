@@ -11,74 +11,84 @@ public sealed record SummaryGroup(string Title, IReadOnlyList<SummaryTile> Tiles
 // group without tiles is left out.
 public static class RunSummary
 {
-    public static IReadOnlyList<SummaryGroup> Groups(Run run)
-    {
-        var groups = new List<SummaryGroup>();
-        List<SummaryTile> tiles = [];
-
-        void Group(string title, Action addTiles)
+    public static IReadOnlyList<SummaryGroup> Groups(Run run) =>
+    [
+        .. new[]
         {
-            tiles = [];
-            addTiles();
-            if (tiles.Count > 0)
-                groups.Add(new SummaryGroup(title, tiles));
-        }
+            new SummaryGroup("Overview", Overview(run)),
+            new SummaryGroup("Effort", Effort(run)),
+            new SummaryGroup("Form", Form(run)),
+            new SummaryGroup("Conditions", Conditions(run))
+        }.Where(g => g.Tiles.Count > 0)
+    ];
 
-        void Add(string label, string value, string unit = "", params (string Label, string Value)[] details)
+    static Tiles Overview(Run run)
+    {
+        var tiles = new Tiles();
+        tiles.Stat("Distance", Format.Km(run.DistanceMeters), "km");
+        tiles.Stat("Time", Format.Duration(run.DurationSeconds), "",
+            ("Moving", Duration(run.MovingDurationSeconds)), ("Elapsed", Duration(run.ElapsedDurationSeconds)));
+        tiles.Stat("Pace", Format.Pace(run.DistanceMeters, run.DurationSeconds), "", ("Max", WithUnit(Format.MaxPace(run.MaxSpeedMps), "/km")));
+        tiles.Stat("Speed", Format.Speed(run.AverageSpeedMps), "km/h", ("Max", WithUnit(Format.Speed(run.MaxSpeedMps), "km/h")));
+        return tiles;
+    }
+
+    static Tiles Effort(Run run)
+    {
+        var tiles = new Tiles();
+        tiles.Stat("Heart rate", Format.Whole(run.AverageHeartRate), "bpm", ("Max", Format.Whole(run.MaxHeartRate)), ("Min", Format.Whole(run.MinHeartRate)));
+        if (run.AerobicTrainingEffect is not null || run.AnaerobicTrainingEffect is not null)
+            tiles.Add(new SummaryTile("Training effect",
+                Format.Pair(Format.OneDecimal(run.AerobicTrainingEffect), Format.OneDecimal(run.AnaerobicTrainingEffect)), "Aerobic / anaerobic"));
+        tiles.Stat("Training load", Format.Whole(run.TrainingLoad));
+        tiles.Stat("VO2max", Format.Whole(run.Vo2Max));
+        tiles.Stat("Calories", Format.Whole(run.Calories), "kcal");
+        return tiles;
+    }
+
+    static Tiles Form(Run run)
+    {
+        var tiles = new Tiles();
+        tiles.Stat("Cadence", Format.Whole(run.AverageCadenceSpm), "spm", ("Max", Format.Whole(run.MaxCadenceSpm)));
+        tiles.Stat("Stride", Format.Meters(run.StrideLengthCm), "m");
+        tiles.Stat("Steps", Format.Whole(run.Steps));
+        if (run.PaceVariationPercent is not null)
+            // The treadmill's speed comes from step counting, which is smoother than GPS.
+            tiles.Add(new SummaryTile("Pace variation", Format.Variation(run.PaceVariationPercent),
+                run.TypeKey == "treadmill_running" ? "Speed from step counting" : "Lower is more even"));
+        if (run.GroundContactBalanceLeftPercent is { } left)
+            tiles.Add(new SummaryTile("Left/right balance", $"{Format.OneDecimal(left)}% / {Format.OneDecimal(100 - left)}%", "Ground contact, left / right"));
+        return tiles;
+    }
+
+    static Tiles Conditions(Run run)
+    {
+        var tiles = new Tiles();
+        tiles.Stat("Weather", Format.Whole(run.WeatherTemperatureCelsius), "°C",
+            ("Feels", WithUnit(Format.Whole(run.WeatherFeelsLikeCelsius), "°C")),
+            ("", WithUnit(Format.Whole(run.WeatherHumidityPercent), "% humidity")),
+            ("Wind", Wind(run.WeatherWindSpeedKmh, run.WeatherWindDirection)),
+            ("", run.WeatherStation ?? Format.Missing));
+        tiles.Stat("Watch temperature", Format.Whole(run.AverageTemperatureCelsius), "°C", ("", WristDifference(run)));
+        tiles.Stat("Ascent / descent", Format.Pair(Format.Whole(run.ElevationGainMeters), Format.Whole(run.ElevationLossMeters)), "m");
+        return tiles;
+    }
+
+    sealed class Tiles : List<SummaryTile>
+    {
+        // A missing value gets no tile; missing details are left out.
+        public void Stat(string label, string value, string unit = "", params (string Label, string Value)[] details)
         {
             if (value == Format.Missing)
                 return;
             var detail = string.Join(" · ", details.Where(d => d.Value != Format.Missing).Select(d => $"{d.Label} {d.Value}".Trim()));
-            tiles.Add(new SummaryTile(label, unit.Length == 0 ? value : $"{value} {unit}", detail.Length == 0 ? null : detail));
+            Add(new SummaryTile(label, unit.Length == 0 ? value : $"{value} {unit}", detail.Length == 0 ? null : detail));
         }
-
-        static string Duration(double? seconds) => seconds is { } s ? Format.Duration(s) : Format.Missing;
-        static string WithUnit(string value, string unit) => value == Format.Missing ? value : $"{value} {unit}";
-
-        Group("Overview", () =>
-        {
-            Add("Distance", Format.Km(run.DistanceMeters), "km");
-            Add("Time", Format.Duration(run.DurationSeconds), "",
-                ("Moving", Duration(run.MovingDurationSeconds)), ("Elapsed", Duration(run.ElapsedDurationSeconds)));
-            Add("Pace", Format.Pace(run.DistanceMeters, run.DurationSeconds), "",
-                ("Max", WithUnit(Format.MaxPace(run.MaxSpeedMps), "/km")));
-            Add("Speed", Format.Speed(run.AverageSpeedMps), "km/h", ("Max", WithUnit(Format.Speed(run.MaxSpeedMps), "km/h")));
-        });
-        Group("Effort", () =>
-        {
-            Add("Heart rate", Format.Whole(run.AverageHeartRate), "bpm",
-                ("Max", Format.Whole(run.MaxHeartRate)), ("Min", Format.Whole(run.MinHeartRate)));
-            if (run.AerobicTrainingEffect is not null || run.AnaerobicTrainingEffect is not null)
-                tiles.Add(new SummaryTile("Training effect",
-                    Format.Pair(Format.OneDecimal(run.AerobicTrainingEffect), Format.OneDecimal(run.AnaerobicTrainingEffect)), "Aerobic / anaerobic"));
-            Add("Training load", Format.Whole(run.TrainingLoad));
-            Add("VO2max", Format.Whole(run.Vo2Max));
-            Add("Calories", Format.Whole(run.Calories), "kcal");
-        });
-        Group("Form", () =>
-        {
-            Add("Cadence", Format.Whole(run.AverageCadenceSpm), "spm", ("Max", Format.Whole(run.MaxCadenceSpm)));
-            Add("Stride", Format.Meters(run.StrideLengthCm), "m");
-            Add("Steps", Format.Whole(run.Steps));
-            if (run.PaceVariationPercent is not null)
-                // The treadmill's speed comes from step counting, which is smoother than GPS.
-                tiles.Add(new SummaryTile("Pace variation", Format.Variation(run.PaceVariationPercent),
-                    run.TypeKey == "treadmill_running" ? "Speed from step counting" : "Lower is more even"));
-            if (run.GroundContactBalanceLeftPercent is { } left)
-                tiles.Add(new SummaryTile("Left/right balance", $"{Format.OneDecimal(left)}% / {Format.OneDecimal(100 - left)}%", "Ground contact, left / right"));
-        });
-        Group("Conditions", () =>
-        {
-            Add("Weather", Format.Whole(run.WeatherTemperatureCelsius), "°C",
-                ("Feels", WithUnit(Format.Whole(run.WeatherFeelsLikeCelsius), "°C")),
-                ("", WithUnit(Format.Whole(run.WeatherHumidityPercent), "% humidity")),
-                ("Wind", Wind(run.WeatherWindSpeedKmh, run.WeatherWindDirection)),
-                ("", run.WeatherStation ?? Format.Missing));
-            Add("Watch temperature", Format.Whole(run.AverageTemperatureCelsius), "°C", ("", WristDifference(run)));
-            Add("Ascent / descent", Format.Pair(Format.Whole(run.ElevationGainMeters), Format.Whole(run.ElevationLossMeters)), "m");
-        });
-        return groups;
     }
+
+    static string Duration(double? seconds) => seconds is { } s ? Format.Duration(s) : Format.Missing;
+
+    static string WithUnit(string value, string unit) => value == Format.Missing ? value : $"{value} {unit}";
 
     static string Wind(double? kmh, string? direction) => kmh is null
         ? Format.Missing
