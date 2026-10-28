@@ -105,6 +105,24 @@ replace the files with a newer release from cdnjs and check them against cdnjs' 
 "This month", "this year" and weekly totals use the time zone in the `TimeZone` setting (an IANA id,
 default `Europe/Amsterdam` in `appsettings.json`), not the server's. Override it in Docker with `-e TimeZone=...`.
 
+### Warnings
+
+The warnings (#15) compare the last days or weeks with the weeks before. Their thresholds are settings in the
+`Warnings` section (`-e Warnings__FastRatio=...` in Docker); the app refuses to start with a value out of range. The
+defaults, in `WarningSettings`, were tuned on the history up to 2026-10 to about ten warnings in 14 months:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `FastPaceSecondsPerKm`, `VeryFastPaceSecondsPerKm` | 310, 255 | Faster than 5:10/km is fast, faster than 4:15/km very fast |
+| `FastRatio`, `FastMinMinutes` | 3, 45 | Fast minutes in the last 7 days against the weekly average of the 4 weeks before |
+| `VeryFastRatio`, `VeryFastMinMinutes` | 2, 8 | The same for very fast minutes |
+| `VolumeRatio`, `VolumeMinMinutes` | 1.5, 400 | Running time in the last 4 weeks against the 12 weeks before |
+| `LongRunRatio`, `LongRunMinMinutes` | 1.3, 75 | The longest run of the last 7 days against the longest of the 4 weeks before |
+| `HardRunFastMinutes`, `HardRunMinutes`, `HardRunsWithinHours` | 20, 75, 72 | Two hard runs (this many fast minutes, or this long) this close together |
+| `FormBandWidthSecondsPerKm`, `FormBandMinMinutes` | 15, 5 | Form is compared in pace bands this wide with this much time on both sides |
+| `StepLengthIncreasePercent`, `CadenceDropSpm` | 4, 3 | Form change at the same pace, last 2 weeks against the 8 before (outdoor runs) |
+| `BalanceShiftPoints`, `BalanceMinMinutes` | 1.5, 20 | Left/right balance change on strap runs, same periods |
+
 ### Logging
 
 Logs go to stdout as one JSON object per line, for a log collector (e.g. Grafana Alloy → Loki) to pick up.
