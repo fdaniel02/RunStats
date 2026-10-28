@@ -224,6 +224,30 @@ namespace RunStats.Migrations
                     b.Property<double?>("Vo2Max")
                         .HasColumnType("float");
 
+                    b.Property<double?>("WeatherDewPointCelsius")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("WeatherFeelsLikeCelsius")
+                        .HasColumnType("float");
+
+                    b.Property<int?>("WeatherHumidityPercent")
+                        .HasColumnType("int");
+
+                    b.Property<string>("WeatherStation")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<double?>("WeatherTemperatureCelsius")
+                        .HasColumnType("float");
+
+                    b.Property<string>("WeatherWindDirection")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<double?>("WeatherWindSpeedKmh")
+                        .HasColumnType("float");
+
                     b.HasKey("Id");
 
                     b.HasIndex("StartUtc");
