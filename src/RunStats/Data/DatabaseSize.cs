@@ -69,6 +69,12 @@ public class DatabaseSizeMonitor(
                 // The last sizes stay reported; a database outage shows up in the health check, not here.
                 logger.DatabaseSizeFailed(e);
             }
+            // SQL Server reports a read cancelled by the stop as a SqlException, not an OperationCanceledException; left to
+            // escape, it would be logged as a failed background service.
+            catch (Exception) when (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
             await Task.Delay(Interval, time, stoppingToken);
         }
     }
