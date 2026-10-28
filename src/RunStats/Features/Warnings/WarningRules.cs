@@ -154,9 +154,13 @@ public static class WarningRules
         return seconds == 0 ? null : (sum / seconds, seconds);
     }
 
-    static string Signed(double? value, string format) => value is { } v
-        ? (v >= 0 ? "+" : "−") + Math.Abs(v).ToString(format, Culture)
-        : Format.Missing;
+    static string Signed(double? value, string format)
+    {
+        if (value is not { } v)
+            return Format.Missing;
+        var sign = v >= 0 ? "+" : "−";
+        return sign + Math.Abs(v).ToString(format, Culture);
+    }
 
     static string Day(WarningRun run) => Format.Date(DateOnly.FromDateTime(run.StartLocal));
 }
