@@ -45,6 +45,7 @@ public class RunDetailsPageTests : BunitContext
         AverageCadenceSpm = 172,
         StrideLengthCm = 104.6,
         MaxSpeedMps = 3.75,
+        PaceVariationPercent = 3.24,
         ElevationGainMeters = 2,
         ElevationLossMeters = 0
     };
@@ -143,7 +144,7 @@ public class RunDetailsPageTests : BunitContext
     {
         var rows = Render(Data()).FindAll("table.laps tbody tr");
 
-        Assert.Equal(["1", "1.0", "5:29", "5:29 / 4:27", "154 / 181", "172", "1.05", "2 / 0"], rows[0].Children.Select(c => c.TextContent));
+        Assert.Equal(["1", "1.0", "5:29", "5:29 / 4:27", "3.2", "154 / 181", "172", "1.05", "2 / 0"], rows[0].Children.Select(c => c.TextContent));
         Assert.Equal(["2", "0.5", "2:43", "5:26 / 4:27"], rows[1].Children.Take(4).Select(c => c.TextContent));
     }
 
@@ -199,5 +200,23 @@ public class RunDetailsPageTests : BunitContext
 
         Assert.Single(notFound);
         Assert.Empty(page.FindAll("h1"));
+    }
+
+    [Fact]
+    public void The_lap_pace_variation_is_an_extra_column_with_its_unit_in_the_header()
+    {
+        var page = Render(Data());
+        var header = page.FindAll("table.laps th")[4];
+
+        Assert.Equal(("Variation±%", true), (header.TextContent, header.ClassList.Contains("optional")));
+    }
+
+    [Fact]
+    public void A_short_lap_has_no_pace_variation()
+    {
+        var lap = Lap(1);
+        lap.PaceVariationPercent = null;
+
+        Assert.Equal("–", Render(Data(laps: [lap])).Find("table.laps tbody tr").Children[4].TextContent);
     }
 }

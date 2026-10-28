@@ -9,7 +9,7 @@ namespace RunStats.Processing;
 public static class RunProcessor
 {
     // Raise when the processing changes: every stored run is then processed again at the next sync.
-    public const int Version = 3;
+    public const int Version = 4;
 
     const int MaxIntensityTypeLength = 50;
     const int MaxTrainingEffectLabelLength = 50;

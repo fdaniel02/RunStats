@@ -32,6 +32,7 @@ public class RunSummaryTests
         run.Vo2Max = 50;
         run.AverageTemperatureCelsius = 21;
         run.Steps = 7102;
+        run.PaceVariationPercent = 3.24;
         return run;
     }
 
@@ -45,6 +46,7 @@ public class RunSummaryTests
             new SummaryTile("Distance", "7.5 km"),
             new SummaryTile("Time", "39:57", "Moving 39:54 · Elapsed 39:57"),
             new SummaryTile("Pace", "5:20 /km", "Max 4:27 /km"),
+            new SummaryTile("Pace variation", "±3.2%", "Lower is more even"),
             new SummaryTile("Speed", "11.3 km/h", "Max 13.5 km/h"),
             new SummaryTile("Heart rate", "163 bpm", "Max 181 · Min 59"),
             new SummaryTile("Cadence", "178 spm", "Max 186"),
@@ -99,4 +101,17 @@ public class RunSummaryTests
 
         Assert.DoesNotContain("Pace", RunSummary.Tiles(run).Select(t => t.Label));
     }
+
+    [Fact]
+    public void On_the_treadmill_the_pace_variation_says_where_the_speed_comes_from()
+    {
+        var run = Full();
+        run.TypeKey = "treadmill_running";
+
+        Assert.Equal(new SummaryTile("Pace variation", "±3.2%", "Speed from step counting"), RunSummary.Tiles(run).Single(t => t.Label == "Pace variation"));
+    }
+
+    [Fact]
+    public void Without_pace_variation_there_is_no_tile() =>
+        Assert.DoesNotContain(RunSummary.Tiles(Minimal()), t => t.Label == "Pace variation");
 }

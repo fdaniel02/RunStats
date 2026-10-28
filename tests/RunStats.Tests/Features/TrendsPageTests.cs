@@ -28,7 +28,8 @@ public class TrendsPageTests : BunitContext
         [new LoadWeek(new DateOnly(2026, 10, 26), 35 * 60, 0, 0, [], true)],
         typicalPace,
         310,
-        255);
+        255,
+        [new PaceVariationMonth(new DateOnly(2026, 9, 1), 3.2, 9)]);
 
     IRenderedComponent<Trends> Render(TrendsData data)
     {
@@ -91,7 +92,7 @@ public class TrendsPageTests : BunitContext
     {
         var page = Render(Data());
 
-        Assert.Equal(["Warnings", "Running time per week", "Form at the same pace", "Left/right balance"], page.FindAll("h2").Select(h => h.TextContent));
+        Assert.Equal(["Warnings", "Running time per week", "Pace variation", "Form at the same pace", "Left/right balance"], page.FindAll("h2").Select(h => h.TextContent));
         Assert.Single(page.FindAll(".tile"));
         Assert.Single(page.FindAll(".form-charts figure"));
         Assert.Single(page.FindAll(".runs .slot"));

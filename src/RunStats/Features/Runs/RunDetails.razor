@@ -76,6 +76,7 @@
                         <th scope="col" class="num">km</th>
                         <th scope="col" class="num">Time</th>
                         <th scope="col" class="num">Pace<span class="unit">/km</span></th>
+                        <th scope="col" class="num optional">Variation<span class="unit">±%</span></th>
                         <th scope="col" class="num">HR<span class="unit">avg / max</span></th>
                         <th scope="col" class="num optional">Cadence<span class="unit">spm</span></th>
                         <th scope="col" class="num optional">Stride<span class="unit">m</span></th>
@@ -101,6 +102,7 @@
                             {
                                 <td class="num">@Format.Missing</td>
                             }
+                            <td class="num optional">@Format.OneDecimal(lap.PaceVariationPercent)</td>
                             <td class="num">@Format.Pair(Format.Whole(lap.AverageHeartRate), Format.Whole(lap.MaxHeartRate))</td>
                             <td class="num optional">@Format.Whole(lap.AverageCadenceSpm)</td>
                             <td class="num optional">@Format.Meters(lap.StrideLengthCm)</td>

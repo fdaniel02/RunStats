@@ -37,8 +37,9 @@ public static class PaceBandBuilder
         return [.. bands.Select(b => b.Value.ToPaceBand(runId, b.Key))];
     }
 
-    // The average over the seconds around each one (half before, half after); seconds without speed don't count.
-    static double?[] SmoothedSpeeds(List<RunSample> samples)
+    // The average over the seconds around each one (half before, half after); seconds without speed don't count. The
+    // samples must be in time order.
+    public static double?[] SmoothedSpeeds(List<RunSample> samples)
     {
         var result = new double?[samples.Count];
         var (first, last, sum, count) = (0, -1, 0.0, 0);

@@ -46,6 +46,7 @@ public class RunProcessing(IDbContextFactory<AppDbContext> dbFactory, IGarminGat
             return error;
         }
 
+        PaceVariation.Apply(run, laps, samples);
         run.ProcessorVersion = RunProcessor.Version;
         run.ProcessingError = null;
         await ReplaceAsync(db, runId, laps, samples, PaceBandBuilder.Build(runId, samples), TrackBuilder.Build(runId, samples), cancellationToken);

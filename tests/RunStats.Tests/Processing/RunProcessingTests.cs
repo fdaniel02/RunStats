@@ -90,6 +90,7 @@ public sealed class RunProcessingTests(SqlServerFixture sqlServer) : IAsyncLifet
         Assert.Equal([1, 2], run.Laps.Select(l => l.LapIndex).Order());
         Assert.Equal(60, run.Samples.Count);
         Assert.Equal((byte)199, run.Samples.Single(s => s.OffsetSeconds == 59).HeartRate);
+        Assert.Equal(0, run.PaceVariationPercent!.Value, 6);
         // 3 m/s is 5:33/km.
         var band = Assert.Single(run.PaceBands);
         Assert.Equal(((short)330, 60, 60, 170f), (band.PaceSecondsPerKm, band.Seconds, band.FlatSeconds, band.CadenceSpm!.Value));

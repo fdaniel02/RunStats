@@ -28,6 +28,10 @@ public static class RunSummary
             ("Moving", Duration(run.MovingDurationSeconds)), ("Elapsed", Duration(run.ElapsedDurationSeconds)));
         Add("Pace", Format.Pace(run.DistanceMeters, run.DurationSeconds), "",
             ("Max", WithUnit(Format.MaxPace(run.MaxSpeedMps), "/km")));
+        if (run.PaceVariationPercent is not null)
+            // The treadmill's speed comes from step counting, which is smoother than GPS.
+            tiles.Add(new SummaryTile("Pace variation", Format.Variation(run.PaceVariationPercent),
+                run.TypeKey == "treadmill_running" ? "Speed from step counting" : "Lower is more even"));
         Add("Speed", Format.Speed(run.AverageSpeedMps), "km/h", ("Max", WithUnit(Format.Speed(run.MaxSpeedMps), "km/h")));
         Add("Heart rate", Format.Whole(run.AverageHeartRate), "bpm",
             ("Max", Format.Whole(run.MaxHeartRate)), ("Min", Format.Whole(run.MinHeartRate)));
