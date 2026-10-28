@@ -130,7 +130,7 @@ public class RunDetailsPageTests : BunitContext
 
         Assert.Equal(["Race", "Tempo"], page.FindAll(".title .badge").Select(b => b.TextContent));
         Assert.Equal("effect-swatch effect-3", page.Find(".badge.benefit .effect-swatch").ClassName);
-        Assert.Empty(page.FindAll("section[aria-label=Summary] .tile-label").Where(l => l.TextContent == "Primary benefit"));
+        Assert.DoesNotContain(page.FindAll("section[aria-label=Summary] .tile-label"), l => l.TextContent == "Primary benefit");
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public class RunDetailsPageTests : BunitContext
 
         var badge = Render(Data(run)).Find(".badge.benefit");
 
-        Assert.Equal(("New kind of run", "effect-swatch"), (badge.TextContent, badge.QuerySelector(".effect-swatch")!.ClassName.Trim()));
+        Assert.Equal(("New kind of run", "effect-swatch"), (badge.TextContent, badge.QuerySelector(".effect-swatch")!.ClassName?.Trim()));
     }
 
     [Fact]
