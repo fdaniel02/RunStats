@@ -49,6 +49,7 @@ builder.Services.AddTransient<IDashboardQueries, DashboardQueries>();
 builder.Services.AddTransient<IHeatmapQueries, HeatmapQueries>();
 builder.Services.AddTransient<IRunListQueries, RunListQueries>();
 builder.Services.AddTransient<IRunDetailsQueries, RunDetailsQueries>();
+builder.Services.AddTransient<IRunAnalysisQueries, RunAnalysisQueries>();
 builder.Services.AddOptions<WarningSettings>().BindConfiguration(WarningSettings.Section).ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddTransient<IWarningQueries, WarningQueries>();
 builder.Services.AddTransient<ITrendsQueries, TrendsQueries>();

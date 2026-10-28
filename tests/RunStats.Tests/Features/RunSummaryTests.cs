@@ -33,6 +33,7 @@ public class RunSummaryTests
         run.AverageTemperatureCelsius = 21;
         run.Steps = 7102;
         run.PaceVariationPercent = 3.24;
+        run.GroundContactBalanceLeftPercent = 50.34;
         return run;
     }
 
@@ -51,10 +52,10 @@ public class RunSummaryTests
             new SummaryTile("Heart rate", "163 bpm", "Max 181 · Min 59"),
             new SummaryTile("Cadence", "178 spm", "Max 186"),
             new SummaryTile("Stride", "1.05 m"),
+            new SummaryTile("Left/right balance", "50.3% / 49.7%", "Ground contact, left / right"),
             new SummaryTile("Ascent / descent", "10 / 11 m"),
             new SummaryTile("Calories", "521 kcal"),
             new SummaryTile("Training effect", "4.3 / 0.4", "Aerobic / anaerobic"),
-            new SummaryTile("Primary benefit", "Tempo"),
             new SummaryTile("Training load", "180"),
             new SummaryTile("VO2max", "50"),
             new SummaryTile("Temperature", "21 °C"),

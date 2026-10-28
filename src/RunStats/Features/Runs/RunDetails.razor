@@ -1,6 +1,9 @@
 @page "/runs/{Id:long}"
 @using System.Text.Json
+@using RunStats.Features.Trends
+@using RunStats.Features.Warnings
 @inject IRunDetailsQueries Queries
+@inject IRunAnalysisQueries AnalysisQueries
 @inject IConfiguration Configuration
 @inject NavigationManager Navigation
 
@@ -29,6 +32,10 @@
         {
             <span class="badge">Race</span>
         }
+        @if (TrainingEffect.Name(run.TrainingEffectLabel) is { } benefit)
+        {
+            <span class="badge benefit" title="Primary benefit"><span class="effect-swatch @TrainingEffect.CssClass(run.TrainingEffectLabel)" aria-hidden="true"></span>@benefit</span>
+        }
     </div>
     <p class="muted">
         @Format.DateAndTime(run.StartLocal) · @Format.RunType(run.TypeKey) ·
@@ -50,6 +57,20 @@
     }
 </section>
 
+@if (analysis is { Triggered.Count: > 0 })
+{
+    <section class="card triggered" aria-labelledby="triggered-title">
+        <h2 id="triggered-title"><span class="icon" aria-hidden="true">!</span> Warnings from this run</h2>
+        <ul>
+            @foreach (var warning in analysis.Triggered)
+            {
+                <li><strong>@WarningTitles.Title(warning.Kind)</strong> <span class="muted">@warning.Message</span></li>
+            }
+        </ul>
+        <p class="footnote muted">What the rules said right after this run and not before it. Prompts to look closer, not medical advice.</p>
+    </section>
+}
+
 @if (details.Polyline is not null)
 {
     <div id="route" class="map" role="region" aria-label="Map of the route" data-carto-key="@Configuration["Heatmap:CartoApiKey"]"></div>
@@ -59,6 +80,31 @@
 }
 
 <RunCharts Points="details.ChartPoints" />
+
+@if (analysis is not null)
+{
+    <UsualFormCard Usual="analysis.Usual" TypeKey="@run.TypeKey" />
+
+    <section class="card" aria-labelledby="drift-title">
+        <h2 id="drift-title">Form drift</h2>
+        <p class="intro muted">
+            The last third of the run against its first third, at the same pace: where form changes when you tire. Heart rate
+            usually rises a little anyway (cardiac drift).
+        </p>
+        @switch (analysis.Drift.Missing)
+        {
+            case DriftMissing.TooShort:
+                <p class="muted">Only for runs of @RunAnalysisQueries.DriftMinMinutes.ToString("0") min or more.</p>
+                break;
+            case DriftMissing.NotSteady:
+                <p class="muted">Not enough time at the same pace in the first and the last third, e.g. intervals or a hilly route.</p>
+                break;
+            default:
+                <FormTiles Tiles="[.. analysis.Drift.Metrics.Select(m => new FormTile(m.Key, m.Value))]" />
+                break;
+        }
+    </section>
+}
 
 @if (details.Laps.Count > 0)
 {
@@ -117,6 +163,7 @@
 
 @code {
     RunDetailsData? details;
+    RunAnalysis? analysis;
 
     [Parameter] public long Id { get; set; }
 
@@ -127,5 +174,7 @@
         details = await Queries.LoadAsync(Id, CancellationToken.None);
         if (details is null)
             Navigation.NotFound();
+        else
+            analysis = await AnalysisQueries.LoadAsync(Id, CancellationToken.None);
     }
 }

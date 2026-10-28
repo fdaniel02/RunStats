@@ -233,4 +233,17 @@ public class RunChartDataTests
 
         Assert.Equal(RunChartData.Points(Steady(100), hasRoute: true), RunChartData.Points(samples, hasRoute: true));
     }
+
+    [Fact]
+    public void The_balance_is_smoothed_and_empty_without_the_strap()
+    {
+        var samples = Steady(120);
+        foreach (var s in samples)
+            s.GroundContactBalanceLeftPercent = s.OffsetSeconds == 60 ? 70 : 50.4f;
+
+        var points = RunChartData.Points(samples, hasRoute: true);
+
+        Assert.All(points, p => Assert.InRange(p.BalanceLeftPercent!.Value, 50.3, 52));
+        Assert.All(RunChartData.Points(Steady(120), hasRoute: true), p => Assert.Null(p.BalanceLeftPercent));
+    }
 }

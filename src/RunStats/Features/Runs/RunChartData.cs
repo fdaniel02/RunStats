@@ -5,7 +5,7 @@ namespace RunStats.Features.Runs;
 // The run's samples averaged over one stretch of distance; null where nothing was recorded there.
 public sealed record ChartPoint(
     double Km, double Seconds, double? PaceSecondsPerKm, double? HeartRate, double? ElevationMeters,
-    double? CadenceSpm, double? StrideMeters, double? Latitude, double? Longitude);
+    double? CadenceSpm, double? StrideMeters, double? Latitude, double? Longitude, double? BalanceLeftPercent = null);
 
 public static class RunChartData
 {
@@ -39,6 +39,7 @@ public static class RunChartData
         // Zero while standing still: left out, so a stop doesn't pull the average down.
         var cadences = Smoothed(ordered, s => s.CadenceSpm > 0 ? s.CadenceSpm : null, SmoothingSeconds);
         var strides = Smoothed(ordered, s => s.StepLengthMm > 0 ? s.StepLengthMm / 1000.0 : null, SmoothingSeconds);
+        var balances = Smoothed(ordered, s => s.GroundContactBalanceLeftPercent, SmoothingSeconds);
         var elevations = hasRoute ? Smoothed(ordered, s => s.AltitudeMeters, ElevationSmoothingSeconds) : new double?[ordered.Count];
         var stretch = ordered[^1].DistanceMeters!.Value / maxPoints;
         return
@@ -61,7 +62,8 @@ public static class RunChartData
                         Mean(indexes.Select(i => cadences[i])),
                         Mean(indexes.Select(i => strides[i])),
                         position?.LatitudeSemicircles * SemicirclesToDegrees,
-                        position?.LongitudeSemicircles * SemicirclesToDegrees);
+                        position?.LongitudeSemicircles * SemicirclesToDegrees,
+                        Mean(indexes.Select(i => balances[i])));
                 })
         ];
     }

@@ -34,6 +34,15 @@
     font-weight: 600;
 }
 
+/* Not a status like Race: in the text colour, the swatch carries the shade. */
+.badge.benefit {
+    display: inline-flex;
+    align-items: center;
+    border-color: var(--line);
+    color: var(--text);
+    font-weight: 400;
+}
+
 .tiles {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
@@ -126,4 +135,50 @@ table.laps {
     .map {
         height: 320px;
     }
+}
+
+.triggered {
+    border-color: var(--danger);
+}
+
+    .triggered h2 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .triggered ul {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 0 0 12px;
+        padding: 0;
+        list-style: none;
+    }
+
+    .triggered strong {
+        font-weight: 600;
+        margin-right: 4px;
+    }
+
+.icon {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--danger);
+    color: #fff;
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+.intro {
+    margin: 0 0 12px;
+    font-size: .9rem;
+}
+
+.footnote {
+    margin: 0;
+    font-size: .85rem;
 }
