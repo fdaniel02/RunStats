@@ -22,6 +22,7 @@ public abstract class RunMetrics
     public double? GroundContactTimeMs { get; set; }
     public double? VerticalOscillationCm { get; set; }
     public double? VerticalRatioPercent { get; set; }
+    public double? GroundContactBalanceLeftPercent { get; set; }
 
     public double? AveragePowerWatts { get; set; }
     public double? MaxPowerWatts { get; set; }

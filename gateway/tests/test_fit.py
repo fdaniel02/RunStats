@@ -21,6 +21,7 @@ def test_record_fields_become_a_sample_in_the_apps_units():
             "stance_time": 241.5,
             "vertical_oscillation": 89.2,
             "vertical_ratio": 6.95,
+            "stance_time_balance": 50.25,
             "power": 310,
             "temperature": -3,
         }
@@ -41,6 +42,7 @@ def test_record_fields_become_a_sample_in_the_apps_units():
         "groundContactTimeMs": 241.5,
         "verticalOscillationMm": 89.2,
         "verticalRatioPercent": 6.95,
+        "groundContactBalanceLeftPercent": 50.25,
         "powerWatts": 310,
         "temperatureCelsius": -3,
     }

@@ -21,6 +21,7 @@ FIELDS = {
     "groundContactTimeMs": ("stance_time",),
     "verticalOscillationMm": ("vertical_oscillation",),
     "verticalRatioPercent": ("vertical_ratio",),
+    "groundContactBalanceLeftPercent": ("stance_time_balance",),
     "powerWatts": ("power",),
     "temperatureCelsius": ("temperature",),
 }

@@ -20,6 +20,8 @@ public class RunSample
     public float? GroundContactTimeMs { get; set; }
     public float? VerticalOscillationMm { get; set; }
     public float? VerticalRatioPercent { get; set; }
+    // Only with a chest strap or footpod; the watch alone doesn't measure it.
+    public float? GroundContactBalanceLeftPercent { get; set; }
     public short? PowerWatts { get; set; }
     public short? TemperatureCelsius { get; set; }
 }

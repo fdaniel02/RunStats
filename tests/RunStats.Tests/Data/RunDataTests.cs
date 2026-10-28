@@ -61,6 +61,7 @@ public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
         GroundContactTimeMs = 241.2,
         VerticalOscillationCm = 8.9,
         VerticalRatioPercent = 6.9,
+        GroundContactBalanceLeftPercent = 50.4,
         AveragePowerWatts = 310,
         MaxPowerWatts = 520,
         NormalizedPowerWatts = 318,
@@ -92,7 +93,7 @@ public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
         },
         Laps =
         [
-            new RunLap { LapIndex = 1, StartUtc = new DateTime(2026, 10, 25, 9, 30, 0, DateTimeKind.Utc), IntensityType = "ACTIVE", DistanceMeters = 1000, DurationSeconds = 270, AverageHeartRate = 150 },
+            new RunLap { LapIndex = 1, StartUtc = new DateTime(2026, 10, 25, 9, 30, 0, DateTimeKind.Utc), IntensityType = "ACTIVE", DistanceMeters = 1000, DurationSeconds = 270, AverageHeartRate = 150, GroundContactBalanceLeftPercent = 51.45 },
             new RunLap { LapIndex = 2, StartUtc = new DateTime(2026, 10, 25, 9, 34, 30, DateTimeKind.Utc), DistanceMeters = 1000, DurationSeconds = 265 }
         ],
         Samples =
@@ -101,7 +102,7 @@ public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
             {
                 OffsetSeconds = 0, LatitudeSemicircles = 624_769_324, LongitudeSemicircles = -58_342_310, DistanceMeters = 0, SpeedMps = 0,
                 AltitudeMeters = -1.6f, HeartRate = 255, CadenceSpm = 171.5f, StepLengthMm = 1284, GroundContactTimeMs = 241.5f,
-                VerticalOscillationMm = 89.2f, VerticalRatioPercent = 6.95f, PowerWatts = 310, TemperatureCelsius = -12
+                VerticalOscillationMm = 89.2f, VerticalRatioPercent = 6.95f, GroundContactBalanceLeftPercent = 50.25f, PowerWatts = 310, TemperatureCelsius = -12
             },
             new RunSample { OffsetSeconds = 1 }
         ],

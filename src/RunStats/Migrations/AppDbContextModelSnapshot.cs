@@ -126,6 +126,9 @@ namespace RunStats.Migrations
                     b.Property<double?>("GradeAdjustedSpeedMps")
                         .HasColumnType("float");
 
+                    b.Property<double?>("GroundContactBalanceLeftPercent")
+                        .HasColumnType("float");
+
                     b.Property<double?>("GroundContactTimeMs")
                         .HasColumnType("float");
 
@@ -269,6 +272,9 @@ namespace RunStats.Migrations
                     b.Property<double?>("GradeAdjustedSpeedMps")
                         .HasColumnType("float");
 
+                    b.Property<double?>("GroundContactBalanceLeftPercent")
+                        .HasColumnType("float");
+
                     b.Property<double?>("GroundContactTimeMs")
                         .HasColumnType("float");
 
@@ -360,6 +366,9 @@ namespace RunStats.Migrations
                         .HasColumnType("real");
 
                     b.Property<float?>("DistanceMeters")
+                        .HasColumnType("real");
+
+                    b.Property<float?>("GroundContactBalanceLeftPercent")
                         .HasColumnType("real");
 
                     b.Property<float?>("GroundContactTimeMs")

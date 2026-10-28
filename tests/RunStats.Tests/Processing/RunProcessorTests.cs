@@ -12,7 +12,7 @@ public class RunProcessorTests
           "distance":10012.5,"duration":2700.25,"movingDuration":2690.0,"elapsedDuration":2750.0,
           "averageSpeed":3.708,"averageMovingSpeed":3.72,"avgGradeAdjustedSpeed":3.75,"maxSpeed":5.1,
           "minHR":95.0,"averageHR":162.4,"maxHR":181.0,"averageRunCadence":172.5,"maxRunCadence":190.0,
-          "strideLength":128.4,"groundContactTime":241.2,"verticalOscillation":8.9,"verticalRatio":6.9,
+          "strideLength":128.4,"groundContactTime":241.2,"verticalOscillation":8.9,"verticalRatio":6.9,"groundContactBalanceLeft":50.4,
           "averagePower":310.0,"maxPower":520.0,"normalizedPower":318.0,
           "elevationGain":42.0,"elevationLoss":40.0,"minElevation":-2.4,"maxElevation":18.6,
           "trainingEffect":3.4,"anaerobicTrainingEffect":1.2,"activityTrainingLoad":145.7,
@@ -35,7 +35,7 @@ public class RunProcessorTests
         Assert.Equal((3.708, 3.72, 3.75, 5.1), (run.AverageSpeedMps, run.AverageMovingSpeedMps, run.GradeAdjustedSpeedMps, run.MaxSpeedMps));
         Assert.Equal(((short)95, (short)162, (short)181), (run.MinHeartRate!.Value, run.AverageHeartRate!.Value, run.MaxHeartRate!.Value));
         Assert.Equal((172.5, 190.0, 128.4), (run.AverageCadenceSpm, run.MaxCadenceSpm, run.StrideLengthCm));
-        Assert.Equal((241.2, 8.9, 6.9), (run.GroundContactTimeMs, run.VerticalOscillationCm, run.VerticalRatioPercent));
+        Assert.Equal((241.2, 8.9, 6.9, 50.4), (run.GroundContactTimeMs, run.VerticalOscillationCm, run.VerticalRatioPercent, run.GroundContactBalanceLeftPercent));
         Assert.Equal((310.0, 520.0, 318.0), (run.AveragePowerWatts, run.MaxPowerWatts, run.NormalizedPowerWatts));
         Assert.Equal((42.0, 40.0, -2.4, 18.6), (run.ElevationGainMeters, run.ElevationLossMeters, run.MinElevationMeters, run.MaxElevationMeters));
         Assert.Equal((3.4, 1.2, 145.7), (run.AerobicTrainingEffect, run.AnaerobicTrainingEffect, run.TrainingLoad));
@@ -55,6 +55,7 @@ public class RunProcessorTests
         Assert.Equal((5000.0, 1500.0), (run.DistanceMeters, run.DurationSeconds));
         Assert.Null(run.AverageHeartRate);
         Assert.Null(run.StrideLengthCm);
+        Assert.Null(run.GroundContactBalanceLeftPercent);
         Assert.Null(run.Steps);
         Assert.Null(run.Vo2Max);
         Assert.Null(run.TrainingEffectLabel);
@@ -92,7 +93,7 @@ public class RunProcessorTests
         const string splits = """
             {"activityId":7,"lapDTOs":[
               {"lapIndex":1,"startTimeGMT":"2026-10-25T09:30:00.0","intensityType":"ACTIVE","distance":1000.0,"duration":270.5,
-               "averageHR":150.0,"maxHR":160.0,"averageRunCadence":170.0,"strideLength":120.0,"averagePower":300.0,"calories":70.0},
+               "averageHR":150.0,"maxHR":160.0,"averageRunCadence":170.0,"strideLength":120.0,"groundContactBalanceLeft":51.45,"averagePower":300.0,"calories":70.0},
               {"lapIndex":2,"startTimeGMT":"2026-10-25T09:34:30.5","distance":512.3,"duration":140.0}
             ],"eventDTOs":[]}
             """;
@@ -106,9 +107,11 @@ public class RunProcessorTests
         Assert.Equal(DateTimeKind.Utc, first.StartUtc.Kind);
         Assert.Equal((1000.0, 270.5, (short)150, (short)160), (first.DistanceMeters, first.DurationSeconds, first.AverageHeartRate!.Value, first.MaxHeartRate!.Value));
         Assert.Equal((170.0, 120.0, 300.0, 70.0), (first.AverageCadenceSpm, first.StrideLengthCm, first.AveragePowerWatts, first.Calories));
+        Assert.Equal(51.45, first.GroundContactBalanceLeftPercent);
         Assert.Equal(new DateTime(2026, 10, 25, 9, 34, 30, 500, DateTimeKind.Utc), laps[1].StartUtc);
         Assert.Null(laps[1].IntensityType);
         Assert.Null(laps[1].AverageHeartRate);
+        Assert.Null(laps[1].GroundContactBalanceLeftPercent);
     }
 
     [Theory]
@@ -139,7 +142,7 @@ public class RunProcessorTests
     [Fact]
     public void Samples_are_stored_in_their_compact_types()
     {
-        var fit = new FitSample(12, 624_769_324, -58_342_310, 1234.56, 3.21, -1.6, 171, 172.5, 1149.6, 241.5, 89.2, 6.95, 310, -12);
+        var fit = new FitSample(12, 624_769_324, -58_342_310, 1234.56, 3.21, -1.6, 171, 172.5, 1149.6, 241.5, 89.2, 6.95, 50.25, 310, -12);
 
         var sample = Assert.Single(RunProcessor.Samples(7, [fit]));
 
@@ -147,13 +150,14 @@ public class RunProcessorTests
         Assert.Equal((1234.56f, 3.21f, -1.6f), (sample.DistanceMeters!.Value, sample.SpeedMps!.Value, sample.AltitudeMeters!.Value));
         Assert.Equal(((byte)171, 172.5f, (short)1150), (sample.HeartRate!.Value, sample.CadenceSpm!.Value, sample.StepLengthMm!.Value));
         Assert.Equal((241.5f, 89.2f, 6.95f), (sample.GroundContactTimeMs!.Value, sample.VerticalOscillationMm!.Value, sample.VerticalRatioPercent!.Value));
+        Assert.Equal(50.25f, sample.GroundContactBalanceLeftPercent);
         Assert.Equal(((short)310, (short)-12), (sample.PowerWatts!.Value, sample.TemperatureCelsius!.Value));
     }
 
     [Fact]
     public void Missing_and_impossible_sample_values_are_null()
     {
-        var fit = new FitSample(0, null, null, null, null, null, 300, null, 40000, null, null, null, -40000, null);
+        var fit = new FitSample(0, null, null, null, null, null, 300, null, 40000, null, null, null, null, -40000, null);
 
         var sample = Assert.Single(RunProcessor.Samples(7, [fit]));
 
@@ -161,6 +165,7 @@ public class RunProcessorTests
         Assert.Null(sample.DistanceMeters);
         Assert.Null(sample.HeartRate);
         Assert.Null(sample.StepLengthMm);
+        Assert.Null(sample.GroundContactBalanceLeftPercent);
         Assert.Null(sample.PowerWatts);
         Assert.Null(sample.TemperatureCelsius);
     }

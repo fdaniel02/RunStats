@@ -152,10 +152,10 @@ public class GarminGatewayClientTests
         handler.Responses["/fit/samples"] = Json("""
             [{"offsetSeconds":0,"latitudeSemicircles":624798437,"longitudeSemicircles":-58339972,"distanceMeters":0.0,"speedMps":2.95,
               "altitudeMeters":-1.6,"heartRate":150,"cadenceSpm":171.0,"stepLengthMm":1150.0,"groundContactTimeMs":241.5,
-              "verticalOscillationMm":89.2,"verticalRatioPercent":6.95,"powerWatts":310,"temperatureCelsius":-3},
+              "verticalOscillationMm":89.2,"verticalRatioPercent":6.95,"groundContactBalanceLeftPercent":50.25,"powerWatts":310,"temperatureCelsius":-3},
              {"offsetSeconds":1,"latitudeSemicircles":null,"longitudeSemicircles":null,"distanceMeters":null,"speedMps":null,
               "altitudeMeters":null,"heartRate":null,"cadenceSpm":null,"stepLengthMm":null,"groundContactTimeMs":null,
-              "verticalOscillationMm":null,"verticalRatioPercent":null,"powerWatts":null,"temperatureCelsius":null}]
+              "verticalOscillationMm":null,"verticalRatioPercent":null,"groundContactBalanceLeftPercent":null,"powerWatts":null,"temperatureCelsius":null}]
             """);
 
         var samples = await client.DecodeFitAsync([1, 2, 3], Ct);
@@ -163,8 +163,8 @@ public class GarminGatewayClientTests
         Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
         Assert.Equal("application/vnd.ant.fit", handler.LastRequest.Content!.Headers.ContentType!.MediaType);
         Assert.Equal([1, 2, 3], handler.LastBody);
-        Assert.Equal(new FitSample(0, 624798437, -58339972, 0, 2.95, -1.6, 150, 171, 1150, 241.5, 89.2, 6.95, 310, -3), samples[0]);
-        Assert.Equal(new FitSample(1, null, null, null, null, null, null, null, null, null, null, null, null, null), samples[1]);
+        Assert.Equal(new FitSample(0, 624798437, -58339972, 0, 2.95, -1.6, 150, 171, 1150, 241.5, 89.2, 6.95, 50.25, 310, -3), samples[0]);
+        Assert.Equal(new FitSample(1, null, null, null, null, null, null, null, null, null, null, null, null, null, null), samples[1]);
     }
 
     [Fact]

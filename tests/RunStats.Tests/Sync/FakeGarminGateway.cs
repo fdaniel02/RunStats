@@ -45,7 +45,7 @@ public sealed class FakeGarminGateway : IGarminGateway
     public static IReadOnlyList<FitSample> StraightLine(int seconds) =>
     [
         .. Enumerable.Range(0, seconds).Select(i => new FitSample(
-            i, 624_769_324 + i * 1000, -58_342_310, i * 3.0, 3.0, 5.0, 140 + i, 170.0, 1150.0, 240.0, 85.0, 7.0, 300, 18))
+            i, 624_769_324 + i * 1000, -58_342_310, i * 3.0, 3.0, 5.0, 140 + i, 170.0, 1150.0, 240.0, 85.0, 7.0, 50.0, 300, 18))
     ];
 
     // The calls for single runs, without reading the list and the personal records.
