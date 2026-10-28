@@ -90,28 +90,26 @@ public static class WarningRules
 
     static Warning? FormChange(IReadOnlyList<WarningRun> runs, DateTime asOf, WarningSettings settings)
     {
-        // Treadmill speed comes from step counting, and trails change the stride.
-        var recent = Bands(Between(runs, asOf, 0, 14).Where(r => r.TypeKey == "running"), settings.FormBandWidthSecondsPerKm);
-        var baseline = Bands(Between(runs, asOf, 14, 70).Where(r => r.TypeKey == "running"), settings.FormBandWidthSecondsPerKm);
-        var minSeconds = settings.FormBandMinMinutes * 60;
-        var compared = recent.Keys.Intersect(baseline.Keys)
-            .Select(pace => (Recent: recent[pace], Baseline: baseline[pace]))
-            .Where(b => FlatSeconds(b.Recent) >= minSeconds && FlatSeconds(b.Baseline) >= minSeconds)
-            .ToList();
-        var stepChange = Change(compared, b => b.StepLengthMm, (r, b) => (r / b - 1) * 100);
-        var cadenceChange = Change(compared, b => b.CadenceSpm, (r, b) => r - b);
-        if (!(stepChange > settings.StepLengthIncreasePercent || cadenceChange < -settings.CadenceDropSpm))
+        var recent = FormBands(Between(runs, asOf, 0, 14)).ToList();
+        var baseline = FormBands(Between(runs, asOf, 14, 70)).ToList();
+        var stride = Compare(recent, baseline, b => b.StepLengthMm, settings);
+        var cadence = Compare(recent, baseline, b => b.CadenceSpm, settings);
+        if (!(stride?.Percent > settings.StrideLengthIncreasePercent || cadence?.Change < -settings.CadenceDropSpm))
             return null;
-        var seconds = compared.Sum(b => FlatSeconds(b.Recent));
+        var seconds = Math.Max(stride?.Seconds ?? 0, cadence?.Seconds ?? 0);
+        var strideText = stride is { } s
+            ? $"stride length {FromTo(s.Before / 10, s.Now / 10)} cm ({Signed(s.Percent, "0.0")}%)"
+            : $"stride length {Format.Missing}";
+        var cadenceText = cadence is { } c ? $"cadence {FromTo(c.Before, c.Now)} spm" : $"cadence {Format.Missing}";
         return new Warning(WarningKind.FormChange,
-            $"At the same pace, step length {Signed(stepChange, "0.0")}% and cadence {Signed(cadenceChange, "0.0")} spm in the last 2 weeks, " +
-            $"against the 8 weeks before (over {Format.Hours(seconds)} at comparable paces).");
+            $"At the same pace, {strideText} and {cadenceText} in the last 2 weeks against the 8 weeks before " +
+            $"(over {Format.Hours(seconds)} at comparable paces).");
     }
 
     static Warning? BalanceShift(IReadOnlyList<WarningRun> runs, DateTime asOf, WarningSettings settings)
     {
-        var recent = Mean(Between(runs, asOf, 0, 14).SelectMany(r => r.PaceBands), b => b.GroundContactBalanceLeftPercent);
-        var baseline = Mean(Between(runs, asOf, 14, 70).SelectMany(r => r.PaceBands), b => b.GroundContactBalanceLeftPercent);
+        var recent = SamePace.Mean(Between(runs, asOf, 0, 14).SelectMany(r => r.PaceBands), b => b.GroundContactBalanceLeftPercent);
+        var baseline = SamePace.Mean(Between(runs, asOf, 14, 70).SelectMany(r => r.PaceBands), b => b.GroundContactBalanceLeftPercent);
         var minSeconds = settings.BalanceMinMinutes * 60;
         if (recent is not { } r || baseline is not { } b || r.Seconds < minSeconds || b.Seconds < minSeconds
             || Math.Abs(r.Value - b.Value) <= settings.BalanceShiftPoints)
@@ -124,35 +122,15 @@ public static class WarningRules
     static IEnumerable<WarningRun> Between(IReadOnlyList<WarningRun> runs, DateTime asOf, int fromDays, int toDays) =>
         runs.Where(r => r.StartUtc > asOf.AddDays(-toDays) && r.StartUtc <= asOf.AddDays(-fromDays));
 
-    // The pace bands of all runs, combined into bands of the given width.
-    static Dictionary<int, List<RunPaceBand>> Bands(IEnumerable<WarningRun> runs, int width) =>
-        runs.SelectMany(r => r.PaceBands)
-            .Where(b => b.FlatSeconds > 0)
-            .GroupBy(b => b.PaceSecondsPerKm / width * width)
-            .ToDictionary(g => g.Key, g => g.ToList());
+    // Treadmill speed comes from step counting, and trails change the stride.
+    public static IEnumerable<RunPaceBand> FormBands(IEnumerable<WarningRun> runs) =>
+        runs.Where(r => r.TypeKey == "running").SelectMany(r => r.PaceBands);
 
-    static double FlatSeconds(List<RunPaceBand> bands) => bands.Sum(b => b.FlatSeconds);
+    public static Comparison? Compare(IEnumerable<RunPaceBand> recent, IEnumerable<RunPaceBand> baseline, Func<RunPaceBand, float?> metric,
+        WarningSettings settings) =>
+        SamePace.Compare(recent, baseline, metric, settings.FormBandWidthSecondsPerKm, settings.FormBandMinMinutes * 60);
 
-    // The change from the baseline to the recent value in each band, averaged with the recent time as weight.
-    static double? Change(List<(List<RunPaceBand> Recent, List<RunPaceBand> Baseline)> bands, Func<RunPaceBand, float?> metric,
-        Func<double, double, double> change)
-    {
-        var (sum, weight) = (0.0, 0.0);
-        foreach (var (recent, baseline) in bands)
-            if (Mean(recent, metric) is { } r && Mean(baseline, metric) is { } b)
-                (sum, weight) = (sum + change(r.Value, b.Value) * r.Seconds, weight + r.Seconds);
-        return weight == 0 ? null : sum / weight;
-    }
-
-    // The average over the flat seconds of the bands that have the metric.
-    static (double Value, double Seconds)? Mean(IEnumerable<RunPaceBand> bands, Func<RunPaceBand, float?> metric)
-    {
-        var (sum, seconds) = (0.0, 0.0);
-        foreach (var band in bands)
-            if (metric(band) is { } value && band.FlatSeconds > 0)
-                (sum, seconds) = (sum + value * band.FlatSeconds, seconds + band.FlatSeconds);
-        return seconds == 0 ? null : (sum / seconds, seconds);
-    }
+    static string FromTo(double before, double now) => $"{before.ToString("0.0", Culture)} → {now.ToString("0.0", Culture)}";
 
     static string Signed(double? value, string format)
     {

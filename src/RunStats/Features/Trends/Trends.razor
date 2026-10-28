@@ -1,6 +1,7 @@
 @page "/trends"
 @using RunStats.Features.Warnings
 @inject ITrendsQueries Queries
+@inject IFormQueries FormQueries
 
 <PageTitle>Trends · RunStats</PageTitle>
 
@@ -58,8 +59,33 @@
     </section>
 }
 
+@if (form is not null)
+{
+    <section class="card" aria-labelledby="form-title">
+        <h2 id="form-title">Form at the same pace</h2>
+        <p class="intro muted">
+            Stride and cadence follow pace, so each is compared within the same pace (15 s/km bands, flat outdoor running only).
+        </p>
+        <h3>Last 2 weeks against the 8 weeks before</h3>
+        <FormTiles Tiles="form.Tiles" />
+        <h3>Each month against the long-term average</h3>
+        <FormChart Series="form.Series" />
+    </section>
+
+    <section class="card" aria-labelledby="balance-title">
+        <h2 id="balance-title">Left/right balance</h2>
+        <p class="intro muted">The left foot's share of ground contact time, per run with the chest strap.</p>
+        <BalanceChart Runs="form.Balance" />
+    </section>
+}
+
 @code {
     TrendsData? data;
+    FormData? form;
 
-    protected override async Task OnInitializedAsync() => data = await Queries.LoadAsync(CancellationToken.None);
+    protected override async Task OnInitializedAsync()
+    {
+        data = await Queries.LoadAsync(CancellationToken.None);
+        form = await FormQueries.LoadAsync(CancellationToken.None);
+    }
 }

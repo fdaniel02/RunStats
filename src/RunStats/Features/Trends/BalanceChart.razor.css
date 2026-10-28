@@ -1,0 +1,110 @@
+.chart {
+    margin: 0;
+}
+
+.area {
+    position: relative;
+    height: 120px;
+    margin: 8px 0 8px 40px;
+}
+
+.grid {
+    position: absolute;
+    inset: 0;
+}
+
+.gridline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px solid var(--line);
+}
+
+    .gridline.even {
+        border-top: 1px dashed var(--muted);
+    }
+
+    .gridline span {
+        position: absolute;
+        right: calc(100% + 6px);
+        transform: translateY(-50%);
+        font-size: .7rem;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+.runs {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.slot {
+    position: relative;
+    flex: 1;
+    max-width: 48px;
+    outline: none;
+}
+
+.dot {
+    position: absolute;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--card);
+    transform: translate(-50%, 50%);
+}
+
+.slot:hover,
+.slot:focus-visible {
+    background: rgba(255, 255, 255, .04);
+}
+
+    .slot:hover .dot,
+    .slot:focus-visible .dot {
+        width: 10px;
+        height: 10px;
+    }
+
+.slot:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+    border-radius: 4px;
+}
+
+.tip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    z-index: 1;
+    width: max-content;
+    max-width: min(260px, 70vw);
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: .8rem;
+    pointer-events: none;
+    opacity: 0;
+}
+
+.slot.right .tip {
+    left: auto;
+    right: 0;
+}
+
+.slot:hover .tip,
+.slot:focus-visible .tip {
+    opacity: 1;
+}
+
+.range {
+    margin: 4px 0 0 40px;
+    font-size: .8rem;
+}

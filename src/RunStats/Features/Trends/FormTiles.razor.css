@@ -1,0 +1,46 @@
+.tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tile {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    background: var(--bg);
+}
+
+.title {
+    color: var(--muted);
+    font-size: .85rem;
+}
+
+.value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+    .value small {
+        font-size: .9rem;
+        font-weight: 400;
+        color: var(--muted);
+    }
+
+    .value .percent {
+        margin-left: 8px;
+    }
+
+.from-to {
+    font-size: .9rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.tile .muted {
+    font-size: .8rem;
+}

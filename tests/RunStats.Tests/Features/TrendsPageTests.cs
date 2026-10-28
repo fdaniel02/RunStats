@@ -12,6 +12,16 @@ public class TrendsPageTests : BunitContext
         public Task<TrendsData> LoadAsync(CancellationToken cancellationToken) => Task.FromResult(data);
     }
 
+    sealed class FakeForm(FormData data) : IFormQueries
+    {
+        public Task<FormData> LoadAsync(CancellationToken cancellationToken) => Task.FromResult(data);
+    }
+
+    static readonly FormData Form = new(
+        [new FormTile(FormMetric.StrideLength, new Comparison(102.0, 103.2, 3600))],
+        [new FormSeries(FormMetric.StrideLength, [new FormMonth(new DateOnly(2026, 9, 1), new Comparison(102.0, 102.5, 7200), 7200)])],
+        [new BalanceRun(1, new DateOnly(2026, 9, 22), 50.3)]);
+
     static TrendsData Data(IReadOnlyList<Warning>? active = null, IReadOnlyList<WarningEpisode>? episodes = null, double? typicalPace = 328) => new(
         active ?? [],
         episodes ?? [],
@@ -23,6 +33,7 @@ public class TrendsPageTests : BunitContext
     IRenderedComponent<Trends> Render(TrendsData data)
     {
         Services.AddSingleton<ITrendsQueries>(new FakeQueries(data));
+        Services.AddSingleton<IFormQueries>(new FakeForm(Form));
         return Render<Trends>();
     }
 
@@ -74,4 +85,15 @@ public class TrendsPageTests : BunitContext
     [Fact]
     public void Without_outdoor_runs_the_typical_pace_is_missing() =>
         Assert.Contains("outdoor runs): – ·", Text(Render(Data(typicalPace: null)).Find(".pace")));
+
+    [Fact]
+    public void Form_and_balance_follow_the_load()
+    {
+        var page = Render(Data());
+
+        Assert.Equal(["Warnings", "Running time per week", "Form at the same pace", "Left/right balance"], page.FindAll("h2").Select(h => h.TextContent));
+        Assert.Single(page.FindAll(".tile"));
+        Assert.Single(page.FindAll(".form-charts figure"));
+        Assert.Single(page.FindAll(".runs .slot"));
+    }
 }
