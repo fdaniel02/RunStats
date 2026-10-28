@@ -1,4 +1,4 @@
-using System.Text.Json;
+using System.Text.Json.Nodes;
 using RunStats.Garmin;
 
 namespace RunStats.Sync;
@@ -27,13 +27,24 @@ public sealed record SyncPlan(IReadOnlyList<GarminActivity> ToAdd, IReadOnlyList
         return new SyncPlan(toAdd, toUpdate, toDelete, runs.Count - toAdd.Count - toUpdate.Count);
     }
 
+    // About the account, not the run: when Garmin changes them (it added a scope to userRoles on 2026-10-28), every
+    // entry differs, and a sync would download every run again.
+    static readonly string[] AccountFields =
+    [
+        "userRoles", "userPro", "ownerDisplayName", "ownerFullName",
+        "ownerProfileImageUrlSmall", "ownerProfileImageUrlMedium", "ownerProfileImageUrlLarge"
+    ];
+
     // Garmin sends the fields of an entry in a different order on every call, so the text can't be compared.
-    static bool SameEntry(string stored, string current)
+    static bool SameEntry(string stored, string current) =>
+        stored.Length > 0 && JsonNode.DeepEquals(WithoutAccountFields(stored), WithoutAccountFields(current));
+
+    static JsonNode? WithoutAccountFields(string json)
     {
-        if (stored.Length == 0)
-            return false;
-        using var storedDocument = JsonDocument.Parse(stored);
-        using var currentDocument = JsonDocument.Parse(current);
-        return JsonElement.DeepEquals(storedDocument.RootElement, currentDocument.RootElement);
+        var node = JsonNode.Parse(json);
+        if (node is JsonObject entry)
+            foreach (var field in AccountFields)
+                entry.Remove(field);
+        return node;
     }
 }

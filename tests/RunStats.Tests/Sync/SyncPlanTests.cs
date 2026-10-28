@@ -63,6 +63,34 @@ public class SyncPlanTests
     }
 
     [Fact]
+    public void Changes_to_the_account_fields_alone_are_no_change()
+    {
+        // Garmin added a scope to userRoles on 2026-10-28; every entry carries the account's roles and profile.
+        var stored = new Dictionary<long, string>
+        {
+            [1] = """{"activityId":1,"distance":5000.0,"userRoles":["SCOPE_ATP_READ"],"userPro":false,"ownerDisplayName":"runner","ownerFullName":"A Runner","ownerProfileImageUrlSmall":"a.png","ownerProfileImageUrlMedium":"b.png","ownerProfileImageUrlLarge":"c.png"}"""
+        };
+        var current = Activity(1) with
+        {
+            Json = """{"activityId":1,"distance":5000.0,"userRoles":["SCOPE_ATP_READ","SCOPE_CIQ_APPSTORE_SERVICES_CREATE"],"userPro":true,"ownerDisplayName":"runner2","ownerFullName":"B Runner","ownerProfileImageUrlSmall":"d.png","ownerProfileImageUrlMedium":"e.png","ownerProfileImageUrlLarge":"f.png"}"""
+        };
+
+        var plan = SyncPlan.Create([current], stored);
+
+        Assert.Empty(plan.ToUpdate);
+        Assert.Equal(1, plan.Unchanged);
+    }
+
+    [Fact]
+    public void A_run_change_next_to_changed_account_fields_still_counts()
+    {
+        var stored = new Dictionary<long, string> { [1] = """{"activityId":1,"distance":5000.0,"userRoles":["SCOPE_ATP_READ"]}""" };
+        var current = Activity(1) with { Json = """{"activityId":1,"distance":5100.0,"userRoles":["SCOPE_ATP_READ","SCOPE_NEW"]}""" };
+
+        Assert.Equal([1L], SyncPlan.Create([current], stored).ToUpdate.Select(a => a.Id));
+    }
+
+    [Fact]
     public void Run_stored_without_its_list_entry_is_downloaded_again()
     {
         var plan = SyncPlan.Create([Activity(1)], new Dictionary<long, string> { [1] = "" });
