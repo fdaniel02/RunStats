@@ -86,7 +86,8 @@ public static class PaceBandBuilder
     {
         int seconds;
         int flatSeconds;
-        Mean cadence, stepLength, groundContactTime, verticalOscillation, verticalRatio, heartRate, power, balance;
+        readonly Mean cadence = new(), stepLength = new(), groundContactTime = new(), verticalOscillation = new(),
+            verticalRatio = new(), heartRate = new(), power = new(), balance = new();
 
         public void Add(RunSample s, bool steep)
         {
@@ -122,7 +123,7 @@ public static class PaceBandBuilder
         };
     }
 
-    struct Mean
+    sealed class Mean
     {
         double sum;
         int count;
@@ -133,6 +134,6 @@ public static class PaceBandBuilder
                 (sum, count) = (sum + v, count + 1);
         }
 
-        public readonly float? Value => count == 0 ? null : (float)(sum / count);
+        public float? Value => count == 0 ? null : (float)(sum / count);
     }
 }
