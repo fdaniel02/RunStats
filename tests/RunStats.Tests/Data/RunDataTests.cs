@@ -106,6 +106,15 @@ public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
             },
             new RunSample { OffsetSeconds = 1 }
         ],
+        PaceBands =
+        [
+            new RunPaceBand
+            {
+                PaceSecondsPerKm = 330, Seconds = 1200, FlatSeconds = 1150, CadenceSpm = 173.4f, StepLengthMm = 1035.5f, GroundContactTimeMs = 254.1f,
+                VerticalOscillationMm = 86.2f, VerticalRatioPercent = 8.3f, HeartRate = 157.6f, PowerWatts = 301.2f, GroundContactBalanceLeftPercent = 50.3f
+            },
+            new RunPaceBand { PaceSecondsPerKm = 335, Seconds = 3, FlatSeconds = 0 }
+        ],
         Track = new RunTrack
         {
             EncodedPolyline = "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
@@ -129,8 +138,8 @@ public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
 
         await using var read = await factory.CreateDbContextAsync(Ct);
         var run = await read.Runs
-            .Include(r => r.RawData).Include(r => r.Laps).Include(r => r.Samples).Include(r => r.Track)
-            .AsNoTracking().SingleAsync(Ct);
+            .Include(r => r.RawData).Include(r => r.Laps).Include(r => r.Samples).Include(r => r.PaceBands).Include(r => r.Track)
+            .AsNoTracking().AsSplitQuery().SingleAsync(Ct);
 
         Assert.Equivalent(saved, run, strict: true);
     }
@@ -191,13 +200,15 @@ public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
         Assert.Equal(0, await read.RunRawData.CountAsync(Ct));
         Assert.Equal(0, await read.RunLaps.CountAsync(Ct));
         Assert.Equal(0, await read.RunSamples.CountAsync(Ct));
+        Assert.Equal(0, await read.RunPaceBands.CountAsync(Ct));
         Assert.Equal(0, await read.RunTracks.CountAsync(Ct));
     }
 
     [Theory]
     [InlineData("INSERT INTO RunLaps (RunId, LapIndex, StartUtc, DistanceMeters, DurationSeconds) VALUES (21000000005, 1, '2026-10-25', 1, 1)")]
     [InlineData("INSERT INTO RunSamples (RunId, OffsetSeconds) VALUES (21000000005, 0)")]
-    public async Task A_lap_or_sample_can_only_be_stored_once(string duplicate)
+    [InlineData("INSERT INTO RunPaceBands (RunId, PaceSecondsPerKm, Seconds, FlatSeconds) VALUES (21000000005, 330, 1, 1)")]
+    public async Task A_lap_sample_or_pace_band_can_only_be_stored_once(string duplicate)
     {
         await using (var db = await factory.CreateDbContextAsync(Ct))
         {

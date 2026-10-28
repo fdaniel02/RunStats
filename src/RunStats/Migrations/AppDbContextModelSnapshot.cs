@@ -318,6 +318,49 @@ namespace RunStats.Migrations
                     b.ToTable("RunLaps");
                 });
 
+            modelBuilder.Entity("RunStats.Data.RunPaceBand", b =>
+                {
+                    b.Property<long>("RunId")
+                        .HasColumnType("bigint");
+
+                    b.Property<short>("PaceSecondsPerKm")
+                        .HasColumnType("smallint");
+
+                    b.Property<float?>("CadenceSpm")
+                        .HasColumnType("real");
+
+                    b.Property<int>("FlatSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<float?>("GroundContactBalanceLeftPercent")
+                        .HasColumnType("real");
+
+                    b.Property<float?>("GroundContactTimeMs")
+                        .HasColumnType("real");
+
+                    b.Property<float?>("HeartRate")
+                        .HasColumnType("real");
+
+                    b.Property<float?>("PowerWatts")
+                        .HasColumnType("real");
+
+                    b.Property<int>("Seconds")
+                        .HasColumnType("int");
+
+                    b.Property<float?>("StepLengthMm")
+                        .HasColumnType("real");
+
+                    b.Property<float?>("VerticalOscillationMm")
+                        .HasColumnType("real");
+
+                    b.Property<float?>("VerticalRatioPercent")
+                        .HasColumnType("real");
+
+                    b.HasKey("RunId", "PaceSecondsPerKm");
+
+                    b.ToTable("RunPaceBands");
+                });
+
             modelBuilder.Entity("RunStats.Data.RunRawData", b =>
                 {
                     b.Property<long>("RunId")
@@ -506,6 +549,15 @@ namespace RunStats.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RunStats.Data.RunPaceBand", b =>
+                {
+                    b.HasOne("RunStats.Data.Run", null)
+                        .WithMany("PaceBands")
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RunStats.Data.RunRawData", b =>
                 {
                     b.HasOne("RunStats.Data.Run", null)
@@ -536,6 +588,8 @@ namespace RunStats.Migrations
             modelBuilder.Entity("RunStats.Data.Run", b =>
                 {
                     b.Navigation("Laps");
+
+                    b.Navigation("PaceBands");
 
                     b.Navigation("RawData");
 

@@ -62,7 +62,7 @@ public sealed class RunProcessingTests(SqlServerFixture sqlServer) : IAsyncLifet
     async Task<Run> ReadAsync(long id)
     {
         await using var context = await db.CreateDbContextAsync(Ct);
-        return await context.Runs.Include(r => r.Laps).Include(r => r.Samples).Include(r => r.Track)
+        return await context.Runs.Include(r => r.Laps).Include(r => r.Samples).Include(r => r.PaceBands).Include(r => r.Track)
             .AsNoTracking().AsSplitQuery().SingleAsync(r => r.Id == id, Ct);
     }
 
@@ -77,7 +77,7 @@ public sealed class RunProcessingTests(SqlServerFixture sqlServer) : IAsyncLifet
     }
 
     [Fact]
-    public async Task Processing_fills_stats_laps_samples_and_track()
+    public async Task Processing_fills_stats_laps_samples_pace_bands_and_track()
     {
         await StoreAsync(1);
         garmin.FitSamples[1] = StraightLine(60);
@@ -90,11 +90,14 @@ public sealed class RunProcessingTests(SqlServerFixture sqlServer) : IAsyncLifet
         Assert.Equal([1, 2], run.Laps.Select(l => l.LapIndex).Order());
         Assert.Equal(60, run.Samples.Count);
         Assert.Equal((byte)199, run.Samples.Single(s => s.OffsetSeconds == 59).HeartRate);
+        // 3 m/s is 5:33/km.
+        var band = Assert.Single(run.PaceBands);
+        Assert.Equal(((short)330, 60, 60, 170f), (band.PaceSecondsPerKm, band.Seconds, band.FlatSeconds, band.CadenceSpm!.Value));
         Assert.Equal(2, run.Track!.PointCount);
     }
 
     [Fact]
-    public async Task Processing_again_replaces_the_laps_samples_and_track()
+    public async Task Processing_again_replaces_the_laps_samples_pace_bands_and_track()
     {
         await StoreAsync(1);
         await processing.ProcessAsync(1, Ct);
@@ -105,6 +108,7 @@ public sealed class RunProcessingTests(SqlServerFixture sqlServer) : IAsyncLifet
         var run = await ReadAsync(1);
         Assert.Equal(2, run.Laps.Count);
         Assert.Equal(2, run.Samples.Count);
+        Assert.Equal(2, Assert.Single(run.PaceBands).Seconds);
         Assert.NotNull(run.Track);
     }
 
@@ -152,6 +156,7 @@ public sealed class RunProcessingTests(SqlServerFixture sqlServer) : IAsyncLifet
         Assert.Equal((RunProcessor.Version, error), (run.ProcessorVersion, run.ProcessingError));
         Assert.Empty(run.Laps);
         Assert.Empty(run.Samples);
+        Assert.Empty(run.PaceBands);
         Assert.Null(run.Track);
     }
 
