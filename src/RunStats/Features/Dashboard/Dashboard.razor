@@ -15,6 +15,7 @@
     <section class="totals" aria-label="Totals">
         <TotalCard Label="@($"This year ({Clock.Today.Year})")" Totals="data.Year" />
         <TotalCard Label="@($"This month ({Clock.Today.ToString("MMMM", System.Globalization.CultureInfo.InvariantCulture)})")" Totals="data.Month" />
+        <TotalCard Label="@($"This week (from {Format.Date(DashboardQueries.Monday(Clock.Today))})")" Totals="data.Week" />
     </section>
 
     <div class="sections">

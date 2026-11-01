@@ -70,8 +70,10 @@ public class RunChartsTests : BunitContext
         var page = Render(Points());
 
         Assert.Equal("0", page.Find("#charts").GetAttribute("tabindex"));
-        Assert.Equal("Full screen", page.Find(".fullscreen-open").TextContent);
-        Assert.Equal("Close full screen", page.Find(".fullscreen-close").GetAttribute("aria-label"));
+        var open = page.Find(".charts-head button.fullscreen-open");
+        Assert.Equal(("Full screen", ""), (open.GetAttribute("aria-label"), open.TextContent.Trim()));
+        Assert.NotNull(open.QuerySelector("svg"));
+        Assert.Equal("Close full screen", page.Find(".charts-head button.fullscreen-close").GetAttribute("aria-label"));
         Assert.Single(page.FindAll("script[type=module]"));
     }
 

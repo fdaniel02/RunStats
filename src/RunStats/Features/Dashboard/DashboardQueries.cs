@@ -16,7 +16,7 @@ public sealed record RunDay(DateOnly Date, string? TrainingEffectLabel);
 // Races are shown one year at a time: RaceYear of RaceYears, the years that have races (newest first). RunDays are the
 // dates with a run in the activity grid's weeks.
 public sealed record DashboardData(
-    Totals Year, Totals Month, IReadOnlyList<WeekTotal> Weeks, IReadOnlyList<RunRow> LastRuns,
+    Totals Year, Totals Month, Totals Week, IReadOnlyList<WeekTotal> Weeks, IReadOnlyList<RunRow> LastRuns,
     IReadOnlyList<RecordRow> Records, IReadOnlyList<int> RaceYears, int? RaceYear, IReadOnlyList<RunRow> Races,
     IReadOnlyList<RunDay> RunDays);
 
@@ -40,6 +40,7 @@ public class DashboardQueries(IDbContextFactory<AppDbContext> dbFactory, Clock c
         return new DashboardData(
             await TotalsSinceAsync(new DateOnly(today.Year, 1, 1), cancellationToken),
             await TotalsSinceAsync(new DateOnly(today.Year, today.Month, 1), cancellationToken),
+            await TotalsSinceAsync(Monday(today), cancellationToken),
             await WeeksAsync(cancellationToken),
             await LastRunsAsync(cancellationToken),
             await RecordsAsync(cancellationToken),
