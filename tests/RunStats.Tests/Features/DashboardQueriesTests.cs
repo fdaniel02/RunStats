@@ -74,6 +74,18 @@ public sealed class DashboardQueriesTests(SqlServerFixture sqlServer) : IAsyncLi
     }
 
     [Fact]
+    public async Task The_goal_is_this_years()
+    {
+        await using (var context = await db.CreateDbContextAsync(Ct))
+        {
+            context.YearGoals.AddRange(new YearGoal { Year = 2025, DistanceMeters = 1_000_000 }, new YearGoal { Year = 2026, DistanceMeters = 1_500_000 });
+            await context.SaveChangesAsync(Ct);
+        }
+
+        Assert.Equal(1_500_000, (await queries.LoadAsync(null, Ct)).YearGoalMeters);
+    }
+
+    [Fact]
     public async Task Without_runs_everything_is_empty()
     {
         var data = await queries.LoadAsync(null, Ct);
@@ -81,6 +93,7 @@ public sealed class DashboardQueriesTests(SqlServerFixture sqlServer) : IAsyncLi
         Assert.Equal(new Totals(0, 0, 0), data.Year);
         Assert.Equal(new Totals(0, 0, 0), data.Month);
         Assert.Equal(new Totals(0, 0, 0), data.Week);
+        Assert.Null(data.YearGoalMeters);
         Assert.Empty(data.RaceYears);
         Assert.Null(data.RaceYear);
         Assert.Empty(data.Races);

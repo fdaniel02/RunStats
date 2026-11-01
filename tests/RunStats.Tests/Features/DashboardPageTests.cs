@@ -39,10 +39,11 @@ public class DashboardPageTests : BunitContext
     static DashboardData Data(
         IReadOnlyList<WeekTotal>? weeks = null, IReadOnlyList<RunRow>? lastRuns = null, IReadOnlyList<RecordRow>? records = null,
         IReadOnlyList<int>? raceYears = null, int? raceYear = 2026, IReadOnlyList<RunRow>? races = null,
-        IReadOnlyList<RunDay>? runDays = null) => new(
+        IReadOnlyList<RunDay>? runDays = null, double? goal = null) => new(
         new Totals(84, 710_800, 68 * 3600 + 55 * 60),
         new Totals(1, 23_700, 2 * 3600 + 15 * 60),
         new Totals(2, 12_300, 65 * 60),
+        goal,
         weeks ?? Weeks((12, 1), (0, 0), (33.1, 3.2), (6, 0.5)),
         lastRuns ?? [new RunRow(1, new DateOnly(2026, 10, 26), "treadmill_running", "Treadmill", 6100, 2104)],
         records ?? [new RecordRow(3, 1429, new DateOnly(2026, 9, 27), 1), new RecordRow(7, 21530, new DateOnly(2025, 10, 12), 2)],
@@ -65,6 +66,24 @@ public class DashboardPageTests : BunitContext
     }
 
     static string Text(AngleSharp.Dom.IElement element) => string.Join(" ", element.TextContent.Split((char[])[' ', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries));
+
+    [Fact]
+    public void This_years_goal_is_a_card_next_to_the_totals_linking_the_year()
+    {
+        var card = Render(Data(goal: 1_000_000)).Find(".totals .goal");
+
+        Assert.Equal("years/2026", card.QuerySelector(".goal-label a")!.GetAttribute("href"));
+        Assert.Equal("710.8 of 1000 km · 71%", Text(card.QuerySelector(".goal-value")!));
+    }
+
+    [Fact]
+    public void Without_a_goal_there_is_no_goal_card()
+    {
+        var page = Render(Data());
+
+        Assert.Empty(page.FindAll(".goal"));
+        Assert.Empty(page.FindAll("form"));
+    }
 
     [Fact]
     public void Totals_show_km_runs_and_time_for_this_year_month_and_week()

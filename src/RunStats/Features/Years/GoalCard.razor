@@ -1,0 +1,64 @@
+@using System.Globalization
+<div class="card goal">
+    <span class="goal-label">
+        @if (Href is null)
+        {
+            @Label
+        }
+        else
+        {
+            @* A full page load: enhanced navigation wouldn't run the year page's full screen script. *@
+            <a href="@Href" data-enhance-nav="false">@Label</a>
+        }
+    </span>
+    <span class="goal-value">@Format.Km(Progress.DoneMeters) <small>of @Whole(Progress.GoalMeters) km · @Percent(Progress.DoneMeters / Progress.GoalMeters)</small></span>
+    <div class="bar" role="img" aria-label="@BarLabel">
+        <span class="done" style="width: @Percent(Progress.Fraction)"></span>
+        @if (Progress.ExpectedFraction is { } expected and > 0)
+        {
+            <span class="expected" style="left: @Percent(expected)"></span>
+        }
+    </div>
+    @if (Status is { } status)
+    {
+        <span class="status @(Progress.IsReached ? "reached" : "")">@status</span>
+    }
+    @if (Progress.WeeklyMeters is { } weekly)
+    {
+        <span class="muted weekly">@Format.Km(weekly) km a week for the remaining @Progress.WeeksLeft!.Value.ToString("0.#", Culture) weeks</span>
+    }
+    @ChildContent
+</div>
+
+@code {
+    static readonly CultureInfo Culture = CultureInfo.InvariantCulture;
+
+    [Parameter, EditorRequired] public GoalProgress Progress { get; set; } = null!;
+    [Parameter] public string? Href { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    string Label => $"Goal {Progress.Year}";
+
+    string BarLabel => Progress.ExpectedMeters is { } expected and > 0
+        ? $"{Percent(Progress.Fraction)} of the goal done, {Percent(expected / Progress.GoalMeters)} expected by today"
+        : $"{Percent(Progress.Fraction)} of the goal done";
+
+    string? Status
+    {
+        get
+        {
+            if (Progress.IsReached)
+                return "Reached";
+            if (Progress.IsPast)
+                return $"Missed by {Format.Km(Progress.GoalMeters - Progress.DoneMeters)} km";
+            if (Progress.ExpectedMeters is not { } expected || expected <= 0)
+                return null;
+            var difference = Progress.DoneMeters - expected;
+            return $"{Format.Km(Math.Abs(difference))} km {(difference >= 0 ? "ahead of" : "behind")} the {Whole(expected)} km expected by today";
+        }
+    }
+
+    static string Whole(double meters) => (meters / 1000).ToString("0.#", Culture);
+
+    static string Percent(double fraction) => (Math.Max(fraction, 0) * 100).ToString("0", Culture) + "%";
+}

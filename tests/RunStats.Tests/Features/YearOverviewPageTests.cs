@@ -23,7 +23,7 @@ public class YearOverviewPageTests : BunitContext
 
     static YearData Data(
         IReadOnlyList<int>? years = null, IReadOnlyList<RecordRow>? records = null, IReadOnlyList<RunRow>? races = null,
-        IReadOnlyList<RunRow>? runs = null, bool noDistance = false)
+        IReadOnlyList<RunRow>? runs = null, bool noDistance = false, double? goal = null)
     {
         var weeks = ActivityGrid.ForYear(2025).Weeks.Select((w, i) => new WeekTotal(w.Days[0], noDistance ? 0 : i * 1000, noDistance ? 0 : i * 300, false)).ToList();
         var months = Enumerable.Range(1, 12).Select(m => new MonthTotal(m, noDistance ? 0 : m * 10_000, noDistance ? 0 : m * 3600, false)).ToList();
@@ -31,6 +31,7 @@ public class YearOverviewPageTests : BunitContext
             2025,
             years ?? [2026, 2025, 2024],
             new Totals(150, 1_234_500, 120 * 3600 + 5 * 60),
+            goal,
             weeks,
             months,
             [new RunDay(new DateOnly(2025, 3, 1), "TEMPO"), new RunDay(new DateOnly(2025, 10, 12), null)],
@@ -105,6 +106,32 @@ public class YearOverviewPageTests : BunitContext
     public void The_total_shows_km_runs_and_time()
     {
         Assert.Equal("2025 1234.5 km 150 runs · 120 h 5 min", Text(Render(Data()).Find(".total")));
+    }
+
+    [Fact]
+    public void Without_a_goal_a_form_sets_one()
+    {
+        var page = Render(Data());
+
+        var form = page.Find(".totals .new-goal form");
+        Assert.Equal(("post", "years/2025/goal"), (form.GetAttribute("method"), form.GetAttribute("action")));
+        var input = form.QuerySelector("input[name=km]")!;
+        Assert.Equal(("number", "1", "20000"), (input.GetAttribute("type"), input.GetAttribute("min"), input.GetAttribute("max")));
+        Assert.True(input.HasAttribute("required"));
+        Assert.Empty(page.FindAll(".goal"));
+    }
+
+    [Fact]
+    public void A_goal_shows_its_progress_with_forms_to_change_and_remove_it()
+    {
+        var page = Render(Data(goal: 1_200_000));
+
+        Assert.Equal("Reached", page.Find(".goal .status").TextContent);
+        var forms = page.FindAll(".goal details.goal-edit form");
+        Assert.Equal(["years/2025/goal", "years/2025/goal"], forms.Select(f => f.GetAttribute("action")));
+        Assert.Equal("1200", forms[0].QuerySelector("input[name=km]")!.GetAttribute("value"));
+        Assert.Equal("true", forms[1].QuerySelector("input[name=remove]")!.GetAttribute("value"));
+        Assert.Empty(page.FindAll(".new-goal"));
     }
 
     [Fact]

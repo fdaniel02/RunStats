@@ -1,0 +1,38 @@
+@using System.Globalization
+@if (GoalMeters is null)
+{
+    @Save("Set a goal")
+}
+else
+{
+    <details class="goal-edit">
+        <summary>Change</summary>
+        @Save("New goal")
+        <form method="post" action="@Action">
+            <AntiforgeryToken />
+            <input type="hidden" name="remove" value="true" />
+            <button type="submit" class="remove">Remove goal</button>
+        </form>
+    </details>
+}
+
+@code {
+    [Parameter, EditorRequired] public int Year { get; set; }
+    [Parameter] public double? GoalMeters { get; set; }
+
+    string Action => $"years/{Year}/goal";
+
+    RenderFragment Save(string label) => __builder =>
+    {
+        <form method="post" action="@Action" class="save">
+            <AntiforgeryToken />
+            <label>
+                @label
+                <input type="number" name="km" required min="@GoalEndpoints.MinKm" max="@GoalEndpoints.MaxKm" step="any" inputmode="decimal"
+                       value="@(GoalMeters is { } goal ? (goal / 1000).ToString("0.###", CultureInfo.InvariantCulture) : null)" />
+                km
+            </label>
+            <button type="submit">Save</button>
+        </form>
+    };
+}

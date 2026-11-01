@@ -105,6 +105,7 @@ try
     app.MapHealthChecks("/healthz/live", new HealthCheckOptions { Predicate = _ => false });
     app.MapHealthChecks("/healthz/ready");
     app.MapSyncEndpoints();
+    app.MapGoalEndpoints();
 
     app.MapStaticAssets();
     app.MapRazorComponents<App>()
