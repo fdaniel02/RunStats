@@ -1,0 +1,22 @@
+.total {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.total-label {
+    color: var(--muted);
+    font-size: .9rem;
+}
+
+.total-value {
+    font-size: 2.2rem;
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+    .total-value small {
+        font-size: 1rem;
+        font-weight: 400;
+        color: var(--muted);
+    }

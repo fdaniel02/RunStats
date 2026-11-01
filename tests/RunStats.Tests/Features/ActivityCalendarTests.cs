@@ -91,4 +91,19 @@ public class ActivityCalendarTests : BunitContext
         Assert.Equal(["Recovery", "Anaerobic"], legend.QuerySelectorAll("span:not(.key)").Select(s => s.TextContent));
         Assert.Equal(Enumerable.Range(1, 6).Select(l => $"key effect-{l}"), legend.QuerySelectorAll(".key").Select(k => k.GetAttribute("class")));
     }
+
+    [Fact]
+    public void A_years_grid_hides_the_days_of_the_years_next_to_it_and_counts_its_own()
+    {
+        var calendar = Render<ActivityCalendar>(p => p
+            .Add(c => c.Grid, ActivityGrid.ForYear(2025))
+            .Add(c => c.RunDays, [new RunDay(new DateOnly(2024, 12, 31), null), new RunDay(new DateOnly(2025, 1, 1), null)])
+            .Add(c => c.Today, Today));
+
+        Assert.Equal(["2024-12-30", "2024-12-31", "2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04"],
+            calendar.FindAll(".cell.outside").Select(c => c.GetAttribute("title")));
+        Assert.Equal(["2025-01-01"], calendar.FindAll(".cell.done").Select(c => c.GetAttribute("title")));
+        Assert.Empty(calendar.FindAll(".cell.future"));
+        Assert.Equal("1 day with a run in 2025", calendar.Find(".calendar").GetAttribute("aria-label"));
+    }
 }

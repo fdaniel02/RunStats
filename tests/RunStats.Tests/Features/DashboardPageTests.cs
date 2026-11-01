@@ -110,6 +110,7 @@ public class DashboardPageTests : BunitContext
         var links = page.FindAll(".years a");
         Assert.Equal(["2026", "2025", "2024"], links.Select(a => a.TextContent));
         Assert.Equal(["?races=2026#races", "?races=2025#races", "?races=2024#races"], links.Select(a => a.GetAttribute("href")));
+        Assert.All(links, a => Assert.False(a.HasAttribute("data-enhance-nav")));
         Assert.Equal(["2025"], links.Where(a => a.GetAttribute("aria-current") == "page").Select(a => a.TextContent));
     }
 
@@ -146,7 +147,7 @@ public class DashboardPageTests : BunitContext
         Assert.Equal("No personal records yet.", page.Find(".records p").TextContent);
         Assert.Equal("Races", page.Find(".races h2").TextContent.Trim());
         Assert.Equal("No races yet.", page.Find(".races p").TextContent);
-        Assert.Equal("No runs in the last 2 weeks.", page.Find(".weekly .empty").TextContent);
+        Assert.Equal("No runs in the last 2 weeks.", page.Find(".period-chart .empty").TextContent);
         Assert.Empty(page.FindAll(".plot"));
     }
 

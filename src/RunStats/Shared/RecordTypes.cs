@@ -16,6 +16,17 @@ public static class RecordTypes
         [LongestRun] = "Longest run"
     };
 
+    // The timed records and their distance in metres.
+    public static readonly IReadOnlyDictionary<int, double> Distances = new Dictionary<int, double>
+    {
+        [1] = 1000,
+        [2] = 1609.344,
+        [3] = 5000,
+        [4] = 10000,
+        [5] = 21097.5,
+        [6] = 42195
+    };
+
     public static IReadOnlyCollection<int> Known => Names.Keys;
 
     public static string? Name(int typeId) => Names.GetValueOrDefault(typeId);

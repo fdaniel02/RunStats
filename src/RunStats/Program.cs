@@ -12,6 +12,7 @@ using RunStats.Features.Heatmap;
 using RunStats.Features.Runs;
 using RunStats.Features.Trends;
 using RunStats.Features.Warnings;
+using RunStats.Features.Years;
 using RunStats.Garmin;
 using RunStats.Processing;
 using RunStats.Sync;
@@ -46,6 +47,7 @@ builder.Services.AddAppTelemetry(builder.Configuration);
 
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddTransient<IDashboardQueries, DashboardQueries>();
+builder.Services.AddTransient<IYearQueries, YearQueries>();
 builder.Services.AddTransient<IHeatmapQueries, HeatmapQueries>();
 builder.Services.AddTransient<IRunListQueries, RunListQueries>();
 builder.Services.AddTransient<IRunDetailsQueries, RunDetailsQueries>();

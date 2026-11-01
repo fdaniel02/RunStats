@@ -13,14 +13,15 @@
     <AttentionCard Warnings="warnings" />
 
     <section class="totals" aria-label="Totals">
-        @Total($"This year ({Clock.Today.Year})", data.Year)
-        @Total($"This month ({Clock.Today.ToString("MMMM", System.Globalization.CultureInfo.InvariantCulture)})", data.Month)
+        <TotalCard Label="@($"This year ({Clock.Today.Year})")" Totals="data.Year" />
+        <TotalCard Label="@($"This month ({Clock.Today.ToString("MMMM", System.Globalization.CultureInfo.InvariantCulture)})")" Totals="data.Month" />
     </section>
 
     <div class="sections">
         <section class="card weeks">
             <h2>Last @data.Weeks.Count weeks</h2>
-            <WeeklyChart Weeks="data.Weeks" />
+            <PeriodChart Bars="WeekBars(data.Weeks)" Id="weekly" Period="week" LabelsEveryBar="true"
+                         EmptyText="@($"No runs in the last {data.Weeks.Count} weeks.")" />
         </section>
 
         <section class="card activity">
@@ -35,24 +36,7 @@
 
         <section class="card records">
             <h2>Personal records</h2>
-            @if (data.Records.Count == 0)
-            {
-                <p class="muted">No personal records yet.</p>
-            }
-            else
-            {
-                <ul class="record-list">
-                    @foreach (var record in data.Records)
-                    {
-                        <li>
-                            @* Without a run (Garmin doesn't always say which one), a placeholder link without href. *@
-                            <a class="record-name" href="@(record.RunId is { } runId ? $"runs/{runId}" : null)" data-enhance-nav="false">@RecordTypes.Name(record.TypeId)</a>
-                            <span class="record-value">@RecordTypes.Value(record.TypeId, record.Value)</span>
-                            <span class="muted">@Format.Date(record.Date)</span>
-                        </li>
-                    }
-                </ul>
-            }
+            <RecordList Records="data.Records" EmptyText="No personal records yet." />
         </section>
 
         <section class="card races" id="races">
@@ -60,12 +44,7 @@
                 <h2>Races @data.RaceYear</h2>
                 @if (data.RaceYears.Count > 1)
                 {
-                    <nav class="years" aria-label="Race year">
-                        @foreach (var year in data.RaceYears)
-                        {
-                            <a href="?races=@year#races" aria-current="@(year == data.RaceYear ? "page" : null)">@year</a>
-                        }
-                    </nav>
+                    <YearLinks Years="data.RaceYears" Current="data.RaceYear" Href="@(year => $"?races={year}#races")" Label="Race year" />
                 }
             </div>
             <RunTable Rows="data.Races" ShowName="true" EmptyText="No races yet." />
@@ -87,12 +66,10 @@
         warnings = await WarningQueries.ActiveAsync(CancellationToken.None);
     }
 
-    static RenderFragment Total(string label, Totals totals) => __builder =>
-    {
-        <div class="card total">
-            <span class="total-label">@label</span>
-            <span class="total-value">@Format.Km(totals.DistanceMeters) <small>km</small></span>
-            <span class="muted">@totals.Runs @(totals.Runs == 1 ? "run" : "runs") · @Format.Hours(totals.DurationSeconds)</span>
-        </div>
-    };
+    static List<ChartBar> WeekBars(IReadOnlyList<WeekTotal> weeks) =>
+    [
+        .. weeks.Select(w => w.IsCurrent
+            ? new ChartBar($"This week (from {Format.Date(w.Monday)})", "This week", w.DistanceMeters, w.DurationSeconds, true)
+            : new ChartBar($"{Format.Date(w.Monday)} – {Format.Date(w.Monday.AddDays(6))}", Format.Date(w.Monday), w.DistanceMeters, w.DurationSeconds, false))
+    ];
 }

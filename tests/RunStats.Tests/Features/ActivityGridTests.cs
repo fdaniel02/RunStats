@@ -86,4 +86,46 @@ public class ActivityGridTests
         Assert.Contains("Jan", Labels(grid).Values);
         Assert.Contains("Feb", Labels(grid).Values);
     }
+
+    [Fact]
+    public void A_rolling_grid_covers_all_its_days()
+    {
+        var grid = new ActivityGrid(Date("2026-10-15"), 16);
+
+        Assert.Equal((Date("2026-06-29"), Date("2026-10-18")), (grid.First, grid.Last));
+        Assert.Equal("the last 16 weeks", grid.Period);
+    }
+
+    [Fact]
+    public void A_years_grid_runs_from_the_week_of_1_january_to_the_week_of_31_december()
+    {
+        // 1 Jan 2025 is a Wednesday, 31 Dec 2025 too.
+        var grid = ActivityGrid.ForYear(2025);
+
+        Assert.Equal(Date("2024-12-30"), grid.Start);
+        Assert.Equal(53, grid.Weeks.Count);
+        Assert.Equal(Date("2026-01-04"), grid.Weeks[^1].Days[^1]);
+        Assert.Equal((Date("2025-01-01"), Date("2025-12-31")), (grid.First, grid.Last));
+        Assert.Equal("2025", grid.Period);
+    }
+
+    [Fact]
+    public void A_years_grid_has_each_month_once_and_not_the_next_january()
+    {
+        var labels = Labels(ActivityGrid.ForYear(2025));
+
+        Assert.Equal(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], labels.Values);
+        Assert.Equal(0, labels.Keys.First());
+    }
+
+    [Fact]
+    public void Only_the_years_own_days_are_in_its_grid()
+    {
+        var grid = ActivityGrid.ForYear(2025);
+
+        Assert.False(grid.Contains(Date("2024-12-31")));
+        Assert.True(grid.Contains(Date("2025-01-01")));
+        Assert.True(grid.Contains(Date("2025-12-31")));
+        Assert.False(grid.Contains(Date("2026-01-01")));
+    }
 }

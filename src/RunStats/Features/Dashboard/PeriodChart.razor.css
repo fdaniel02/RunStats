@@ -1,4 +1,4 @@
-.weekly {
+.period-chart {
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -26,20 +26,20 @@
         font-size: .9rem;
     }
 
-#weekly-distance:checked ~ .switch label[for=weekly-distance],
-#weekly-time:checked ~ .switch label[for=weekly-time] {
+.measure.distance:checked ~ .switch label.distance,
+.measure.time:checked ~ .switch label.time {
     background: var(--line);
     color: var(--text);
 }
 
-#weekly-distance:focus-visible ~ .switch label[for=weekly-distance],
-#weekly-time:focus-visible ~ .switch label[for=weekly-time] {
+.measure.distance:focus-visible ~ .switch label.distance,
+.measure.time:focus-visible ~ .switch label.time {
     outline: 2px solid var(--accent);
     outline-offset: -2px;
 }
 
-#weekly-distance:checked ~ .plot.time,
-#weekly-time:checked ~ .plot.distance {
+.measure.distance:checked ~ .plot.time,
+.measure.time:checked ~ .plot.distance {
     display: none;
 }
 
@@ -167,19 +167,19 @@
     white-space: nowrap;
 }
 
-/* Fewer dates where they would run into each other: every other week, every third on a phone. */
+/* Fewer labels where they would run into each other: every other bar, every third on a phone. */
 @media (max-width: 1000px) {
-    .slot:nth-last-child(2n) .x {
+    .thin-out .slot:nth-last-child(2n) .x {
         display: none;
     }
 }
 
 @media (max-width: 560px) {
-    .slot .x {
+    .thin-out .slot .x {
         display: none;
     }
 
-    .slot:nth-last-child(3n + 1) .x {
+    .thin-out .slot:nth-last-child(3n + 1) .x {
         display: block;
     }
 }

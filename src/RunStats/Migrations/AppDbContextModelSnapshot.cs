@@ -255,6 +255,22 @@ namespace RunStats.Migrations
                     b.ToTable("Runs");
                 });
 
+            modelBuilder.Entity("RunStats.Data.RunBestEffort", b =>
+                {
+                    b.Property<long>("RunId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("TypeId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("Seconds")
+                        .HasColumnType("float");
+
+                    b.HasKey("RunId", "TypeId");
+
+                    b.ToTable("RunBestEfforts");
+                });
+
             modelBuilder.Entity("RunStats.Data.RunLap", b =>
                 {
                     b.Property<long>("RunId")
@@ -570,6 +586,15 @@ namespace RunStats.Migrations
                     b.ToTable("SyncRuns");
                 });
 
+            modelBuilder.Entity("RunStats.Data.RunBestEffort", b =>
+                {
+                    b.HasOne("RunStats.Data.Run", null)
+                        .WithMany("BestEfforts")
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RunStats.Data.RunLap", b =>
                 {
                     b.HasOne("RunStats.Data.Run", null)
@@ -617,6 +642,8 @@ namespace RunStats.Migrations
 
             modelBuilder.Entity("RunStats.Data.Run", b =>
                 {
+                    b.Navigation("BestEfforts");
+
                     b.Navigation("Laps");
 
                     b.Navigation("PaceBands");

@@ -62,7 +62,7 @@ public sealed class RunProcessingTests(SqlServerFixture sqlServer) : IAsyncLifet
     async Task<Run> ReadAsync(long id)
     {
         await using var context = await db.CreateDbContextAsync(Ct);
-        return await context.Runs.Include(r => r.Laps).Include(r => r.Samples).Include(r => r.PaceBands).Include(r => r.Track)
+        return await context.Runs.Include(r => r.Laps).Include(r => r.Samples).Include(r => r.PaceBands).Include(r => r.Track).Include(r => r.BestEfforts)
             .AsNoTracking().AsSplitQuery().SingleAsync(r => r.Id == id, Ct);
     }
 
@@ -95,6 +95,33 @@ public sealed class RunProcessingTests(SqlServerFixture sqlServer) : IAsyncLifet
         var band = Assert.Single(run.PaceBands);
         Assert.Equal(((short)330, 60, 60, 170f), (band.PaceSecondsPerKm, band.Seconds, band.FlatSeconds, band.CadenceSpm!.Value));
         Assert.Equal(2, run.Track!.PointCount);
+    }
+
+    [Fact]
+    public async Task Processing_stores_the_best_effort_of_each_distance_the_run_covers()
+    {
+        await StoreAsync(1);
+        // 1197 m at 3 m/s: long enough for 1 km only.
+        garmin.FitSamples[1] = StraightLine(400);
+
+        await processing.ProcessAsync(1, Ct);
+
+        var effort = Assert.Single((await ReadAsync(1)).BestEfforts);
+        Assert.Equal(1, effort.TypeId);
+        Assert.Equal(1000 / 3.0, effort.Seconds, 6);
+    }
+
+    [Fact]
+    public async Task Processing_again_replaces_the_best_efforts()
+    {
+        await StoreAsync(1);
+        garmin.FitSamples[1] = StraightLine(400);
+        await processing.ProcessAsync(1, Ct);
+        garmin.FitSamples[1] = StraightLine(2);
+
+        await processing.ProcessAsync(1, Ct);
+
+        Assert.Empty((await ReadAsync(1)).BestEfforts);
     }
 
     [Fact]
@@ -145,6 +172,7 @@ public sealed class RunProcessingTests(SqlServerFixture sqlServer) : IAsyncLifet
     public async Task Broken_fit_file_is_recorded_on_the_run_and_its_old_data_removed()
     {
         await StoreAsync(1);
+        garmin.FitSamples[1] = StraightLine(400);
         await processing.ProcessAsync(1, Ct);
         await using (var context = await db.CreateDbContextAsync(Ct))
             await context.Runs.ExecuteUpdateAsync(r => r.SetProperty(x => x.ProcessorVersion, 0), Ct);
@@ -159,6 +187,7 @@ public sealed class RunProcessingTests(SqlServerFixture sqlServer) : IAsyncLifet
         Assert.Empty(run.Samples);
         Assert.Empty(run.PaceBands);
         Assert.Null(run.Track);
+        Assert.Empty(run.BestEfforts);
     }
 
     [Fact]

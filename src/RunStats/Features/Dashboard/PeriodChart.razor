@@ -1,0 +1,94 @@
+@* Distance or time per period. The switch is two radio buttons and CSS, so the page needs no connection to the server. *@
+<div class="period-chart">
+    <input type="radio" name="@Id-measure" id="@Id-distance" class="measure distance" checked />
+    <input type="radio" name="@Id-measure" id="@Id-time" class="measure time" />
+    <div class="switch" role="group" aria-label="Measure">
+        <label for="@Id-distance" class="distance">Distance</label>
+        <label for="@Id-time" class="time">Time</label>
+    </div>
+
+    @if (Bars.All(b => b.DistanceMeters == 0 && b.DurationSeconds == 0))
+    {
+        <p class="muted empty">@EmptyText</p>
+    }
+    else
+    {
+        @Plot("distance", $"Distance per {Period} in km", b => b.DistanceMeters / 1000, v => $"{Format.Km(v * 1000)} km", t => t.ToString("0.##", Culture))
+        @Plot("time", $"Time per {Period} in hours", b => b.DurationSeconds / 3600, v => Format.Hours(v * 3600), t => $"{t:0.##} h")
+
+        <details class="as-table">
+            <summary>Show as table</summary>
+            <table>
+                <thead>
+                    <tr><th scope="col">@Capitalized</th><th scope="col" class="num">km</th><th scope="col" class="num">Time</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var bar in Bars)
+                    {
+                        <tr>
+                            <td>@bar.Name</td>
+                            <td class="num">@Format.Km(bar.DistanceMeters)</td>
+                            <td class="num">@Format.Hours(bar.DurationSeconds)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </details>
+    }
+</div>
+
+@code {
+    static readonly System.Globalization.CultureInfo Culture = System.Globalization.CultureInfo.InvariantCulture;
+
+    [Parameter, EditorRequired] public IReadOnlyList<ChartBar> Bars { get; set; } = [];
+    // Tells the radio buttons of two charts on one page apart.
+    [Parameter, EditorRequired] public string Id { get; set; } = "";
+    // "week" or "month".
+    [Parameter, EditorRequired] public string Period { get; set; } = "";
+    [Parameter, EditorRequired] public string EmptyText { get; set; } = "";
+    // A label under every bar, where narrow screens hide all but every second or third. Charts that label only some
+    // bars (the months of a year of weeks) keep them all.
+    [Parameter] public bool LabelsEveryBar { get; set; }
+
+    string Capitalized => Period.Length == 0 ? "" : char.ToUpperInvariant(Period[0]) + Period[1..];
+
+    RenderFragment Plot(string measure, string title, Func<ChartBar, double> value, Func<double, string> label, Func<double, string> tickLabel) => __builder =>
+    {
+        var values = Bars.Select(value).ToList();
+        var (max, step) = ChartScale.Nice(values.Max());
+        var largest = values.IndexOf(values.Max());
+        <figure class="plot @measure">
+            <figcaption class="visually-hidden">@title</figcaption>
+            <div class="area">
+                <div class="grid" aria-hidden="true">
+                    @foreach (var tick in ChartScale.Ticks(max, step))
+                    {
+                        <div class="gridline" style="bottom: @Percent(tick / max)"><span>@tickLabel(tick)</span></div>
+                    }
+                </div>
+                <ol class="bars @(LabelsEveryBar ? "thin-out" : "")">
+                    @for (var i = 0; i < Bars.Count; i++)
+                    {
+                        var bar = Bars[i];
+                        var text = $"{bar.Name}: {label(values[i])}";
+                        <li class="slot @(bar.IsCurrent ? "current" : "")" tabindex="0" aria-label="@text">
+                            <span class="bar" style="height: @Percent(values[i] / max)">
+                                @if (i == largest && values[i] > 0)
+                                {
+                                    <span class="value" aria-hidden="true">@label(values[i])</span>
+                                }
+                            </span>
+                            <span class="tip" aria-hidden="true">@text</span>
+                            @if (bar.Axis is not null)
+                            {
+                                <span class="x" aria-hidden="true">@bar.Axis</span>
+                            }
+                        </li>
+                    }
+                </ol>
+            </div>
+        </figure>
+    };
+
+    static string Percent(double fraction) => (Math.Clamp(fraction, 0, 1) * 100).ToString("0.##", Culture) + "%";
+}

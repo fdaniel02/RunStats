@@ -1,0 +1,29 @@
+.years {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+    .years a {
+        padding: 4px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--muted);
+        text-decoration: none;
+        font-size: .9rem;
+        font-variant-numeric: tabular-nums;
+    }
+
+        .years a:hover {
+            color: var(--text);
+        }
+
+        .years a[aria-current=page] {
+            background: var(--line);
+            color: var(--text);
+        }
+
+        .years a:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }

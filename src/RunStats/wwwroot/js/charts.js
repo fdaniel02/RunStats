@@ -1,4 +1,5 @@
 // The page puts the chart points into #chart-data as JSON. The route map listens for "run:position" to move its dot.
+import { setupFullscreen } from "./fullscreen.js";
 
 export function nearestIndex(kms, km) {
     let low = 0, high = kms.length - 1;
@@ -136,39 +137,6 @@ export function setup(root, data, { document, screen }) {
     });
 
     setupFullscreen(root, document, screen);
-}
-
-// Real full screen turned to landscape where the browser allows it (Firefox and Chrome on Android); otherwise the
-// charts just fill the window, and in portrait a hint asks to turn the phone.
-function setupFullscreen(root, document, screen) {
-    root.querySelector(".fullscreen-open").addEventListener("click", async () => {
-        if (root.requestFullscreen) {
-            try {
-                await root.requestFullscreen({ navigationUI: "hide" });
-                await screen.orientation?.lock?.("landscape");
-            } catch {
-                // Turning is up to the person then; the hint shows in portrait.
-            }
-        }
-        root.classList.add("is-fullscreen");
-    });
-    root.querySelector(".fullscreen-close").addEventListener("click", () => {
-        if (document.fullscreenElement)
-            document.exitFullscreen().catch(() => {
-                // Already left, e.g. with the back gesture.
-            });
-        root.classList.remove("is-fullscreen");
-    });
-    document.addEventListener("fullscreenchange", () => {
-        if (document.fullscreenElement)
-            return;
-        root.classList.remove("is-fullscreen");
-        try {
-            screen.orientation?.unlock?.();
-        } catch {
-            // Nothing was locked.
-        }
-    });
 }
 
 const root = typeof document === "undefined" ? null : document.getElementById("charts");

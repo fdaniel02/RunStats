@@ -1,0 +1,15 @@
+<nav class="years" aria-label="@Label">
+    @foreach (var year in Years)
+    {
+        <a href="@Href(year)" aria-current="@(year == Current ? "page" : null)" data-enhance-nav="@(FullPageLoad ? "false" : null)">@year</a>
+    }
+</nav>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<int> Years { get; set; } = [];
+    [Parameter, EditorRequired] public int? Current { get; set; }
+    [Parameter, EditorRequired] public Func<int, string> Href { get; set; } = null!;
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    // For pages with a script, which enhanced navigation wouldn't run.
+    [Parameter] public bool FullPageLoad { get; set; }
+}

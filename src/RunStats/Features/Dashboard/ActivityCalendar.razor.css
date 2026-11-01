@@ -48,7 +48,8 @@
         background: var(--effect-6);
     }
 
-    .cell.future {
+    .cell.future,
+    .cell.outside {
         visibility: hidden;
     }
 
