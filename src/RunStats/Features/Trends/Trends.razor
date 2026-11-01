@@ -2,6 +2,7 @@
 @using RunStats.Features.Warnings
 @inject ITrendsQueries Queries
 @inject IFormQueries FormQueries
+@inject IBestEffortQueries BestEffortQueries
 
 <PageTitle>Trends · RunStats</PageTitle>
 
@@ -67,6 +68,22 @@
     </section>
 }
 
+@if (efforts is not null)
+{
+    <section class="card best-efforts" aria-labelledby="efforts-title">
+        <h2 id="efforts-title">Best efforts</h2>
+        <p class="intro muted">The fastest stretch of each distance within each month's runs, so progress shows without a new record. Treadmill runs don't count.</p>
+        @if (efforts.Count == 0)
+        {
+            <p class="muted">No best efforts yet.</p>
+        }
+        else
+        {
+            <BestEffortChart Series="efforts" />
+        }
+    </section>
+}
+
 @if (form is not null)
 {
     <section class="card" aria-labelledby="form-title">
@@ -90,10 +107,12 @@
 @code {
     TrendsData? data;
     FormData? form;
+    IReadOnlyList<EffortSeries>? efforts;
 
     protected override async Task OnInitializedAsync()
     {
         data = await Queries.LoadAsync(CancellationToken.None);
+        efforts = await BestEffortQueries.LoadAsync(CancellationToken.None);
         form = await FormQueries.LoadAsync(CancellationToken.None);
     }
 }
