@@ -62,12 +62,25 @@ public sealed class DashboardQueriesTests(SqlServerFixture sqlServer) : IAsyncLi
     }
 
     [Fact]
+    public async Task The_week_total_starts_at_mondays_midnight_in_the_apps_time_zone()
+    {
+        await AddAsync(new DateTime(2026, 10, 25, 22, 59, 0), 5, 30);   // Sunday 23:59 in Amsterdam: last week
+        await AddAsync(new DateTime(2026, 10, 25, 23, 0, 0), 6, 33);    // Monday 00:00: this week
+        await AddAsync(new DateTime(2026, 10, 27, 6, 0, 0), 7.5, 40);
+
+        var data = await queries.LoadAsync(null, Ct);
+
+        Assert.Equal(new Totals(2, 13500, 73 * 60), data.Week);
+    }
+
+    [Fact]
     public async Task Without_runs_everything_is_empty()
     {
         var data = await queries.LoadAsync(null, Ct);
 
         Assert.Equal(new Totals(0, 0, 0), data.Year);
         Assert.Equal(new Totals(0, 0, 0), data.Month);
+        Assert.Equal(new Totals(0, 0, 0), data.Week);
         Assert.Empty(data.RaceYears);
         Assert.Null(data.RaceYear);
         Assert.Empty(data.Races);

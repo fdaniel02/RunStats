@@ -70,39 +70,6 @@ h2 {
         margin: 0;
     }
 
-    .card-head button {
-        display: none;
-        margin-left: auto;
-        min-width: 36px;
-        min-height: 36px;
-        padding: 6px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--bg);
-        color: var(--text);
-        font: inherit;
-        font-size: .9rem;
-        line-height: 1;
-        cursor: pointer;
-    }
-
-        .card-head button svg {
-            display: block;
-            margin: auto;
-        }
-
-        .card-head button:focus-visible {
-            outline: 2px solid var(--accent);
-            outline-offset: 2px;
-        }
-
-/* Only on touch screens, like the run charts: a desktop window is wide enough already. */
-@media (pointer: coarse) {
-    .card-head .fullscreen-open {
-        display: block;
-    }
-}
-
 .rotate-hint {
     display: none;
     margin: 0 0 12px;
@@ -118,14 +85,6 @@ h2 {
     border-radius: 0;
     overflow: auto;
 }
-
-    .activity.is-fullscreen .fullscreen-open {
-        display: none;
-    }
-
-    .activity.is-fullscreen .fullscreen-close {
-        display: block;
-    }
 
 @media (orientation: portrait) {
     .activity.is-fullscreen .rotate-hint {

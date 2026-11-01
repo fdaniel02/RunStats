@@ -42,6 +42,7 @@ public class DashboardPageTests : BunitContext
         IReadOnlyList<RunDay>? runDays = null) => new(
         new Totals(84, 710_800, 68 * 3600 + 55 * 60),
         new Totals(1, 23_700, 2 * 3600 + 15 * 60),
+        new Totals(2, 12_300, 65 * 60),
         weeks ?? Weeks((12, 1), (0, 0), (33.1, 3.2), (6, 0.5)),
         lastRuns ?? [new RunRow(1, new DateOnly(2026, 10, 26), "treadmill_running", "Treadmill", 6100, 2104)],
         records ?? [new RecordRow(3, 1429, new DateOnly(2026, 9, 27), 1), new RecordRow(7, 21530, new DateOnly(2025, 10, 12), 2)],
@@ -66,12 +67,17 @@ public class DashboardPageTests : BunitContext
     static string Text(AngleSharp.Dom.IElement element) => string.Join(" ", element.TextContent.Split((char[])[' ', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries));
 
     [Fact]
-    public void Totals_show_km_runs_and_time_for_this_year_and_month()
+    public void Totals_show_km_runs_and_time_for_this_year_month_and_week()
     {
         var page = Render(Data());
 
         var totals = page.FindAll(".total").Select(Text).ToList();
-        Assert.Equal(["This year (2026) 710.8 km 84 runs · 68 h 55 min", "This month (October) 23.7 km 1 run · 2 h 15 min"], totals);
+        Assert.Equal(
+        [
+            "This year (2026) 710.8 km 84 runs · 68 h 55 min",
+            "This month (October) 23.7 km 1 run · 2 h 15 min",
+            "This week (from 2026-10-26) 12.3 km 2 runs · 1 h 5 min"
+        ], totals);
     }
 
     [Fact]

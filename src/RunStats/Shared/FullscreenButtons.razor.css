@@ -1,0 +1,40 @@
+button {
+    display: none;
+    margin-left: auto;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: .9rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+    button svg {
+        display: block;
+        margin: auto;
+    }
+
+    button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+
+/* Only on touch screens: a desktop window is wide enough already. */
+@media (pointer: coarse) {
+    .fullscreen-open {
+        display: block;
+    }
+}
+
+.is-fullscreen .fullscreen-open {
+    display: none;
+}
+
+.is-fullscreen .fullscreen-close {
+    display: block;
+}
