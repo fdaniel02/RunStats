@@ -12,11 +12,18 @@ public sealed record GoalProgress(int Year, double GoalMeters, double DoneMeters
     public static GoalProgress For(int year, double goalMeters, double doneMeters, DateOnly today)
     {
         var days = DateTime.IsLeapYear(year) ? 366 : 365;
-        var daysDone = year < today.Year ? days : year > today.Year ? 0 : today.DayOfYear;
+        var daysDone = DaysDone(year, days, today);
         if (daysDone == days)
             return new GoalProgress(year, goalMeters, doneMeters, null, null, null);
         var weeksLeft = (days - daysDone) / 7.0;
         var still = goalMeters - doneMeters;
         return new GoalProgress(year, goalMeters, doneMeters, goalMeters * daysDone / days, weeksLeft, still > 0 ? still / weeksLeft : null);
+    }
+
+    static int DaysDone(int year, int days, DateOnly today)
+    {
+        if (year < today.Year)
+            return days;
+        return year > today.Year ? 0 : today.DayOfYear;
     }
 }
