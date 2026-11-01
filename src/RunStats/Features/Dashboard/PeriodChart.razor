@@ -69,25 +69,29 @@
                 <ol class="bars @(LabelsEveryBar ? "thin-out" : "")">
                     @for (var i = 0; i < Bars.Count; i++)
                     {
-                        var bar = Bars[i];
-                        var text = $"{bar.Name}: {label(values[i])}";
-                        <li class="slot @(bar.IsCurrent ? "current" : "")" tabindex="0" aria-label="@text">
-                            <span class="bar" style="height: @Percent(values[i] / max)">
-                                @if (i == largest && values[i] > 0)
-                                {
-                                    <span class="value" aria-hidden="true">@label(values[i])</span>
-                                }
-                            </span>
-                            <span class="tip" aria-hidden="true">@text</span>
-                            @if (bar.Axis is not null)
-                            {
-                                <span class="x" aria-hidden="true">@bar.Axis</span>
-                            }
-                        </li>
+                        @Slot(Bars[i], label(values[i]), values[i] / max, i == largest && values[i] > 0)
                     }
                 </ol>
             </div>
         </figure>
+    };
+
+    static RenderFragment Slot(ChartBar bar, string value, double height, bool labelled) => __builder =>
+    {
+        var text = $"{bar.Name}: {value}";
+        <li class="slot @(bar.IsCurrent ? "current" : "")" tabindex="0" aria-label="@text">
+            <span class="bar" style="height: @Percent(height)">
+                @if (labelled)
+                {
+                    <span class="value" aria-hidden="true">@value</span>
+                }
+            </span>
+            <span class="tip" aria-hidden="true">@text</span>
+            @if (bar.Axis is not null)
+            {
+                <span class="x" aria-hidden="true">@bar.Axis</span>
+            }
+        </li>
     };
 
     static string Percent(double fraction) => (Math.Clamp(fraction, 0, 1) * 100).ToString("0.##", Culture) + "%";
