@@ -2,14 +2,14 @@
 @using System.Text
 @* A tab per distance, as radio buttons and CSS like the weekly chart's switch, so the page needs no script. *@
 <div class="efforts">
-    @foreach (var series in Series)
+    @foreach (var typeId in Series.Select(s => s.TypeId))
     {
-        <input type="radio" name="effort-distance" id="effort-@series.TypeId" class="distance d@(series.TypeId)" checked="@(series.TypeId == DefaultTypeId)" />
+        <input type="radio" name="effort-distance" id="effort-@typeId" class="distance d@(typeId)" checked="@(typeId == DefaultTypeId)" />
     }
     <div class="tabs" role="group" aria-label="Distance">
-        @foreach (var series in Series)
+        @foreach (var typeId in Series.Select(s => s.TypeId))
         {
-            <label for="effort-@series.TypeId" class="d@(series.TypeId)">@RecordTypes.Name(series.TypeId)</label>
+            <label for="effort-@typeId" class="d@(typeId)">@RecordTypes.Name(typeId)</label>
         }
     </div>
     @foreach (var series in Series)
