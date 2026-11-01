@@ -50,7 +50,7 @@ public class RunProcessing(IDbContextFactory<AppDbContext> dbFactory, IGarminGat
         run.ProcessorVersion = RunProcessor.Version;
         run.ProcessingError = null;
         var parts = new RunParts(laps, samples, PaceBandBuilder.Build(runId, samples), TrackBuilder.Build(runId, samples),
-            BestEffortBuilder.Build(runId, run.TypeKey, samples));
+            BestEffortBuilder.Build(runId, run.TypeKey, samples), HeartRateBandBuilder.Build(runId, run.TypeKey, samples));
         await ReplaceAsync(db, runId, parts, cancellationToken);
         return null;
     }
@@ -65,10 +65,12 @@ public class RunProcessing(IDbContextFactory<AppDbContext> dbFactory, IGarminGat
             await db.RunPaceBands.Where(b => b.RunId == runId).ExecuteDeleteAsync(cancellationToken);
             await db.RunTracks.Where(t => t.RunId == runId).ExecuteDeleteAsync(cancellationToken);
             await db.RunBestEfforts.Where(e => e.RunId == runId).ExecuteDeleteAsync(cancellationToken);
+            await db.RunHeartRateBands.Where(b => b.RunId == runId).ExecuteDeleteAsync(cancellationToken);
             db.RunLaps.AddRange(parts.Laps);
             db.RunSamples.AddRange(parts.Samples);
             db.RunPaceBands.AddRange(parts.PaceBands);
             db.RunBestEfforts.AddRange(parts.BestEfforts);
+            db.RunHeartRateBands.AddRange(parts.HeartRateBands);
             if (parts.Track is not null)
                 db.RunTracks.Add(parts.Track);
             await db.SaveChangesAsync(cancellationToken);
@@ -77,7 +79,9 @@ public class RunProcessing(IDbContextFactory<AppDbContext> dbFactory, IGarminGat
 }
 
 // What processing builds from a run's raw data, besides its own columns.
-sealed record RunParts(List<RunLap> Laps, List<RunSample> Samples, List<RunPaceBand> PaceBands, RunTrack? Track, List<RunBestEffort> BestEfforts)
+sealed record RunParts(
+    List<RunLap> Laps, List<RunSample> Samples, List<RunPaceBand> PaceBands, RunTrack? Track, List<RunBestEffort> BestEfforts,
+    List<RunHeartRateBand> HeartRateBands)
 {
-    public static RunParts None => new([], [], [], null, []);
+    public static RunParts None => new([], [], [], null, [], []);
 }

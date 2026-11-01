@@ -57,6 +57,8 @@ builder.Services.AddTransient<IWarningQueries, WarningQueries>();
 builder.Services.AddTransient<ITrendsQueries, TrendsQueries>();
 builder.Services.AddTransient<IFormQueries, FormQueries>();
 builder.Services.AddTransient<IBestEffortQueries, BestEffortQueries>();
+builder.Services.AddOptions<EfficiencySettings>().BindConfiguration(EfficiencySettings.Section).ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddTransient<IEfficiencyQueries, EfficiencyQueries>();
 builder.Services.AddHttpClient<IGarminGateway, GarminGatewayClient>((services, client) =>
     client.BaseAddress = new Uri(services.GetRequiredService<IConfiguration>()["GarminGateway:BaseUrl"]
         ?? throw new InvalidOperationException("Setting 'GarminGateway:BaseUrl' is missing (e.g. 'http://garmin-gateway:8080/').")));

@@ -63,7 +63,7 @@ public sealed class RunProcessingTests(SqlServerFixture sqlServer) : IAsyncLifet
     {
         await using var context = await db.CreateDbContextAsync(Ct);
         return await context.Runs.Include(r => r.Laps).Include(r => r.Samples).Include(r => r.PaceBands).Include(r => r.Track).Include(r => r.BestEfforts)
-            .AsNoTracking().AsSplitQuery().SingleAsync(r => r.Id == id, Ct);
+            .Include(r => r.HeartRateBands).AsNoTracking().AsSplitQuery().SingleAsync(r => r.Id == id, Ct);
     }
 
     [Fact]
@@ -109,6 +109,32 @@ public sealed class RunProcessingTests(SqlServerFixture sqlServer) : IAsyncLifet
         var effort = Assert.Single((await ReadAsync(1)).BestEfforts);
         Assert.Equal(1, effort.TypeId);
         Assert.Equal(1000 / 3.0, effort.Seconds, 6);
+    }
+
+    [Fact]
+    public async Task Processing_stores_the_heart_rate_bands_after_the_warm_up()
+    {
+        await StoreAsync(1);
+        garmin.FitSamples[1] = [.. StraightLine(HeartRateBandBuilder.WarmUpSeconds + 60).Select(s => s with { HeartRate = 157 })];
+
+        await processing.ProcessAsync(1, Ct);
+
+        var band = Assert.Single((await ReadAsync(1)).HeartRateBands);
+        Assert.Equal(((short)155, 60), (band.HeartRate, band.Seconds));
+        Assert.Equal(180, band.DistanceMeters, 3);
+    }
+
+    [Fact]
+    public async Task Processing_again_replaces_the_heart_rate_bands()
+    {
+        await StoreAsync(1);
+        garmin.FitSamples[1] = [.. StraightLine(HeartRateBandBuilder.WarmUpSeconds + 60).Select(s => s with { HeartRate = 157 })];
+        await processing.ProcessAsync(1, Ct);
+        garmin.FitSamples[1] = StraightLine(2);
+
+        await processing.ProcessAsync(1, Ct);
+
+        Assert.Empty((await ReadAsync(1)).HeartRateBands);
     }
 
     [Fact]
@@ -188,6 +214,7 @@ public sealed class RunProcessingTests(SqlServerFixture sqlServer) : IAsyncLifet
         Assert.Empty(run.PaceBands);
         Assert.Null(run.Track);
         Assert.Empty(run.BestEfforts);
+        Assert.Empty(run.HeartRateBands);
     }
 
     [Fact]

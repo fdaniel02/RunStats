@@ -3,6 +3,7 @@
 @inject ITrendsQueries Queries
 @inject IFormQueries FormQueries
 @inject IBestEffortQueries BestEffortQueries
+@inject IEfficiencyQueries EfficiencyQueries
 
 <PageTitle>Trends · RunStats</PageTitle>
 
@@ -84,6 +85,18 @@
     </section>
 }
 
+@if (efficiency is not null)
+{
+    <section class="card efficiency" aria-labelledby="efficiency-title">
+        <h2 id="efficiency-title">Pace at @efficiency.HeartRateFrom–@efficiency.HeartRateTo bpm</h2>
+        <p class="intro muted">
+            Faster at the same heart rate means a fitter aerobic base. Flat outdoor running after the first 10 minutes; heat
+            raises heart rate, so warm months run slower.
+        </p>
+        <EfficiencyChart Data="efficiency" />
+    </section>
+}
+
 @if (form is not null)
 {
     <section class="card" aria-labelledby="form-title">
@@ -108,11 +121,13 @@
     TrendsData? data;
     FormData? form;
     IReadOnlyList<EffortSeries>? efforts;
+    EfficiencyData? efficiency;
 
     protected override async Task OnInitializedAsync()
     {
         data = await Queries.LoadAsync(CancellationToken.None);
         efforts = await BestEffortQueries.LoadAsync(CancellationToken.None);
+        efficiency = await EfficiencyQueries.LoadAsync(CancellationToken.None);
         form = await FormQueries.LoadAsync(CancellationToken.None);
     }
 }

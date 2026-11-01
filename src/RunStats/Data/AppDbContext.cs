@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<RunPaceBand> RunPaceBands => Set<RunPaceBand>();
     public DbSet<RunTrack> RunTracks => Set<RunTrack>();
     public DbSet<RunBestEffort> RunBestEfforts => Set<RunBestEffort>();
+    public DbSet<RunHeartRateBand> RunHeartRateBands => Set<RunHeartRateBand>();
     public DbSet<PersonalRecord> PersonalRecords => Set<PersonalRecord>();
     public DbSet<SyncRun> SyncRuns => Set<SyncRun>();
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
@@ -35,6 +36,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasMany(x => x.PaceBands).WithOne().HasForeignKey(x => x.RunId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Track).WithOne().HasForeignKey<RunTrack>(x => x.RunId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.BestEfforts).WithOne().HasForeignKey(x => x.RunId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.HeartRateBands).WithOne().HasForeignKey(x => x.RunId).OnDelete(DeleteBehavior.Cascade);
         });
         modelBuilder.Entity<RunRawData>(e => e.HasKey(x => x.RunId));
         modelBuilder.Entity<RunLap>(e =>
@@ -45,6 +47,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<RunSample>(e => e.HasKey(x => new { x.RunId, x.OffsetSeconds }));
         modelBuilder.Entity<RunPaceBand>(e => e.HasKey(x => new { x.RunId, x.PaceSecondsPerKm }));
         modelBuilder.Entity<RunBestEffort>(e => e.HasKey(x => new { x.RunId, x.TypeId }));
+        modelBuilder.Entity<RunHeartRateBand>(e => e.HasKey(x => new { x.RunId, x.HeartRate }));
         modelBuilder.Entity<RunTrack>(e =>
         {
             e.HasKey(x => x.RunId);
