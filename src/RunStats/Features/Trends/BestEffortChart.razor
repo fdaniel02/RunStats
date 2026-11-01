@@ -1,0 +1,133 @@
+@using System.Globalization
+@using System.Text
+@* A tab per distance, as radio buttons and CSS like the weekly chart's switch, so the page needs no script. *@
+<div class="efforts">
+    @foreach (var series in Series)
+    {
+        <input type="radio" name="effort-distance" id="effort-@series.TypeId" class="distance d@(series.TypeId)" checked="@(series.TypeId == DefaultTypeId)" />
+    }
+    <div class="tabs" role="group" aria-label="Distance">
+        @foreach (var series in Series)
+        {
+            <label for="effort-@series.TypeId" class="d@(series.TypeId)">@RecordTypes.Name(series.TypeId)</label>
+        }
+    </div>
+    @foreach (var series in Series)
+    {
+        @Panel(series)
+    }
+</div>
+
+@code {
+    static readonly CultureInfo Culture = CultureInfo.InvariantCulture;
+    static readonly double[] TimeSteps = [5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600];
+    const int FiveKm = 3;
+
+    [Parameter, EditorRequired] public IReadOnlyList<EffortSeries> Series { get; set; } = [];
+
+    int DefaultTypeId => Series.Any(s => s.TypeId == FiveKm) ? FiveKm : Series[0].TypeId;
+
+    RenderFragment Panel(EffortSeries series) => __builder =>
+    {
+        var name = RecordTypes.Name(series.TypeId);
+        var times = series.Months.Where(m => m.Effort is not null).Select(m => m.Effort!.Seconds).ToList();
+        var (min, max, step) = ChartScale.Range(times.Min(), times.Max(), TimeSteps);
+        var count = series.Months.Count;
+        // Faster is higher.
+        string Bottom(double seconds) => Percent((max - seconds) / (max - min));
+        <div class="panel d@(series.TypeId)">
+            <figure class="chart">
+                <figcaption>
+                    Fastest per month · best <a href="runs/@series.Best.RunId">@Format.Duration(series.Best.Seconds)</a>
+                    <span class="muted">on @Format.Date(series.Best.Date)</span>
+                </figcaption>
+                <div class="area">
+                    <div class="grid" aria-hidden="true">
+                        @foreach (var tick in ChartScale.Ticks(max - min, step).Select(t => min + t))
+                        {
+                            <div class="gridline" style="bottom: @Bottom(tick)"><span>@Format.Duration(tick)</span></div>
+                        }
+                        <div class="best" style="bottom: @Bottom(series.Best.Seconds)"></div>
+                    </div>
+                    <svg viewBox="0 0 @count 100" preserveAspectRatio="none" aria-hidden="true">
+                        <path class="line" d="@Path(series.Months, min, max)" />
+                    </svg>
+                    <ol class="months">
+                        @for (var i = 0; i < count; i++)
+                        {
+                            var month = series.Months[i];
+                            var text = Describe(month, name);
+                            <li class="slot @(i >= count / 2 ? "right" : "")">
+                                @if (month.Effort is { } effort)
+                                {
+                                    <a class="dot" href="runs/@effort.RunId" style="bottom: @Bottom(effort.Seconds)" aria-label="@text"></a>
+                                }
+                                <span class="tip" aria-hidden="true">@text</span>
+                                @if (AxisLabel(month.Month, count) is { } label)
+                                {
+                                    <span class="x" aria-hidden="true">@label</span>
+                                }
+                            </li>
+                        }
+                    </ol>
+                </div>
+            </figure>
+
+            <details class="as-table">
+                <summary>Show as table</summary>
+                <table>
+                    <thead>
+                        <tr><th scope="col">Month</th><th scope="col" class="num">Time</th><th scope="col">Run</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var month in series.Months.Where(m => m.Effort is not null).Reverse())
+                        {
+                            <tr>
+                                <td>@month.Month.ToString("yyyy-MM", Culture)</td>
+                                <td class="num">@Format.Duration(month.Effort!.Seconds)</td>
+                                <td><a href="runs/@month.Effort.RunId">@month.Effort.RunName</a> <span class="muted">@Format.Date(month.Effort.Date)</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </details>
+        </div>
+    };
+
+    static string Describe(EffortMonth month, string? name)
+    {
+        var label = month.Month.ToString("MMM yyyy", Culture);
+        return month.Effort is { } e
+            ? $"{label} · {Format.Duration(e.Seconds)} · {e.RunName} ({Format.Date(e.Date)})"
+            : $"{label}: no run over {name}";
+    }
+
+    // Every quarter over a few years; beyond that only each year, so the labels don't run into each other.
+    static string? AxisLabel(DateOnly month, int count)
+    {
+        if (count > 36)
+            return month.Month == 1 ? month.Year.ToString(Culture) : null;
+        return month.Month % 3 == 1 ? month.ToString("MMM yy", Culture) : null;
+    }
+
+    // A gap where a month has no effort, instead of a line across it.
+    static string Path(IReadOnlyList<EffortMonth> months, double min, double max)
+    {
+        var path = new StringBuilder();
+        var drawing = false;
+        for (var i = 0; i < months.Count; i++)
+        {
+            if (months[i].Effort is not { } e)
+            {
+                drawing = false;
+                continue;
+            }
+            var y = (e.Seconds - min) / (max - min) * 100;
+            path.Append(drawing ? " L" : " M").Append((i + 0.5).ToString("0.###", Culture)).Append(' ').Append(y.ToString("0.###", Culture));
+            drawing = true;
+        }
+        return path.ToString().Trim();
+    }
+
+    static string Percent(double fraction) => (Math.Clamp(fraction, 0, 1) * 100).ToString("0.##", Culture) + "%";
+}

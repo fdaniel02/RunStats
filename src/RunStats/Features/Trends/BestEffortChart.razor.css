@@ -1,0 +1,227 @@
+.efforts {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Hidden but still in the tab order: the labels are the visible tabs. */
+.distance {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tabs {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-self: flex-start;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+    .tabs label {
+        padding: 6px 12px;
+        cursor: pointer;
+        color: var(--muted);
+        font-size: .9rem;
+        white-space: nowrap;
+    }
+
+/* The record types are fixed, so each gets its own rule. */
+.d1:checked ~ .tabs .d1,
+.d2:checked ~ .tabs .d2,
+.d3:checked ~ .tabs .d3,
+.d4:checked ~ .tabs .d4,
+.d5:checked ~ .tabs .d5,
+.d6:checked ~ .tabs .d6 {
+    background: var(--line);
+    color: var(--text);
+}
+
+.d1:focus-visible ~ .tabs .d1,
+.d2:focus-visible ~ .tabs .d2,
+.d3:focus-visible ~ .tabs .d3,
+.d4:focus-visible ~ .tabs .d4,
+.d5:focus-visible ~ .tabs .d5,
+.d6:focus-visible ~ .tabs .d6 {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+
+.panel {
+    display: none;
+}
+
+.d1:checked ~ .panel.d1,
+.d2:checked ~ .panel.d2,
+.d3:checked ~ .panel.d3,
+.d4:checked ~ .panel.d4,
+.d5:checked ~ .panel.d5,
+.d6:checked ~ .panel.d6 {
+    display: block;
+}
+
+.chart {
+    margin: 0;
+}
+
+figcaption {
+    font-size: .9rem;
+}
+
+.area {
+    position: relative;
+    height: 200px;
+    margin: 16px 0 24px 52px;
+}
+
+.grid {
+    position: absolute;
+    inset: 0;
+}
+
+.gridline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px solid var(--line);
+}
+
+    .gridline span {
+        position: absolute;
+        right: calc(100% + 6px);
+        transform: translateY(-50%);
+        font-size: .7rem;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+.best {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px dashed var(--muted);
+}
+
+svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2px;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.months {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.slot {
+    position: relative;
+    flex: 1;
+}
+
+    .slot:hover {
+        background: rgba(255, 255, 255, .04);
+    }
+
+/* A surface ring, so a dot stays readable where the line runs through it. */
+.dot {
+    position: absolute;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--card);
+    transform: translate(-50%, 50%);
+}
+
+    .slot:hover .dot,
+    .dot:focus-visible {
+        width: 10px;
+        height: 10px;
+    }
+
+    .dot:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+
+.tip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    z-index: 1;
+    width: max-content;
+    max-width: min(260px, 70vw);
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: .8rem;
+    pointer-events: none;
+    opacity: 0;
+}
+
+/* The right half opens to the left, so no tip runs off the screen. */
+.slot.right .tip {
+    left: auto;
+    right: 0;
+}
+
+.slot:hover .tip,
+.slot:focus-within .tip {
+    opacity: 1;
+}
+
+.x {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    font-size: .7rem;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.as-table summary {
+    cursor: pointer;
+    color: var(--muted);
+    font-size: .85rem;
+}
+
+.as-table table {
+    margin-top: 8px;
+    border-collapse: collapse;
+    font-size: .9rem;
+}
+
+.as-table th,
+.as-table td {
+    padding: 4px 12px 4px 0;
+    text-align: left;
+}
+
+.as-table tbody tr:hover td {
+    background: rgba(255, 255, 255, .05);
+}
+
+.as-table .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}

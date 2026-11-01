@@ -17,6 +17,13 @@ public class TrendsPageTests : BunitContext
         public Task<FormData> LoadAsync(CancellationToken cancellationToken) => Task.FromResult(data);
     }
 
+    sealed class FakeEfforts(IReadOnlyList<EffortSeries> series) : IBestEffortQueries
+    {
+        public Task<IReadOnlyList<EffortSeries>> LoadAsync(CancellationToken cancellationToken) => Task.FromResult(series);
+    }
+
+    static readonly MonthEffort Effort = new(1429, 1, new DateOnly(2026, 9, 27), "Morning run");
+
     static readonly FormData Form = new(
         [new FormTile(FormMetric.StrideLength, new Comparison(102.0, 103.2, 3600))],
         [new FormSeries(FormMetric.StrideLength, [new FormMonth(new DateOnly(2026, 9, 1), new Comparison(102.0, 102.5, 7200), 7200)])],
@@ -31,11 +38,30 @@ public class TrendsPageTests : BunitContext
         255,
         [new PaceVariationMonth(new DateOnly(2026, 9, 1), 3.2, 9)]);
 
-    IRenderedComponent<Trends> Render(TrendsData data)
+    IRenderedComponent<Trends> Render(TrendsData data, IReadOnlyList<EffortSeries>? efforts = null)
     {
         Services.AddSingleton<ITrendsQueries>(new FakeQueries(data));
         Services.AddSingleton<IFormQueries>(new FakeForm(Form));
+        Services.AddSingleton<IBestEffortQueries>(new FakeEfforts(efforts ?? [new EffortSeries(3, Effort, [new EffortMonth(new DateOnly(2026, 9, 1), Effort)])]));
         return Render<Trends>();
+    }
+
+    [Fact]
+    public void Best_efforts_have_their_own_section()
+    {
+        var section = Render(Data()).Find(".best-efforts");
+
+        Assert.Equal("Best efforts", section.QuerySelector("h2")!.TextContent);
+        Assert.Equal(["runs/1"], section.QuerySelectorAll("a.dot").Select(a => a.GetAttribute("href")));
+    }
+
+    [Fact]
+    public void Without_best_efforts_the_section_says_so()
+    {
+        var section = Render(Data(), efforts: []).Find(".best-efforts");
+
+        Assert.Contains("No best efforts yet.", section.TextContent);
+        Assert.Empty(section.QuerySelectorAll(".tabs"));
     }
 
     static string Text(AngleSharp.Dom.IElement element) => string.Join(" ", element.TextContent.Split((char[])[' ', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries));
@@ -88,11 +114,12 @@ public class TrendsPageTests : BunitContext
         Assert.Contains("outdoor runs): – ·", Text(Render(Data(typicalPace: null)).Find(".pace")));
 
     [Fact]
-    public void Form_and_balance_follow_the_load()
+    public void Best_efforts_form_and_balance_follow_the_load()
     {
         var page = Render(Data());
 
-        Assert.Equal(["Warnings", "Running time per week", "Pace variation", "Form at the same pace", "Left/right balance"], page.FindAll("h2").Select(h => h.TextContent));
+        Assert.Equal(["Warnings", "Running time per week", "Pace variation", "Best efforts", "Form at the same pace", "Left/right balance"],
+            page.FindAll("h2").Select(h => h.TextContent));
         Assert.Single(page.FindAll(".tile"));
         Assert.Single(page.FindAll(".form-charts figure"));
         Assert.Single(page.FindAll(".runs .slot"));
