@@ -1,0 +1,113 @@
+@using System.Globalization
+@using System.Text
+@if (Data.Months.All(m => m.PaceSecondsPerKm is null))
+{
+    <p class="muted">Not enough running at @Band yet: a month needs @Data.MonthMinMinutes.ToString("0", Culture) minutes in it.</p>
+}
+else
+{
+    var paces = Data.Months.Where(m => m.PaceSecondsPerKm is not null).Select(m => m.PaceSecondsPerKm!.Value).ToList();
+    var (min, max, step) = ChartScale.Range(paces.Min(), paces.Max(), PaceSteps);
+    var count = Data.Months.Count;
+    <figure class="chart">
+        <figcaption class="visually-hidden">Pace per month at @Band; faster is higher</figcaption>
+        <div class="area">
+            <div class="grid" aria-hidden="true">
+                @foreach (var tick in ChartScale.Ticks(max - min, step).Select(t => min + t))
+                {
+                    <div class="gridline" style="bottom: @Percent((max - tick) / (max - min))"><span>@Format.PaceValue(1000, tick)</span></div>
+                }
+            </div>
+            <svg viewBox="0 0 @count 100" preserveAspectRatio="none" aria-hidden="true">
+                <path class="line" d="@Path(min, max)" />
+            </svg>
+            <ol class="months">
+                @for (var i = 0; i < count; i++)
+                {
+                    var month = Data.Months[i];
+                    var text = Describe(month);
+                    <li class="slot @(i >= count / 2 ? "right" : "")" tabindex="0" aria-label="@text">
+                        @if (month.PaceSecondsPerKm is { } pace)
+                        {
+                            <span class="dot" style="bottom: @Percent((max - pace) / (max - min))"></span>
+                        }
+                        <span class="tip" aria-hidden="true">@text</span>
+                        @if (month.Month.Month % 3 == 1)
+                        {
+                            <span class="x" aria-hidden="true">@month.Month.ToString("MMM yy", Culture)</span>
+                        }
+                    </li>
+                }
+            </ol>
+        </div>
+    </figure>
+
+    <details class="as-table">
+        <summary>Show as table</summary>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">Month</th><th scope="col" class="num">Pace /km</th><th scope="col" class="num">Time in band</th>
+                        <th scope="col" class="num">Runs</th><th scope="col" class="num">°C</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var month in Data.Months.Reverse())
+                    {
+                        <tr>
+                            <td>@month.Month.ToString("yyyy-MM", Culture)</td>
+                            <td class="num">@(month.PaceSecondsPerKm is { } pace ? Format.PaceValue(1000, pace) : Format.Missing)</td>
+                            <td class="num">@Format.Hours(month.Seconds)</td>
+                            <td class="num">@month.Runs</td>
+                            <td class="num">@Format.Whole(month.TemperatureCelsius)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </details>
+}
+
+@code {
+    static readonly CultureInfo Culture = CultureInfo.InvariantCulture;
+    static readonly double[] PaceSteps = [5, 10, 15, 30, 60];
+
+    [Parameter, EditorRequired] public EfficiencyData Data { get; set; } = null!;
+
+    string Band => $"{Data.HeartRateFrom}–{Data.HeartRateTo} bpm";
+
+    string Describe(EfficiencyMonth month)
+    {
+        var name = month.Month.ToString("yyyy-MM", Culture);
+        if (month.Seconds == 0)
+            return $"{name}: no running at {Band}";
+        var runs = month.Runs == 1 ? "run" : "runs";
+        var over = $"{(month.Seconds < 60 ? "under 1 min" : Format.Hours(month.Seconds))} in {month.Runs} {runs}";
+        if (month.PaceSecondsPerKm is not { } pace)
+            return $"{name}: {over}, too little for a pace";
+        var temperature = month.TemperatureCelsius is { } t ? $", {Format.Whole(t)} °C" : "";
+        return $"{name}: {Format.Pace(1000, pace)} at {Band}, over {over}{temperature}";
+    }
+
+    // A gap where a month has no pace, instead of a line across it.
+    string Path(double min, double max)
+    {
+        var path = new StringBuilder();
+        var drawing = false;
+        for (var i = 0; i < Data.Months.Count; i++)
+        {
+            if (Data.Months[i].PaceSecondsPerKm is not { } pace)
+            {
+                drawing = false;
+                continue;
+            }
+            var y = (pace - min) / (max - min) * 100;
+            path.Append(drawing ? " L" : " M").Append((i + 0.5).ToString("0.###", Culture)).Append(' ').Append(y.ToString("0.###", Culture));
+            drawing = true;
+        }
+        return path.ToString().Trim();
+    }
+
+    static string Percent(double fraction) => (Math.Clamp(fraction, 0, 1) * 100).ToString("0.##", Culture) + "%";
+}

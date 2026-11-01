@@ -22,7 +22,12 @@ public class TrendsPageTests : BunitContext
         public Task<IReadOnlyList<EffortSeries>> LoadAsync(CancellationToken cancellationToken) => Task.FromResult(series);
     }
 
-    static readonly MonthEffort Effort = new(1429, 1, new DateOnly(2026, 9, 27), "Morning run");
+    sealed class FakeEfficiency(EfficiencyData data) : IEfficiencyQueries
+    {
+        public Task<EfficiencyData> LoadAsync(CancellationToken cancellationToken) => Task.FromResult(data);
+    }
+
+    static readonly MonthEffort Effort =new(1429, 1, new DateOnly(2026, 9, 27), "Morning run");
 
     static readonly FormData Form = new(
         [new FormTile(FormMetric.StrideLength, new Comparison(102.0, 103.2, 3600))],
@@ -43,7 +48,17 @@ public class TrendsPageTests : BunitContext
         Services.AddSingleton<ITrendsQueries>(new FakeQueries(data));
         Services.AddSingleton<IFormQueries>(new FakeForm(Form));
         Services.AddSingleton<IBestEffortQueries>(new FakeEfforts(efforts ?? [new EffortSeries(3, Effort, [new EffortMonth(new DateOnly(2026, 9, 1), Effort)])]));
+        Services.AddSingleton<IEfficiencyQueries>(new FakeEfficiency(new EfficiencyData(150, 160, 30, [new EfficiencyMonth(new DateOnly(2026, 9, 1), 3600, 5, 341, 14)])));
         return Render<Trends>();
+    }
+
+    [Fact]
+    public void The_pace_at_the_same_heart_rate_names_its_band()
+    {
+        var section = Render(Data()).Find(".efficiency");
+
+        Assert.Equal("Pace at 150–160 bpm", section.QuerySelector("h2")!.TextContent);
+        Assert.Single(section.QuerySelectorAll(".dot"));
     }
 
     [Fact]
@@ -118,7 +133,7 @@ public class TrendsPageTests : BunitContext
     {
         var page = Render(Data());
 
-        Assert.Equal(["Warnings", "Running time per week", "Pace variation", "Best efforts", "Form at the same pace", "Left/right balance"],
+        Assert.Equal(["Warnings", "Running time per week", "Pace variation", "Best efforts", "Pace at 150–160 bpm", "Form at the same pace", "Left/right balance"],
             page.FindAll("h2").Select(h => h.TextContent));
         Assert.Single(page.FindAll(".tile"));
         Assert.Single(page.FindAll(".form-charts figure"));

@@ -27,7 +27,7 @@ public static class PaceBandBuilder
             if (speeds[i] is not { } speed || speed <= 0)
                 continue;
             var pace = 1000 / speed;
-            if (pace < FastestPaceSecondsPerKm || pace >= SlowestPaceSecondsPerKm)
+            if (!IsRunning(pace))
                 continue;
             var key = (short)(Math.Floor(pace / BandWidthSecondsPerKm) * BandWidthSecondsPerKm);
             if (!bands.TryGetValue(key, out var band))
@@ -36,6 +36,9 @@ public static class PaceBandBuilder
         }
         return [.. bands.Select(b => b.Value.ToPaceBand(runId, b.Key))];
     }
+
+    public static bool IsRunning(double paceSecondsPerKm) =>
+        paceSecondsPerKm >= FastestPaceSecondsPerKm && paceSecondsPerKm < SlowestPaceSecondsPerKm;
 
     // The average over the seconds around each one (half before, half after); seconds without speed don't count. The
     // samples must be in time order.
@@ -63,7 +66,7 @@ public static class PaceBandBuilder
 
     // The slope over the last GradeDistanceMeters. Without distance or altitude (or in the first metres) a second
     // counts as flat: treadmill runs have no slope, and most outdoor seconds are flat.
-    static bool[] Steep(List<RunSample> samples)
+    public static bool[] Steep(List<RunSample> samples)
     {
         var result = new bool[samples.Count];
         var points = Enumerable.Range(0, samples.Count)
