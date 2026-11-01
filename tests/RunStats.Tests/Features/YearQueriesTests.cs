@@ -170,6 +170,20 @@ public sealed class YearQueriesTests(SqlServerFixture sqlServer) : IAsyncLifetim
     }
 
     [Fact]
+    public async Task The_goal_is_the_shown_years()
+    {
+        await AddAsync(new DateTime(2025, 4, 14, 10, 0, 0), 10, 50);
+        await using (var context = await db.CreateDbContextAsync(Ct))
+        {
+            context.YearGoals.Add(new YearGoal { Year = 2026, DistanceMeters = 1_500_000 });
+            await context.SaveChangesAsync(Ct);
+        }
+
+        Assert.Equal(1_500_000, (await queries.LoadAsync(2026, Ct))!.GoalMeters);
+        Assert.Null((await queries.LoadAsync(2025, Ct))!.GoalMeters);
+    }
+
+    [Fact]
     public async Task Races_are_the_years_runs_marked_as_race()
     {
         await AddAsync(new DateTime(2025, 10, 12, 9, 0, 0), 21.1, 120, race: true, name: "Last year");

@@ -1,5 +1,6 @@
 @page "/"
 @using RunStats.Features.Warnings
+@using RunStats.Features.Years
 @inject IDashboardQueries Queries
 @inject IWarningQueries WarningQueries
 @inject Clock Clock
@@ -16,6 +17,10 @@
         <TotalCard Label="@($"This year ({Clock.Today.Year})")" Totals="data.Year" />
         <TotalCard Label="@($"This month ({Clock.Today.ToString("MMMM", System.Globalization.CultureInfo.InvariantCulture)})")" Totals="data.Month" />
         <TotalCard Label="@($"This week (from {Format.Date(DashboardQueries.Monday(Clock.Today))})")" Totals="data.Week" />
+        @if (data.YearGoalMeters is { } goal)
+        {
+            <GoalCard Progress="GoalProgress.For(Clock.Today.Year, goal, data.Year.DistanceMeters, Clock.Today)" Href="@($"years/{Clock.Today.Year}")" />
+        }
     </section>
 
     <div class="sections">

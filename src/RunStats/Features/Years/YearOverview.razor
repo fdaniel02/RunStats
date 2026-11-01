@@ -23,6 +23,19 @@
 
 <section class="totals" aria-label="Totals">
     <TotalCard Label="@data.Year.ToString(CultureInfo.InvariantCulture)" Totals="data.Totals" />
+    @if (data.GoalMeters is { } goal)
+    {
+        <GoalCard Progress="GoalProgress.For(data.Year, goal, data.Totals.DistanceMeters, Clock.Today)">
+            <GoalForm Year="data.Year" GoalMeters="goal" />
+        </GoalCard>
+    }
+    else
+    {
+        <div class="card new-goal">
+            <span class="muted">Goal @data.Year</span>
+            <GoalForm Year="data.Year" />
+        </div>
+    }
 </section>
 
 <div class="sections">

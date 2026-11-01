@@ -12,6 +12,13 @@
     gap: 16px;
 }
 
+.new-goal {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 12px;
+}
+
 .sections {
     display: grid;
     grid-template-columns: minmax(0, 1fr);

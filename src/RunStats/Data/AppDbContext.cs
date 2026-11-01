@@ -14,6 +14,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<RunTrack> RunTracks => Set<RunTrack>();
     public DbSet<RunBestEffort> RunBestEfforts => Set<RunBestEffort>();
     public DbSet<RunHeartRateBand> RunHeartRateBands => Set<RunHeartRateBand>();
+    public DbSet<YearGoal> YearGoals => Set<YearGoal>();
     public DbSet<PersonalRecord> PersonalRecords => Set<PersonalRecord>();
     public DbSet<SyncRun> SyncRuns => Set<SyncRun>();
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
@@ -48,6 +49,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<RunPaceBand>(e => e.HasKey(x => new { x.RunId, x.PaceSecondsPerKm }));
         modelBuilder.Entity<RunBestEffort>(e => e.HasKey(x => new { x.RunId, x.TypeId }));
         modelBuilder.Entity<RunHeartRateBand>(e => e.HasKey(x => new { x.RunId, x.HeartRate }));
+        modelBuilder.Entity<YearGoal>(e =>
+        {
+            e.HasKey(x => x.Year);
+            e.Property(x => x.Year).ValueGeneratedNever();
+        });
         modelBuilder.Entity<RunTrack>(e =>
         {
             e.HasKey(x => x.RunId);

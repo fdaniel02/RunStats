@@ -10,7 +10,7 @@ public sealed record MonthTotal(int Month, double DistanceMeters, double Duratio
 // Years are the ones that can be shown: those with runs, and this year even before its first run; newest first. Weeks
 // are the activity grid's columns, with only the year's own days counted in the first and last. Runs are newest first.
 public sealed record YearData(
-    int Year, IReadOnlyList<int> Years, Totals Totals, IReadOnlyList<WeekTotal> Weeks, IReadOnlyList<MonthTotal> Months,
+    int Year, IReadOnlyList<int> Years, Totals Totals, double? GoalMeters, IReadOnlyList<WeekTotal> Weeks, IReadOnlyList<MonthTotal> Months,
     IReadOnlyList<RunDay> RunDays, IReadOnlyList<RecordRow> Records, IReadOnlyList<RunRow> Races, IReadOnlyList<RunRow> Runs);
 
 public interface IYearQueries
@@ -52,6 +52,7 @@ public class YearQueries(IDbContextFactory<AppDbContext> dbFactory, Clock clock)
             year,
             [.. years.OrderDescending()],
             new Totals(runs.Count, runs.Sum(r => r.DistanceMeters), runs.Sum(r => r.DurationSeconds)),
+            (await db.YearGoals.FindAsync([year], cancellationToken))?.DistanceMeters,
             Weeks(year, runs, today),
             [.. Enumerable.Range(1, 12).Select(m => Month(year, m, runs, today))],
             [

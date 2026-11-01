@@ -16,7 +16,7 @@ public sealed record RunDay(DateOnly Date, string? TrainingEffectLabel);
 // Races are shown one year at a time: RaceYear of RaceYears, the years that have races (newest first). RunDays are the
 // dates with a run in the activity grid's weeks.
 public sealed record DashboardData(
-    Totals Year, Totals Month, Totals Week, IReadOnlyList<WeekTotal> Weeks, IReadOnlyList<RunRow> LastRuns,
+    Totals Year, Totals Month, Totals Week, double? YearGoalMeters, IReadOnlyList<WeekTotal> Weeks, IReadOnlyList<RunRow> LastRuns,
     IReadOnlyList<RecordRow> Records, IReadOnlyList<int> RaceYears, int? RaceYear, IReadOnlyList<RunRow> Races,
     IReadOnlyList<RunDay> RunDays);
 
@@ -41,6 +41,7 @@ public class DashboardQueries(IDbContextFactory<AppDbContext> dbFactory, Clock c
             await TotalsSinceAsync(new DateOnly(today.Year, 1, 1), cancellationToken),
             await TotalsSinceAsync(new DateOnly(today.Year, today.Month, 1), cancellationToken),
             await TotalsSinceAsync(Monday(today), cancellationToken),
+            await YearGoalAsync(today.Year, cancellationToken),
             await WeeksAsync(cancellationToken),
             await LastRunsAsync(cancellationToken),
             await RecordsAsync(cancellationToken),
@@ -59,6 +60,12 @@ public class DashboardQueries(IDbContextFactory<AppDbContext> dbFactory, Clock c
             .Select(g => new Totals(g.Count(), g.Sum(r => r.DistanceMeters), g.Sum(r => r.DurationSeconds)))
             .SingleOrDefaultAsync(cancellationToken);
         return totals ?? new Totals(0, 0, 0);
+    }
+
+    public async Task<double?> YearGoalAsync(int year, CancellationToken cancellationToken)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        return (await db.YearGoals.FindAsync([year], cancellationToken))?.DistanceMeters;
     }
 
     // The last WeekCount weeks, Monday to Sunday, oldest first; weeks without runs are included with zeros.

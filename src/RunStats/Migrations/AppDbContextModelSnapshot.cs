@@ -605,6 +605,19 @@ namespace RunStats.Migrations
                     b.ToTable("SyncRuns");
                 });
 
+            modelBuilder.Entity("RunStats.Data.YearGoal", b =>
+                {
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.Property<double>("DistanceMeters")
+                        .HasColumnType("float");
+
+                    b.HasKey("Year");
+
+                    b.ToTable("YearGoals");
+                });
+
             modelBuilder.Entity("RunStats.Data.RunBestEffort", b =>
                 {
                     b.HasOne("RunStats.Data.Run", null)
