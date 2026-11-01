@@ -1,0 +1,10 @@
+<div class="card total">
+    <span class="total-label">@Label</span>
+    <span class="total-value">@Format.Km(Totals.DistanceMeters) <small>km</small></span>
+    <span class="muted">@Totals.Runs @(Totals.Runs == 1 ? "run" : "runs") · @Format.Hours(Totals.DurationSeconds)</span>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter, EditorRequired] public Totals Totals { get; set; } = null!;
+}

@@ -54,4 +54,5 @@ public class Run : RunMetrics
     public List<RunSample> Samples { get; set; } = [];
     public List<RunPaceBand> PaceBands { get; set; } = [];
     public RunTrack? Track { get; set; }
+    public List<RunBestEffort> BestEfforts { get; set; } = [];
 }

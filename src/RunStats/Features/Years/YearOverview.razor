@@ -1,0 +1,112 @@
+@page "/years"
+@page "/years/{Year:int}"
+@using System.Globalization
+@using RunStats.Features.Dashboard
+@inject IYearQueries Queries
+@inject Clock Clock
+@inject NavigationManager Navigation
+
+<PageTitle>@(data is null ? "Year" : data.Year.ToString(CultureInfo.InvariantCulture)) · RunStats</PageTitle>
+
+@if (data is null)
+{
+    return;
+}
+
+<div class="page-head">
+    <h1>Year @data.Year</h1>
+    @if (data.Years.Count > 1)
+    {
+        <YearLinks Years="data.Years" Current="data.Year" Href="@(year => $"years/{year}")" Label="Year" FullPageLoad="true" />
+    }
+</div>
+
+<section class="totals" aria-label="Totals">
+    <TotalCard Label="@data.Year.ToString(CultureInfo.InvariantCulture)" Totals="data.Totals" />
+</section>
+
+<div class="sections">
+    <section class="card activity" id="activity">
+        <div class="card-head">
+            <h2>Days with a run</h2>
+            <button type="button" class="fullscreen-open" aria-label="Full screen" title="Full screen">
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                    <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </button>
+            <button type="button" class="fullscreen-close" aria-label="Close full screen" title="Close full screen">✕</button>
+        </div>
+        <p class="rotate-hint muted">Turn your phone for a wider view.</p>
+        <ActivityCalendar Grid="grid" RunDays="data.RunDays" Today="Clock.Today" />
+    </section>
+
+    <section class="card weeks">
+        <h2>Per week</h2>
+        <PeriodChart Bars="WeekBars()" Id="weekly" Period="week" EmptyText="@($"No runs in {data.Year}.")" />
+    </section>
+
+    <section class="card months">
+        <h2>Per month</h2>
+        <PeriodChart Bars="MonthBars()" Id="monthly" Period="month" EmptyText="@($"No runs in {data.Year}.")" />
+    </section>
+
+    <section class="card records">
+        <h2>Personal records @data.Year</h2>
+        <p class="muted note">The fastest stretch of each distance within the year's runs, so not only Garmin's all-time records.</p>
+        <RecordList Records="data.Records" EmptyText="@($"No records in {data.Year}.")" />
+    </section>
+
+    <section class="card races">
+        <h2>Races</h2>
+        <RunTable Rows="data.Races" ShowName="true" EmptyText="@($"No races in {data.Year}.")" />
+    </section>
+
+    <section class="card all-runs">
+        <div class="section-head">
+            <h2>Runs</h2>
+            @if (data.Runs.Count > 0)
+            {
+                <a href="@($"runs?from={data.Year}-01-01&to={data.Year}-12-31")">Filter in the runs list</a>
+            }
+        </div>
+        <RunTable Rows="data.Runs" ShowName="true" MarkRaces="true" EmptyText="@($"No runs in {data.Year}.")" />
+    </section>
+</div>
+
+<script type="module" src="@Assets["js/calendar.js"]"></script>
+
+@code {
+    YearData? data;
+    ActivityGrid grid = null!;
+
+    [Parameter] public int? Year { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        data = Year is { } year ? await Queries.LoadAsync(year, CancellationToken.None) : null;
+        // Without a year, or one without runs: this year, with its number in the address.
+        if (data is null)
+        {
+            Navigation.NavigateTo($"years/{Clock.Today.Year}", replace: true);
+            return;
+        }
+        grid = ActivityGrid.ForYear(data.Year);
+    }
+
+    List<ChartBar> WeekBars() =>
+    [
+        .. data!.Weeks.Select((w, i) => new ChartBar(
+            w.IsCurrent ? $"This week (from {Format.Date(w.Monday)})" : $"{Format.Date(w.Monday)} – {Format.Date(w.Monday.AddDays(6))}",
+            grid.Weeks[i].MonthLabel, w.DistanceMeters, w.DurationSeconds, w.IsCurrent))
+    ];
+
+    List<ChartBar> MonthBars() =>
+    [
+        .. data!.Months.Select(m =>
+        {
+            var first = new DateOnly(data.Year, m.Month, 1);
+            return new ChartBar(first.ToString("MMMM", CultureInfo.InvariantCulture), first.ToString("MMM", CultureInfo.InvariantCulture),
+                m.DistanceMeters, m.DurationSeconds, m.IsCurrent);
+        })
+    ];
+}

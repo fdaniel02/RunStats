@@ -5,7 +5,7 @@ using RunStats.Garmin;
 
 namespace RunStats.Processing;
 
-// Fills a stored run's typed columns, laps, samples, pace bands and track from its raw data.
+// Fills a stored run's typed columns, laps, samples, pace bands, track and best efforts from its raw data.
 public class RunProcessing(IDbContextFactory<AppDbContext> dbFactory, IGarminGateway garmin)
 {
     const int MaxErrorLength = 1000;
@@ -39,7 +39,7 @@ public class RunProcessing(IDbContextFactory<AppDbContext> dbFactory, IGarminGat
             error = error.Length > MaxErrorLength ? error[..MaxErrorLength] : error;
             // Without the half-applied summary: the run keeps what it had.
             db.ChangeTracker.Clear();
-            await ReplaceAsync(db, runId, [], [], [], null, cancellationToken);
+            await ReplaceAsync(db, runId, RunParts.None, cancellationToken);
             await db.Runs.Where(r => r.Id == runId).ExecuteUpdateAsync(r => r
                 .SetProperty(x => x.ProcessorVersion, RunProcessor.Version)
                 .SetProperty(x => x.ProcessingError, error), cancellationToken);
@@ -49,14 +49,14 @@ public class RunProcessing(IDbContextFactory<AppDbContext> dbFactory, IGarminGat
         PaceVariation.Apply(run, laps, samples);
         run.ProcessorVersion = RunProcessor.Version;
         run.ProcessingError = null;
-        await ReplaceAsync(db, runId, laps, samples, PaceBandBuilder.Build(runId, samples), TrackBuilder.Build(runId, samples), cancellationToken);
+        var parts = new RunParts(laps, samples, PaceBandBuilder.Build(runId, samples), TrackBuilder.Build(runId, samples),
+            BestEffortBuilder.Build(runId, run.TypeKey, samples));
+        await ReplaceAsync(db, runId, parts, cancellationToken);
         return null;
     }
 
     // In one transaction, so a run never has the laps or samples of two processings.
-    static Task ReplaceAsync(
-        AppDbContext db, long runId, List<RunLap> laps, List<RunSample> samples, List<RunPaceBand> paceBands, RunTrack? track,
-        CancellationToken cancellationToken) =>
+    static Task ReplaceAsync(AppDbContext db, long runId, RunParts parts, CancellationToken cancellationToken) =>
         db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
             await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
@@ -64,12 +64,20 @@ public class RunProcessing(IDbContextFactory<AppDbContext> dbFactory, IGarminGat
             await db.RunSamples.Where(s => s.RunId == runId).ExecuteDeleteAsync(cancellationToken);
             await db.RunPaceBands.Where(b => b.RunId == runId).ExecuteDeleteAsync(cancellationToken);
             await db.RunTracks.Where(t => t.RunId == runId).ExecuteDeleteAsync(cancellationToken);
-            db.RunLaps.AddRange(laps);
-            db.RunSamples.AddRange(samples);
-            db.RunPaceBands.AddRange(paceBands);
-            if (track is not null)
-                db.RunTracks.Add(track);
+            await db.RunBestEfforts.Where(e => e.RunId == runId).ExecuteDeleteAsync(cancellationToken);
+            db.RunLaps.AddRange(parts.Laps);
+            db.RunSamples.AddRange(parts.Samples);
+            db.RunPaceBands.AddRange(parts.PaceBands);
+            db.RunBestEfforts.AddRange(parts.BestEfforts);
+            if (parts.Track is not null)
+                db.RunTracks.Add(parts.Track);
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         });
+}
+
+// What processing builds from a run's raw data, besides its own columns.
+sealed record RunParts(List<RunLap> Laps, List<RunSample> Samples, List<RunPaceBand> PaceBands, RunTrack? Track, List<RunBestEffort> BestEfforts)
+{
+    public static RunParts None => new([], [], [], null, []);
 }

@@ -27,12 +27,21 @@
 
     protected override void OnParametersSet() => runDays = RunDays.ToDictionary(d => d.Date, d => d.TrainingEffectLabel);
 
-    string Summary => $"{runDays.Keys.Count(d => d >= Grid.Start && d <= Today)} days with a run in the last {Grid.Weeks.Count} weeks";
+    string Summary
+    {
+        get
+        {
+            var count = runDays.Keys.Count(d => Grid.Contains(d) && d <= Today);
+            return $"{count} {(count == 1 ? "day" : "days")} with a run in {Grid.Period}";
+        }
+    }
 
     string CellClass(DateOnly day)
     {
         var cssClass = "cell";
-        if (day > Today)
+        if (!Grid.Contains(day))
+            cssClass += " outside";
+        else if (day > Today)
             cssClass += " future";
         else if (runDays.TryGetValue(day, out var label))
             cssClass += TrainingEffect.CssClass(label) is { } effect ? $" done {effect}" : " done";

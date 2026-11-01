@@ -24,6 +24,7 @@ public class MainLayoutTests : BunitContext
 
     [Theory]
     [InlineData("/", "Dashboard")]
+    [InlineData("/years/2025", "Year")]
     [InlineData("/runs", "Runs")]
     [InlineData("/trends", "Trends")]
     [InlineData("/heatmap", "Heatmap")]
@@ -32,7 +33,7 @@ public class MainLayoutTests : BunitContext
         var layout = Render(path);
 
         var links = layout.FindAll(".app-nav a");
-        Assert.Equal(["Dashboard", "Runs", "Trends", "Heatmap"], links.Select(l => l.TextContent));
+        Assert.Equal(["Dashboard", "Year", "Runs", "Trends", "Heatmap"], links.Select(l => l.TextContent));
         Assert.Equal(screen, Assert.Single(links, l => l.ClassList.Contains("active")).TextContent);
     }
 
@@ -53,5 +54,13 @@ public class MainLayoutTests : BunitContext
         var toggle = layout.Find("input.menu-toggle");
         Assert.Equal(("checkbox", "Menu"), (toggle.GetAttribute("type"), toggle.GetAttribute("aria-label")));
         Assert.Equal(toggle.Id, layout.Find("label.menu-button").GetAttribute("for"));
+    }
+
+    [Fact]
+    public void Screens_with_a_script_open_with_a_full_page_load()
+    {
+        var links = Render("/").FindAll(".app-nav a");
+
+        Assert.Equal(["Year", "Heatmap"], links.Where(a => a.GetAttribute("data-enhance-nav") == "false").Select(a => a.TextContent));
     }
 }

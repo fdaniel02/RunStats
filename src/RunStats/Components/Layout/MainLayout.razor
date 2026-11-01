@@ -10,6 +10,8 @@
     <div class="menu">
         <nav class="app-nav">
             <NavLink href="" Match="NavLinkMatch.All">Dashboard</NavLink>
+            @* A full page load: enhanced navigation wouldn't run the full screen script. *@
+            <NavLink href="years" data-enhance-nav="false">Year</NavLink>
             <NavLink href="runs">Runs</NavLink>
             <NavLink href="trends">Trends</NavLink>
             @* A full page load: enhanced navigation wouldn't run the map script. *@
