@@ -36,14 +36,15 @@ public class RunBestEffortQueries(IDbContextFactory<AppDbContext> dbFactory) : I
 
         EffortComparison Compare(RunBestEffort effort, bool sameYearOnly)
         {
-            var fastest = others
+            var ranked = others
                 .Where(o => o.TypeId == effort.TypeId && (!sameYearOnly || o.StartLocal.Year == start.Value.Year))
+                .Append(new { effort.TypeId, effort.Seconds, Id = runId, StartLocal = start.Value })
                 .OrderBy(o => o.Seconds).ThenBy(o => o.StartLocal)
-                .FirstOrDefault();
-            var isBest = fastest is null || effort.Seconds < fastest.Seconds
-                || (effort.Seconds == fastest.Seconds && start.Value < fastest.StartLocal);
+                .ToList();
+            var isBest = ranked[0].Id == runId;
+            var other = ranked.FirstOrDefault(o => o.Id != runId);
             return new EffortComparison(
-                fastest is null ? null : new OtherEffort(fastest.Seconds, fastest.Id, DateOnly.FromDateTime(fastest.StartLocal)),
+                other is null ? null : new OtherEffort(other.Seconds, other.Id, DateOnly.FromDateTime(other.StartLocal)),
                 isBest);
         }
 

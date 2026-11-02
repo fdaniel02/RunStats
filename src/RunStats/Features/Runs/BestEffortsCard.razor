@@ -33,7 +33,12 @@
     public static string Difference(double seconds)
     {
         var rounded = Math.Round(Math.Abs(seconds));
-        var sign = seconds < 0 && rounded > 0 ? "−" : rounded > 0 ? "+" : "±";
+        var sign = rounded switch
+        {
+            0 => "±",
+            _ when seconds < 0 => "−",
+            _ => "+"
+        };
         return sign + (rounded < 60 ? $"{rounded:0} s" : Format.Duration(rounded));
     }
 
