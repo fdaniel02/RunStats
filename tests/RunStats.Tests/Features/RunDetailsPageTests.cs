@@ -26,6 +26,11 @@ public class RunDetailsPageTests : BunitContext
         return new RunAnalysis(new UsualForm(0, false, new BandComparison(null, 0, none), []), new FormDrift(drift, driftMissing), triggered ?? []);
     }
 
+    sealed class FakeEfforts(IReadOnlyList<RunEffort> efforts) : IRunBestEffortQueries
+    {
+        public Task<IReadOnlyList<RunEffort>> LoadAsync(long runId, CancellationToken cancellationToken) => Task.FromResult(efforts);
+    }
+
     sealed class FakeQueries(RunDetailsData? data) : IRunDetailsQueries
     {
         public List<long> Requests { get; } = [];
@@ -73,11 +78,13 @@ public class RunDetailsPageTests : BunitContext
     FakeQueries queries = null!;
     readonly List<NotFoundEventArgs> notFound = [];
 
-    IRenderedComponent<RunDetails> Render(RunDetailsData? data, long id = 24758031152, string? cartoKey = null, RunAnalysis? analysis = null)
+    IRenderedComponent<RunDetails> Render(RunDetailsData? data, long id = 24758031152, string? cartoKey = null, RunAnalysis? analysis = null,
+        IReadOnlyList<RunEffort>? efforts = null)
     {
         queries = new FakeQueries(data);
         Services.AddSingleton<IRunDetailsQueries>(queries);
         Services.AddSingleton<IRunAnalysisQueries>(new FakeAnalysis(analysis ?? Analysis()));
+        Services.AddSingleton<IRunBestEffortQueries>(new FakeEfforts(efforts ?? []));
         Services.AddSingleton(Options.Create(new WarningSettings()));
         Services.AddSingleton<IConfiguration>(new ConfigurationBuilder()
             .AddInMemoryCollection(cartoKey is null ? [] : [new KeyValuePair<string, string?>("Heatmap:CartoApiKey", cartoKey)])
@@ -283,6 +290,22 @@ public class RunDetailsPageTests : BunitContext
 
         Assert.Equal(["Compared to your usual", "Form drift", "Laps"], titles.Where(t => t is "Compared to your usual" or "Form drift" or "Laps"));
     }
+
+    [Fact]
+    public void The_best_efforts_follow_the_charts_in_the_runs_year()
+    {
+        var efforts = new[] { new RunEffort(3, 1502, new EffortComparison(new OtherEffort(1429, 7, new DateOnly(2026, 9, 27)), false), new EffortComparison(new OtherEffort(1429, 7, new DateOnly(2026, 9, 27)), false)) };
+
+        var page = Render(Data(), efforts: efforts);
+
+        var titles = page.FindAll("h2").Select(h => h.TextContent).ToList();
+        Assert.Equal(["Best efforts", "Compared to your usual"], titles.Where(t => t is "Best efforts" or "Compared to your usual"));
+        Assert.Equal(["PR", "2026"], page.FindAll(".against .label").Select(l => l.TextContent));
+    }
+
+    [Fact]
+    public void Without_best_efforts_there_is_no_best_efforts_card() =>
+        Assert.DoesNotContain(Render(Data()).FindAll("h2"), h => h.TextContent == "Best efforts");
 
     [Theory]
     [InlineData(DriftMissing.TooShort, "Only for runs of 30 min or more.")]

@@ -4,6 +4,7 @@
 @using RunStats.Features.Warnings
 @inject IRunDetailsQueries Queries
 @inject IRunAnalysisQueries AnalysisQueries
+@inject IRunBestEffortQueries EffortQueries
 @inject IConfiguration Configuration
 @inject NavigationManager Navigation
 
@@ -89,6 +90,11 @@
 
 <RunCharts Points="details.ChartPoints" />
 
+@if (efforts.Count > 0)
+{
+    <BestEffortsCard Efforts="efforts" Year="run.StartLocal.Year" />
+}
+
 @if (analysis is not null)
 {
     <UsualFormCard Usual="analysis.Usual" TypeKey="@run.TypeKey" />
@@ -172,6 +178,7 @@
 @code {
     RunDetailsData? details;
     RunAnalysis? analysis;
+    IReadOnlyList<RunEffort> efforts = [];
 
     [Parameter] public long Id { get; set; }
 
@@ -183,6 +190,9 @@
         if (details is null)
             Navigation.NotFound();
         else
+        {
             analysis = await AnalysisQueries.LoadAsync(Id, CancellationToken.None);
+            efforts = await EffortQueries.LoadAsync(Id, CancellationToken.None);
+        }
     }
 }

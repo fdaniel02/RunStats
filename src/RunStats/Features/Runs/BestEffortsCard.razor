@@ -1,0 +1,60 @@
+<section class="card" aria-labelledby="efforts-title">
+    <h2 id="efforts-title">Best efforts</h2>
+    <p class="intro muted">The fastest stretch of this run over each distance, against your PR and your best of @Year.</p>
+    <ul class="tiles">
+        @foreach (var effort in Efforts)
+        {
+            <li class="card tile">
+                <span class="title">@RecordTypes.Name(effort.TypeId)</span>
+                <span class="value">
+                    @Format.Duration(effort.Seconds)
+                    <small>@Format.PaceValue(RecordTypes.Distances[effort.TypeId], effort.Seconds) /km</small>
+                    @if (effort.Pr.IsBest)
+                    {
+                        <span class="badge">PR</span>
+                    }
+                    @if (effort.YearBest.IsBest)
+                    {
+                        <span class="badge">Year best</span>
+                    }
+                </span>
+                @Line("PR", effort.Seconds, effort.Pr)
+                @Line(Year.ToString(), effort.Seconds, effort.YearBest)
+            </li>
+        }
+    </ul>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<RunEffort> Efforts { get; set; } = [];
+    [Parameter, EditorRequired] public int Year { get; set; }
+
+    // +19 s below a minute, +1:13 from a minute.
+    public static string Difference(double seconds)
+    {
+        var rounded = Math.Round(Math.Abs(seconds));
+        var sign = rounded switch
+        {
+            0 => "±",
+            _ when seconds < 0 => "−",
+            _ => "+"
+        };
+        return sign + (rounded < 60 ? $"{rounded:0} s" : Format.Duration(rounded));
+    }
+
+    static RenderFragment Line(string label, double seconds, EffortComparison comparison) => __builder =>
+    {
+        <span class="against">
+            <span class="label muted">@label</span>
+            @if (comparison.Other is { } other)
+            {
+                <span>@Difference(seconds - other.Seconds)</span>
+                <span class="muted">@(comparison.IsBest ? "next " : "")<a href="runs/@other.RunId">@Format.Duration(other.Seconds)</a> · @Format.Date(other.Date)</span>
+            }
+            else
+            {
+                <span class="muted">First</span>
+            }
+        </span>
+    };
+}
