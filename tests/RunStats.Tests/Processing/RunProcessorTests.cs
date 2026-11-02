@@ -200,7 +200,7 @@ public class RunProcessorTests
     {
         var fit = new FitSample(12, 624_769_324, -58_342_310, 1234.56, 3.21, -1.6, 171, 172.5, 1149.6, 241.5, 89.2, 6.95, 50.25, 310, -12);
 
-        var sample = Assert.Single(RunProcessor.Samples(7, [fit]));
+        var sample = Assert.Single(RunProcessor.Samples(7, null, [fit]));
 
         Assert.Equal((7L, 12, 624_769_324, -58_342_310), (sample.RunId, sample.OffsetSeconds, sample.LatitudeSemicircles!.Value, sample.LongitudeSemicircles!.Value));
         Assert.Equal((1234.56f, 3.21f, -1.6f), (sample.DistanceMeters!.Value, sample.SpeedMps!.Value, sample.AltitudeMeters!.Value));
@@ -215,7 +215,7 @@ public class RunProcessorTests
     {
         var fit = new FitSample(0, null, null, null, null, null, 300, null, 40000, null, null, null, null, -40000, null);
 
-        var sample = Assert.Single(RunProcessor.Samples(7, [fit]));
+        var sample = Assert.Single(RunProcessor.Samples(7, null, [fit]));
 
         Assert.Null(sample.LatitudeSemicircles);
         Assert.Null(sample.DistanceMeters);
@@ -225,4 +225,24 @@ public class RunProcessorTests
         Assert.Null(sample.PowerWatts);
         Assert.Null(sample.TemperatureCelsius);
     }
+
+    [Fact]
+    public void Samples_after_the_elapsed_duration_are_dropped()
+    {
+        FitSample[] fit = [Offset(0), Offset(2775), Offset(2776), Offset(2777), Offset(2840)];
+
+        var samples = RunProcessor.Samples(7, 2775.75, fit);
+
+        Assert.Equal([0, 2775, 2776], samples.Select(s => s.OffsetSeconds));
+    }
+
+    [Fact]
+    public void All_samples_are_kept_without_an_elapsed_duration()
+    {
+        var samples = RunProcessor.Samples(7, null, [Offset(0), Offset(5113)]);
+
+        Assert.Equal([0, 5113], samples.Select(s => s.OffsetSeconds));
+    }
+
+    static FitSample Offset(int seconds) => new(seconds, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
 }

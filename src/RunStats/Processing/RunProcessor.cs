@@ -9,7 +9,7 @@ namespace RunStats.Processing;
 public static class RunProcessor
 {
     // Raise when the processing changes: every stored run is then processed again at the next sync.
-    public const int Version = 7;
+    public const int Version = 8;
 
     const int MaxIntensityTypeLength = 50;
     const int MaxTrainingEffectLabelLength = 50;
@@ -131,9 +131,10 @@ public static class RunProcessor
         metrics.Calories = Number(e, "calories");
     }
 
-    public static List<RunSample> Samples(long runId, IEnumerable<FitSample> samples) =>
+    // The FIT download is the watch's original recording: a run trimmed in Garmin Connect still has the cut-off end.
+    public static List<RunSample> Samples(long runId, double? elapsedSeconds, IEnumerable<FitSample> samples) =>
     [
-        .. samples.Select(s => new RunSample
+        .. samples.Where(s => elapsedSeconds is not { } elapsed || s.OffsetSeconds <= Math.Ceiling(elapsed)).Select(s => new RunSample
         {
             RunId = runId,
             OffsetSeconds = s.OffsetSeconds,
