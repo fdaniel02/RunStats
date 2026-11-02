@@ -31,7 +31,7 @@ public class RunProcessing(IDbContextFactory<AppDbContext> dbFactory, IGarminGat
             var raw = run.RawData ?? throw new FormatException("The run has no raw data.");
             RunProcessor.ApplySummary(run, raw);
             laps = RunProcessor.Laps(runId, raw.SplitsJson);
-            samples = raw.FitFile is null ? [] : RunProcessor.Samples(runId, await garmin.DecodeFitAsync(raw.FitFile, cancellationToken));
+            samples = raw.FitFile is null ? [] : RunProcessor.Samples(runId, run.ElapsedDurationSeconds, await garmin.DecodeFitAsync(raw.FitFile, cancellationToken));
         }
         catch (Exception e) when (e is JsonException or FormatException or InvalidFitFileException)
         {
