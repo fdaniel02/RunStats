@@ -54,4 +54,7 @@ public static partial class Log
 
     [LoggerMessage(EventId = 21, Level = LogLevel.Warning, Message = "The database size couldn't be read")]
     public static partial void DatabaseSizeFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(EventId = 22, Level = LogLevel.Information, Message = "Sync {SyncId}: {Count} race predictions from Garmin")]
+    public static partial void RacePredictionsUpdated(this ILogger logger, int syncId, int count);
 }

@@ -111,6 +111,10 @@ def create_app(
     def personal_records() -> Any:
         return service.call("get_personal_record", lambda g: g.get_personal_record())
 
+    @app.get("/race-predictions")
+    def race_predictions() -> Any:
+        return service.call("get_race_predictions", lambda g: g.get_race_predictions())
+
     # Decodes a FIT file the app already has; Garmin isn't called, so it doesn't wait for the throttle.
     @app.post("/fit/samples")
     async def fit_samples(request: Request) -> Any:

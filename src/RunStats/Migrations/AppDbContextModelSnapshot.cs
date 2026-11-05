@@ -70,6 +70,22 @@ namespace RunStats.Migrations
                     b.ToTable("PersonalRecords");
                 });
 
+            modelBuilder.Entity("RunStats.Data.RacePrediction", b =>
+                {
+                    b.Property<int>("TypeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("PredictedOn")
+                        .HasColumnType("date");
+
+                    b.Property<double>("Seconds")
+                        .HasColumnType("float");
+
+                    b.HasKey("TypeId");
+
+                    b.ToTable("RacePredictions");
+                });
+
             modelBuilder.Entity("RunStats.Data.Run", b =>
                 {
                     b.Property<long>("Id")

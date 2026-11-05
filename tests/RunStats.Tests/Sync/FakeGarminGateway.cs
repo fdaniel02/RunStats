@@ -15,6 +15,7 @@ public sealed class FakeGarminGateway : IGarminGateway
     // What decoding an activity's FIT file returns; by default a few seconds along a short straight line.
     public Dictionary<long, IReadOnlyList<FitSample>> FitSamples { get; } = [];
     public string PersonalRecordsJson { get; set; } = "[]";
+    public string? RacePredictionsJson { get; set; }
     public ConcurrentQueue<string> Calls { get; } = new();
     // Called with the name of each call ("list 0", "detail 42", ...); an exception it returns is thrown.
     public Func<string, Exception?> Fail { get; set; } = _ => null;
@@ -48,9 +49,9 @@ public sealed class FakeGarminGateway : IGarminGateway
             i, 624_769_324 + i * 1000, -58_342_310, i * 3.0, 3.0, 5.0, 140 + i, 170.0, 1150.0, 240.0, 85.0, 7.0, 50.0, 300, 18))
     ];
 
-    // The calls for single runs, without reading the list and the personal records.
+    // The calls for single runs, without reading the list, the personal records and the race predictions.
     public IEnumerable<string> DownloadCalls =>
-        Calls.Where(c => !c.StartsWith("list", StringComparison.Ordinal) && c != "personal-records");
+        Calls.Where(c => !c.StartsWith("list", StringComparison.Ordinal) && c != "personal-records" && c != "race-predictions");
 
     T Call<T>(string name, Func<T> result)
     {
@@ -80,6 +81,9 @@ public sealed class FakeGarminGateway : IGarminGateway
 
     public Task<string> GetPersonalRecordsAsync(CancellationToken cancellationToken) =>
         Task.FromResult(Call("personal-records", () => PersonalRecordsJson));
+
+    public Task<string?> GetRacePredictionsAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(Call("race-predictions", () => RacePredictionsJson));
 
     public Task<IReadOnlyList<FitSample>> DecodeFitAsync(byte[] fitFile, CancellationToken cancellationToken)
     {

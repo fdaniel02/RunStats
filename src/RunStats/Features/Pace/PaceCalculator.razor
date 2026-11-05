@@ -1,0 +1,125 @@
+@page "/pace"
+@using System.Globalization
+@inject IPaceQueries Queries
+
+<PageTitle>Pace calculator · RunStats</PageTitle>
+
+<h1>Pace calculator</h1>
+
+<div class="layout">
+    <section class="card calculator" id="pace-calculator" aria-label="Calculator">
+        <div class="presets" role="group" aria-label="Distance">
+            @foreach (var (label, meters) in Presets)
+            {
+                <button type="button" class="distance-preset" data-meters="@Number(meters)">@label</button>
+            }
+        </div>
+
+        <div class="field">
+            <label for="pace-distance">Distance</label>
+            <input type="text" id="pace-distance" inputmode="decimal" autocomplete="off" />
+            <span class="unit">km</span>
+        </div>
+
+        <div class="field">
+            <label for="pace-time">Finish time</label>
+            <input type="text" id="pace-time" autocomplete="off" />
+            <input type="range" id="pace-time-slider" step="1" aria-label="Finish time slider" />
+        </div>
+
+        <div class="field">
+            <label for="pace-pace">Pace</label>
+            <input type="text" id="pace-pace" autocomplete="off" />
+            <span class="unit">/km</span>
+            <input type="range" id="pace-pace-slider" step="1" aria-label="Pace slider" />
+        </div>
+
+        <p class="speed">Speed <span><strong id="pace-speed"></strong> km/h</span></p>
+
+        <div class="gaps">
+            <p id="pace-gap-prediction" hidden></p>
+            <p id="pace-gap-record" hidden></p>
+        </div>
+    </section>
+
+    @if (data is not null)
+    {
+        <section class="card" aria-labelledby="references-title">
+            <h2 id="references-title">Predictions and records</h2>
+            @if (data.References.Count == 0)
+            {
+                <p class="muted">Garmin's predictions and your records arrive with the next sync.</p>
+            }
+            else
+            {
+                <table>
+                    <thead>
+                        <tr><th>Distance</th><th>Garmin predicts</th><th>Personal record</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var reference in data.References)
+                        {
+                            <tr>
+                                <td>@RecordTypes.Name(reference.TypeId)</td>
+                                <td>
+                                    @if (reference.PredictedSeconds is { } predicted)
+                                    {
+                                        <button type="button" class="pace-reference" data-kind="prediction" data-meters="@Number(reference.Meters)" data-seconds="@Number(predicted)">@Format.Duration(predicted)</button>
+                                        <span class="detail">@Format.Pace(reference.Meters, predicted)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="muted">@Format.Missing</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (reference.RecordSeconds is { } record)
+                                    {
+                                        <button type="button" class="pace-reference" data-kind="record" data-meters="@Number(reference.Meters)" data-seconds="@Number(record)">@Format.Duration(record)</button>
+                                        <span class="detail">@Format.Pace(reference.Meters, record)</span>
+                                        <span class="detail">
+                                            @* Without a run (Garmin doesn't always say which one), a placeholder link without href. *@
+                                            <a href="@(reference.RecordRunId is { } runId ? $"runs/{runId}" : null)" data-enhance-nav="false">@Format.Date(reference.RecordDate!.Value)</a>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="muted">@Format.Missing</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                @if (data.PredictedOn is { } predictedOn)
+                {
+                    <p class="footnote muted">Garmin's predictions from @Format.Date(predictedOn). Click a time to load it into the calculator.</p>
+                }
+                else
+                {
+                    <p class="footnote muted">Click a time to load it into the calculator.</p>
+                }
+            }
+        </section>
+    }
+</div>
+
+<script type="module" src="@Assets["js/pace.js"]"></script>
+
+@code {
+    static readonly (string Label, double Meters)[] Presets =
+    [
+        ("1 km", 1000),
+        ("5 km", 5000),
+        ("10 km", 10000),
+        ("10 miles", 16093.44),
+        ("Half marathon", 21097.5),
+        ("Marathon", 42195)
+    ];
+
+    PaceData? data;
+
+    protected override async Task OnInitializedAsync() => data = await Queries.LoadAsync(CancellationToken.None);
+
+    static string Number(double value) => value.ToString(CultureInfo.InvariantCulture);
+}
