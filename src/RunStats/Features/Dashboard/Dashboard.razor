@@ -1,8 +1,10 @@
 @page "/"
+@using RunStats.Features.Races
 @using RunStats.Features.Warnings
 @using RunStats.Features.Years
 @inject IDashboardQueries Queries
 @inject IWarningQueries WarningQueries
+@inject IUpcomingRaceQueries UpcomingRaceQueries
 @inject Clock Clock
 
 <PageTitle>Dashboard · RunStats</PageTitle>
@@ -45,6 +47,11 @@
             <RecordList Records="data.Records" EmptyText="No personal records yet." />
         </section>
 
+        <section class="card upcoming" id="upcoming-races">
+            <h2>Upcoming races</h2>
+            <UpcomingRacesCard Races="upcomingRaces" Today="Clock.Today" />
+        </section>
+
         <section class="card races" id="races">
             <div class="section-head">
                 <h2>Races @data.RaceYear</h2>
@@ -61,6 +68,7 @@
 @code {
     DashboardData? data;
     IReadOnlyList<Warning> warnings = [];
+    IReadOnlyList<UpcomingRaceRow> upcomingRaces = [];
     ActivityGrid grid = null!;
 
     [SupplyParameterFromQuery(Name = "races")] public int? RaceYear { get; set; }
@@ -70,6 +78,7 @@
         grid = new ActivityGrid(Clock.Today, DashboardQueries.GridWeeks);
         data = await Queries.LoadAsync(RaceYear, CancellationToken.None);
         warnings = await WarningQueries.ActiveAsync(CancellationToken.None);
+        upcomingRaces = await UpcomingRaceQueries.LoadAsync(CancellationToken.None);
     }
 
     static List<ChartBar> WeekBars(IReadOnlyList<WeekTotal> weeks) =>

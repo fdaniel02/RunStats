@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MaxPace, MinPace, formatDuration, formatGap, formatKm, formatSpeed, parseDuration, parseKm, setupCalculator } from "../../src/RunStats/wwwroot/js/pace.js";
+import { MaxPace, MinPace, formatDuration, formatGap, formatKm, formatSpeed, parseDuration, parseKm, parseStart, setupCalculator } from "../../src/RunStats/wwwroot/js/pace.js";
 
 class FakeElement {
     value = "";
@@ -40,14 +40,14 @@ class FakeElement {
 const preset = meters => new FakeElement({ meters: String(meters) });
 const reference = (kind, meters, seconds) => new FakeElement({ kind, meters: String(meters), seconds: String(seconds) });
 
-function calculator(references = []) {
+function calculator(references = [], search = "") {
     const ids = ["distance", "time", "time-slider", "pace", "pace-slider", "speed", "gap-prediction", "gap-record"];
     const parts = Object.fromEntries(ids.map(id => [id, new FakeElement()]));
     const presets = [preset(5000), preset(16093.44), preset(42195)];
     setupCalculator({
         getElementById: id => parts[id.slice("pace-".length)],
         querySelectorAll: selector => (selector === ".distance-preset" ? presets : references)
-    });
+    }, search);
     return { ...parts, presets, references };
 }
 
@@ -253,6 +253,34 @@ test("clicking a prediction or record loads its distance and time", () => {
     page.references[1].click();
     assert.equal(page.distance.value, "1");
     assert.equal(page.time.value, "3:20");
+});
+
+test("a race's link starts it on the race's distance and time", () => {
+    const page = calculator([reference("prediction", 5000, 1310)], "?meters=16100&seconds=4800");
+
+    assert.equal(page.distance.value, "16.1");
+    assert.equal(page.time.value, "1:20:00");
+    assert.equal(page.pace.value, "4:58");
+});
+
+test("a race's link without a time keeps the usual pace", () => {
+    const page = calculator([reference("prediction", 5000, 1310)], "?meters=16100");
+
+    assert.equal(page.distance.value, "16.1");
+    assert.equal(page.pace.value, "4:22");
+});
+
+test("a time without a distance is taken for 5 km", () => {
+    const page = calculator([], "?seconds=1500");
+
+    assert.equal(page.distance.value, "5");
+    assert.equal(page.time.value, "25:00");
+});
+
+test("unusable values in the link are ignored", () => {
+    for (const search of ["?meters=abc&seconds=-5", "?meters=0&seconds=0", "?meters=Infinity", "?meters=&seconds="])
+        assert.deepEqual(parseStart(search), { meters: null, seconds: null }, search);
+    assert.deepEqual(parseStart(""), { meters: null, seconds: null });
 });
 
 test("the page's script starts the calculator only on the calculator page", async () => {

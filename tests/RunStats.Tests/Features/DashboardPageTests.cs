@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using RunStats.Data;
 using RunStats.Features.Dashboard;
+using RunStats.Features.Races;
 using RunStats.Features.Warnings;
 using RunStats.Shared;
 
@@ -52,13 +53,19 @@ public class DashboardPageTests : BunitContext
         races ?? [new RunRow(2, new DateOnly(2026, 10, 17), "running", "Amsterdam Running", 7500, 2397)],
         runDays ?? [new RunDay(new DateOnly(2026, 10, 17), "TEMPO"), new RunDay(new DateOnly(2026, 10, 26), null)]);
 
+    sealed class FakeUpcomingRaces(IReadOnlyList<UpcomingRaceRow> races) : IUpcomingRaceQueries
+    {
+        public Task<IReadOnlyList<UpcomingRaceRow>> LoadAsync(CancellationToken cancellationToken) => Task.FromResult(races);
+    }
+
     FakeQueries queries = null!;
 
-    IRenderedComponent<RunStats.Features.Dashboard.Dashboard> Render(DashboardData data, string uri = "/", List<Warning>? warnings = null)
+    IRenderedComponent<RunStats.Features.Dashboard.Dashboard> Render(DashboardData data, string uri = "/", List<Warning>? warnings = null, IReadOnlyList<UpcomingRaceRow>? upcomingRaces = null)
     {
         queries = new FakeQueries(data);
         Services.AddSingleton<IDashboardQueries>(queries);
         Services.AddSingleton<IWarningQueries>(new FakeWarnings(warnings ?? []));
+        Services.AddSingleton<IUpcomingRaceQueries>(new FakeUpcomingRaces(upcomingRaces ?? []));
         Services.AddSingleton(new Clock(TimeZoneInfo.FindSystemTimeZoneById("Europe/Amsterdam"),
             new FixedTimeProvider(new DateTimeOffset(2026, 10, 27, 9, 0, 0, TimeSpan.Zero))));
         Services.GetRequiredService<NavigationManager>().NavigateTo(uri);
@@ -66,6 +73,18 @@ public class DashboardPageTests : BunitContext
     }
 
     static string Text(AngleSharp.Dom.IElement element) => string.Join(" ", element.TextContent.Split((char[])[' ', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries));
+
+    [Fact]
+    public void Upcoming_races_have_a_card_counting_from_today()
+    {
+        var race = new UpcomingRaceRow(Guid.NewGuid(), "Zandvoort", new DateOnly(2026, 10, 30), null, 16100, true, null, null, null, null);
+
+        var card = Render(Data(), upcomingRaces: [race]).Find("#upcoming-races");
+
+        Assert.Equal("Upcoming races", card.QuerySelector("h2")!.TextContent);
+        Assert.Equal("Zandvoort", card.QuerySelector(".next-race h3")!.TextContent);
+        Assert.Equal("in 3 days", card.QuerySelector(".countdown")!.TextContent);
+    }
 
     [Fact]
     public void This_years_goal_is_a_card_next_to_the_totals_linking_the_year()

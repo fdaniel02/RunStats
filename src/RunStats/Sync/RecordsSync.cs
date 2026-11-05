@@ -3,8 +3,10 @@ using RunStats.Processing;
 
 namespace RunStats.Sync;
 
-public class RecordsSync(IGarminGateway garmin, PersonalRecordUpdate personalRecords, RacePredictionUpdate racePredictions)
+public class RecordsSync(IGarminGateway garmin, PersonalRecordUpdate personalRecords, RacePredictionUpdate racePredictions, UpcomingRacesSync upcomingRaces)
 {
+    public Task UpdateUpcomingRacesAsync(int syncId, CancellationToken cancellationToken) => upcomingRaces.UpdateAsync(syncId, cancellationToken);
+
     public async Task<PersonalRecordChanges> UpdatePersonalRecordsAsync(CancellationToken cancellationToken)
     {
         var records = PersonalRecordMapper.Running(await garmin.GetPersonalRecordsAsync(cancellationToken));

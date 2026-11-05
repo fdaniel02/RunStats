@@ -621,6 +621,48 @@ namespace RunStats.Migrations
                     b.ToTable("SyncRuns");
                 });
 
+            modelBuilder.Entity("RunStats.Data.UpcomingRace", b =>
+                {
+                    b.Property<Guid>("NotionPageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<double?>("DistanceMeters")
+                        .HasColumnType("float");
+
+                    b.Property<bool>("IsRegistered")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<TimeOnly?>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<double?>("TargetSeconds")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("NotionPageId");
+
+                    b.ToTable("UpcomingRaces");
+                });
+
             modelBuilder.Entity("RunStats.Data.YearGoal", b =>
                 {
                     b.Property<int>("Year")

@@ -1,0 +1,199 @@
+@using System.Globalization
+
+@if (Races.Count == 0)
+{
+    <p class="muted">No upcoming races.</p>
+}
+else
+{
+    @if (next is not null)
+    {
+        <div class="next-race">
+            <div class="next-head">
+                <div>
+                    <p class="next-label">Next race</p>
+                    <h3>@RaceName(next)</h3>
+                    <p class="muted">@NextDetails(next)</p>
+                </div>
+                <p class="countdown">@Countdown(next.Date)</p>
+            </div>
+            @if (next.TargetSeconds is not null || next.Prediction is not null)
+            {
+                <dl class="times">
+                    @if (next.TargetSeconds is { } target)
+                    {
+                        <div>
+                            <dt>Target</dt>
+                            <dd>
+                                @Format.Duration(target)
+                                @if (next.DistanceMeters is { } meters)
+                                {
+                                    <span class="detail">@Format.Pace(meters, target)</span>
+                                }
+                            </dd>
+                        </div>
+                    }
+                    @if (next.Prediction is { } predicted)
+                    {
+                        <div>
+                            <dt>Predicted</dt>
+                            <dd>
+                                @Predicted(predicted)
+                                <span class="detail">@Format.Pace(next.DistanceMeters!.Value, predicted.Seconds)</span>
+                            </dd>
+                        </div>
+                    }
+                </dl>
+            }
+            @Links(next)
+        </div>
+    }
+
+    @if (others.Count > 0)
+    {
+        @* A checkbox, so the list opens without JavaScript: this page isn't interactive. *@
+        @if (others.Count > VisibleRows)
+        {
+            <input type="checkbox" class="more-toggle visually-hidden" id="upcoming-more" />
+        }
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">Date</th>
+                        <th scope="col">Race</th>
+                        <th scope="col" class="num">km</th>
+                        <th scope="col" class="num">Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var (race, index) in others.Select((r, i) => (r, i)))
+                    {
+                        <tr class="@RowClass(race, index)">
+                            <td>
+                                @Format.Date(race.Date)
+                                <span class="detail">@Countdown(race.Date)</span>
+                            </td>
+                            <td class="name">
+                                @RaceName(race)
+                                @if (race.City is { } city)
+                                {
+                                    <span class="detail">@city</span>
+                                }
+                                @if (!race.IsRegistered)
+                                {
+                                    <span class="detail">not registered</span>
+                                }
+                                @Links(race)
+                            </td>
+                            <td class="num">@(race.DistanceMeters is { } meters ? Format.Km(meters) : Format.Missing)</td>
+                            <td class="num">
+                                @if (race.TargetSeconds is { } target)
+                                {
+                                    <span class="time">
+                                        <span class="detail">Target</span>
+                                        @Format.Duration(target)
+                                    </span>
+                                }
+                                @if (race.Prediction is { } predicted)
+                                {
+                                    <span class="time">
+                                        <span class="detail">Predicted</span>
+                                        @Predicted(predicted)
+                                    </span>
+                                }
+                                @if (race.TargetSeconds is null && race.Prediction is null)
+                                {
+                                    @Format.Missing
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (others.Count > VisibleRows)
+        {
+            <label class="more-button" for="upcoming-more">
+                <span class="show-more">Show @(others.Count - VisibleRows) more</span>
+                <span class="show-less">Show less</span>
+            </label>
+        }
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<UpcomingRaceRow> Races { get; set; } = [];
+    [Parameter, EditorRequired] public DateOnly Today { get; set; }
+
+    const int VisibleRows = 2;
+
+    UpcomingRaceRow? next;
+    List<UpcomingRaceRow> others = [];
+
+    protected override void OnParametersSet()
+    {
+        next = Races.FirstOrDefault(r => r.IsRegistered);
+        others = [.. Races.Where(r => r != next)];
+    }
+
+    string Countdown(DateOnly date) => (date.DayNumber - Today.DayNumber) switch
+    {
+        0 => "today",
+        1 => "tomorrow",
+        var days => $"in {days} days"
+    };
+
+    static string? RowClass(UpcomingRaceRow race, int index)
+    {
+        string?[] classes = [race.IsRegistered ? null : "not-registered", index >= VisibleRows ? "extra" : null];
+        var names = string.Join(" ", classes.OfType<string>());
+        return names.Length > 0 ? names : null;
+    }
+
+    static string NextDetails(UpcomingRaceRow race)
+    {
+        var date = Format.Date(race.Date);
+        if (race.StartTime is { } start)
+            date += " " + Format.Time(start);
+        string?[] parts = [date, race.City, race.DistanceMeters is { } meters ? $"{Format.Km(meters)} km" : null];
+        return string.Join(" · ", parts.OfType<string>());
+    }
+
+    static string Number(double value) => value.ToString(CultureInfo.InvariantCulture);
+
+    static RenderFragment RaceName(UpcomingRaceRow race) => __builder =>
+    {
+        if (race.Link is { } link)
+        {
+            <a href="@link" target="_blank" rel="noopener noreferrer">@race.Name</a>
+        }
+        else
+        {
+            @race.Name
+        }
+    };
+
+    static RenderFragment Predicted(PredictedFinish prediction) => __builder =>
+    {
+        if (prediction.IsEstimate)
+        {
+            <span aria-hidden="true" title="Estimated from Garmin's predictions">~</span><span class="visually-hidden">about </span>
+        }
+        @Format.Duration(prediction.Seconds)
+    };
+
+    // The calculator gets the target, otherwise the prediction. A full page load: enhanced navigation wouldn't run its script.
+    static RenderFragment Links(UpcomingRaceRow race) => __builder =>
+    {
+        <span class="links">
+            <a class="notion-link" href="https://app.notion.com/p/@race.NotionPageId.ToString("N")" target="_blank" rel="noopener noreferrer" aria-label="@($"{race.Name} in Notion")">Notion</a>
+            @if (race.DistanceMeters is { } meters)
+            {
+                var seconds = race.TargetSeconds ?? race.Prediction?.Seconds;
+                var query = $"meters={Number(meters)}" + (seconds is { } s ? $"&seconds={Number(Math.Round(s))}" : "");
+                <a class="calculator-link" href="pace?@query" data-enhance-nav="false" aria-label="@($"{race.Name} in the pace calculator")">Pace calculator</a>
+            }
+        </span>
+    };
+}

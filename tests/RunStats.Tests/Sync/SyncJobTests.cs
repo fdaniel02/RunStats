@@ -5,6 +5,7 @@ using System.Diagnostics.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using RunStats.Data;
 using RunStats.Garmin;
@@ -21,6 +22,7 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
     static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     readonly FakeGarminGateway garmin = new();
+    readonly FakeNotionRaces notion = new();
     readonly FixedTimeProvider time = new(new DateTimeOffset(2026, 10, 26, 12, 0, 0, TimeSpan.Zero));
     readonly FakeLogger<SyncJob> logger = new();
     readonly ServiceProvider services = new ServiceCollection().AddMetrics().BuildServiceProvider();
@@ -36,7 +38,10 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
     public async ValueTask DisposeAsync() => await services.DisposeAsync();
 
     SyncJob Job(int pageSize = 100) =>
-        new(db, garmin, new RunProcessing(db, garmin), new RecordsSync(garmin, new PersonalRecordUpdate(db, time), new RacePredictionUpdate(db)), metrics, time, logger) { PageSize = pageSize };
+        new(db, garmin, new RunProcessing(db, garmin),
+            new RecordsSync(garmin, new PersonalRecordUpdate(db, time), new RacePredictionUpdate(db),
+                new UpcomingRacesSync(notion, db, new Clock(TimeZoneInfo.Utc, time), NullLogger<UpcomingRacesSync>.Instance)),
+            metrics, time, logger) { PageSize = pageSize };
 
     async Task<SyncRun> SyncAsync(SyncJob? job = null, SyncTrigger trigger = SyncTrigger.Schedule, CancellationToken? cancellationToken = null)
     {
@@ -57,6 +62,29 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
     {
         await using var context = await db.CreateDbContextAsync(Ct);
         return await context.Runs.Include(r => r.RawData).AsNoTracking().OrderBy(r => r.Id).ToListAsync(Ct);
+    }
+
+    [Fact]
+    public async Task A_sync_copies_the_upcoming_races()
+    {
+        notion.Races.Add(FakeNotionRaces.Race());
+
+        var sync = await SyncAsync();
+
+        Assert.Equal(SyncStatus.Succeeded, sync.Status);
+        await using var context = await db.CreateDbContextAsync(Ct);
+        Assert.Equal("Zandvoort", (await context.UpcomingRaces.SingleAsync(Ct)).Name);
+    }
+
+    [Fact]
+    public async Task A_Notion_failure_doesnt_fail_the_sync()
+    {
+        garmin.Activities.Add(Activity(1));
+        notion.Failure = new HttpRequestException("Notion is down");
+
+        var sync = await SyncAsync();
+
+        Assert.Equal((SyncStatus.Succeeded, 1, null), (sync.Status, sync.RunsAdded, sync.Error));
     }
 
     [Fact]

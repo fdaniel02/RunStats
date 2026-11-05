@@ -7,7 +7,8 @@ using RunStats.Processing;
 namespace RunStats.Sync;
 
 // One sync: reads Garmin's whole activity list, downloads new and changed runs, removes runs deleted in Garmin,
-// processes the raw data of every run that needs it, and updates the personal records and race predictions.
+// processes the raw data of every run that needs it, updates the personal records and race predictions, and copies the
+// upcoming races from Notion.
 public class SyncJob(
     IDbContextFactory<AppDbContext> dbFactory,
     IGarminGateway garmin,
@@ -59,6 +60,8 @@ public class SyncJob(
 
             var predictionCount = await records.UpdateRacePredictionsAsync(cancellationToken);
             logger.RacePredictionsUpdated(syncId, predictionCount);
+
+            await records.UpdateUpcomingRacesAsync(syncId, cancellationToken);
 
             await FinishAsync(db, sync, SyncStatus.Succeeded, null);
             metrics.LastSuccessAt(sync.FinishedAtUtc!.Value);
