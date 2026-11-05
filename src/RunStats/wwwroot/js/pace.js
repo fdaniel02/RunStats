@@ -45,7 +45,18 @@ export const formatKm = meters => String(Number((meters / 1000).toFixed(4)));
 
 export const formatSpeed = secondsPerKm => (3600 / secondsPerKm).toFixed(1);
 
-export function setupCalculator(document) {
+const positiveNumber = text => {
+    const number = Number(text);
+    return text !== null && number > 0 && Number.isFinite(number) ? number : null;
+};
+
+// A race on the dashboard links here with its distance and time.
+export function parseStart(search) {
+    const query = new URLSearchParams(search);
+    return { meters: positiveNumber(query.get("meters")), seconds: positiveNumber(query.get("seconds")) };
+}
+
+export function setupCalculator(document, search = "") {
     const element = id => document.getElementById(id);
     const distanceInput = element("pace-distance");
     const timeInput = element("pace-time");
@@ -61,8 +72,11 @@ export function setupCalculator(document) {
     const references = [...document.querySelectorAll(".pace-reference")];
 
     const start = references.find(r => r.dataset.kind === "prediction" && Number(r.dataset.meters) === StartMeters);
-    let meters = StartMeters;
+    const requested = parseStart(search);
+    let meters = requested.meters ?? StartMeters;
     let secondsPerKm = start ? Number(start.dataset.seconds) / (StartMeters / 1000) : DefaultPace;
+    if (requested.seconds !== null)
+        secondsPerKm = requested.seconds / (meters / 1000);
 
     const isSelected = button => Math.abs(Number(button.dataset.meters) - meters) < SameDistanceMeters;
 
@@ -152,4 +166,4 @@ export function setupCalculator(document) {
 }
 
 if (typeof document !== "undefined" && document.getElementById("pace-calculator"))
-    setupCalculator(document);
+    setupCalculator(document, location.search);

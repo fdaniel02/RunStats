@@ -57,4 +57,16 @@ public static partial class Log
 
     [LoggerMessage(EventId = 22, Level = LogLevel.Information, Message = "Sync {SyncId}: {Count} race predictions from Garmin")]
     public static partial void RacePredictionsUpdated(this ILogger logger, int syncId, int count);
+
+    [LoggerMessage(EventId = 23, Level = LogLevel.Information, Message = "Sync {SyncId}: {Count} upcoming races from Notion")]
+    public static partial void UpcomingRacesUpdated(this ILogger logger, int syncId, int count);
+
+    [LoggerMessage(EventId = 24, Level = LogLevel.Warning, Message = "Sync {SyncId}: Notion couldn't be read, keeping the last upcoming races: {ErrorType}: {ErrorMessage}")]
+    public static partial void UpcomingRacesFailed(this ILogger logger, int syncId, string errorType, string errorMessage);
+
+    [LoggerMessage(EventId = 25, Level = LogLevel.Information, Message = "Sync {SyncId}: Notion isn't configured, skipping the upcoming races")]
+    public static partial void UpcomingRacesNotConfigured(this ILogger logger, int syncId);
+
+    [LoggerMessage(EventId = 26, Level = LogLevel.Warning, Message = "Sync {SyncId}: race {Race} has an unreadable target time: {TargetTime}")]
+    public static partial void UpcomingRaceTargetUnreadable(this ILogger logger, int syncId, string race, string targetTime);
 }

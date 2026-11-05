@@ -100,6 +100,16 @@ The browser loads the tiles itself, so the key is visible in the page, as with e
 Leaflet is kept in `wwwroot/lib/leaflet` rather than loaded from a CDN, so Dependabot doesn't update it; to update,
 replace the files with a newer release from cdnjs and check them against cdnjs' SRI hashes.
 
+### Upcoming races
+
+The dashboard's upcoming races come from a Notion database, through a read-only internal connection that has access to
+that database only. Two settings connect it: `Notion:Token` (the connection's API token) and `Notion:DataSourceId` (the
+database's data source). Use user-secrets locally and `Notion__Token` and `Notion__DataSourceId` in the container.
+Without them, the sync skips this step and the card stays empty.
+
+The database needs these properties: `Race` (title), `Datum` (date), `Distance` (number, km), `Type` (select),
+`Registered` (checkbox), `City` (text), `Link` (URL) and `Target Time` (text: `1:45:30`, `45:30`, or `45` for minutes).
+
 ### Time zone
 
 "This month", "this year" and weekly totals use the time zone in the `TimeZone` setting (an IANA id,
@@ -209,6 +219,15 @@ It then stores Garmin's latest race predictions in `RacePredictions`, one row pe
 type. A distance Garmin doesn't report keeps its last prediction. Garmin can return up to a year of daily predictions per
 request, so no history is kept here.
 
+Finally, it copies the races dated today or later from Notion into `UpcomingRaces`, removing the ones no longer there. If
+Notion can't be read, the sync logs a warning and still succeeds, and the dashboard keeps the last copy. An unreadable
+target time is logged, and the race is shown without one.
+
+The dashboard adds a predicted time to each race. A race within 0.5% of 5 km, 10 km, a half or a full marathon shows
+Garmin's prediction. Between those distances it's interpolated on log-log axes, and beyond them it's extended from the
+nearest prediction with Riegel's formula (exponent 1.06); both are marked `~` as estimates. Trail and obstacle races and
+races without a distance get no prediction.
+
 Only one sync runs at a time. Each is recorded in `SyncRuns` with its progress and result; a sync that was running
 when the app stopped is marked as interrupted at the next start.
 
@@ -219,7 +238,7 @@ curl.exe http://localhost:5310/api/sync/1                          # status, cou
 
 `trigger` is `schedule` (default) or `manual`. A request while a sync runs returns that sync (`"started": false`).
 
-Telemetry: a `Sync` span (the gateway's spans join its trace), log events 10–19, and the metrics `runstats.syncs`
+Telemetry: a `Sync` span (the gateway's spans join its trace), log events 10–19 and 22–26, and the metrics `runstats.syncs`
 (by trigger and outcome), `runstats.sync.duration`, `runstats.sync.runs` (by change: added, updated, deleted, processed, processing_failed) and
 `runstats.sync.last_success` (Unix time of the last successful sync).
 

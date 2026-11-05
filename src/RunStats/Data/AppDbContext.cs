@@ -17,6 +17,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<YearGoal> YearGoals => Set<YearGoal>();
     public DbSet<PersonalRecord> PersonalRecords => Set<PersonalRecord>();
     public DbSet<RacePrediction> RacePredictions => Set<RacePrediction>();
+    public DbSet<UpcomingRace> UpcomingRaces => Set<UpcomingRace>();
     public DbSet<SyncRun> SyncRuns => Set<SyncRun>();
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
@@ -69,6 +70,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasKey(x => x.TypeId);
             e.Property(x => x.TypeId).ValueGeneratedNever();
+        });
+        modelBuilder.Entity<UpcomingRace>(e =>
+        {
+            e.HasKey(x => x.NotionPageId);
+            e.Property(x => x.NotionPageId).ValueGeneratedNever();
+            e.Property(x => x.Name).HasMaxLength(RunStats.Sync.UpcomingRacesSync.MaxNameLength);
+            e.Property(x => x.Type).HasMaxLength(RunStats.Sync.UpcomingRacesSync.MaxTypeLength);
+            e.Property(x => x.City).HasMaxLength(RunStats.Sync.UpcomingRacesSync.MaxCityLength);
+            e.Property(x => x.Link).HasMaxLength(RunStats.Sync.UpcomingRacesSync.MaxLinkLength);
         });
         modelBuilder.Entity<SyncRun>(e =>
         {
