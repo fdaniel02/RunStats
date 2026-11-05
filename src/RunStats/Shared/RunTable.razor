@@ -9,12 +9,16 @@ else
         <table class="runs">
             <thead>
                 <tr>
+                    <th scope="col" class="optional">Type</th>
                     <th scope="col">Date</th>
+                    @if (ShowStartTime)
+                    {
+                        <th scope="col" class="optional">Start</th>
+                    }
                     @if (ShowName)
                     {
                         <th scope="col">Name</th>
                     }
-                    <th scope="col" class="optional">Type</th>
                     <th scope="col" class="optional">Benefit</th>
                     <th scope="col" class="num">km</th>
                     <th scope="col" class="num optional">Time</th>
@@ -26,7 +30,7 @@ else
                         @MetricHeader("Cadence", "spm")
                         @MetricHeader("Stride", "m")
                         @MetricHeader("Energy", "kcal")
-                        @MetricHeader("Ascent / descent", "m")
+                        @MetricHeader("Asc / desc", "m")
                     }
                 </tr>
             </thead>
@@ -34,8 +38,14 @@ else
                 @foreach (var run in Rows)
                 {
                     <tr class="@(MarkRaces && run.IsRace ? "race" : null)">
+                        @* A link of its own above the row's link, or the row's link would cover the icon's tooltip. *@
+                        <td class="optional"><a class="type-link" href="runs/@run.Id" data-enhance-nav="false" tabindex="-1" aria-hidden="true" title="@Format.RunType(run.TypeKey)"><RunTypeIcon TypeKey="@run.TypeKey" /></a><span class="visually-hidden">@Format.RunType(run.TypeKey)</span></td>
                         @* Full page load: the details page's map script wouldn't run after enhanced navigation. *@
                         <td><a class="row-link" href="runs/@run.Id" data-enhance-nav="false">@Format.Date(run.Date)</a></td>
+                        @if (ShowStartTime)
+                        {
+                            <td class="optional">@Format.Time(run.StartTime)</td>
+                        }
                         @if (ShowName)
                         {
                             <td class="name">@run.Name@if (MarkRaces && run.IsRace)
@@ -43,7 +53,6 @@ else
                                     <span class="visually-hidden"> (race)</span>
                                 }</td>
                         }
-                        <td class="optional">@Format.RunType(run.TypeKey)</td>
                         <td class="optional">@Benefit(run.TrainingEffectLabel)</td>
                         <td class="num">@Format.Km(run.DistanceMeters)</td>
                         <td class="num optional">@Format.Duration(run.DurationSeconds)</td>
@@ -74,6 +83,7 @@ else
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<RunRow> Rows { get; set; } = [];
+    [Parameter] public bool ShowStartTime { get; set; }
     [Parameter] public bool ShowName { get; set; }
     [Parameter] public bool ShowMetrics { get; set; }
     // A tinted background for races, where they're mixed with other runs.

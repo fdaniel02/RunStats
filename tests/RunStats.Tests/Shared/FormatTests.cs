@@ -99,6 +99,10 @@ public class FormatTests
     public void Date_and_time_are_iso_8601_to_the_minute() =>
         Assert.Equal("2025-09-07 08:05", Format.DateAndTime(new DateTime(2025, 9, 7, 8, 5, 59)));
 
+    [Fact]
+    public void Times_are_on_the_24_hour_clock_to_the_minute() =>
+        Assert.Equal("18:05", Format.Time(new TimeOnly(18, 5, 59)));
+
     [Theory]
     [InlineData("running", "Run")]
     [InlineData("treadmill_running", "Treadmill")]

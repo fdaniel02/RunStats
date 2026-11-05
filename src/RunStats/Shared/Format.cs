@@ -68,6 +68,8 @@ public static class Format
 
     public static string DateAndTime(DateTime local) => local.ToString("yyyy-MM-dd HH:mm", Culture);
 
+    public static string Time(TimeOnly time) => time.ToString("HH:mm", Culture);
+
     // Garmin's type keys for runs (parent type 1, and running itself).
     public static string RunType(string typeKey) => typeKey switch
     {

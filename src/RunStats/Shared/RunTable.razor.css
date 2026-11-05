@@ -44,6 +44,14 @@ table.runs {
             outline: none;
         }
 
+    table.runs .type-link {
+        position: relative;
+        z-index: 1;
+        display: inline-block;
+        vertical-align: middle;
+        color: inherit;
+    }
+
     table.runs tbody tr:has(.row-link:focus-visible) {
         outline: 2px solid var(--accent);
         outline-offset: -2px;
