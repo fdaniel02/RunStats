@@ -69,6 +69,16 @@ public sealed class RunListQueriesTests(SqlServerFixture sqlServer) : IAsyncLife
     }
 
     [Fact]
+    public async Task Rows_carry_the_runs_local_start_time()
+    {
+        await AddAsync(new DateTime(2026, 10, 9, 23, 59, 0));
+
+        var data = await Load(queries);
+
+        Assert.Equal(new TimeOnly(23, 59), data.Runs[0].StartTime);
+    }
+
+    [Fact]
     public async Task Rows_carry_the_runs_metrics()
     {
         await using (var context = await db.CreateDbContextAsync(Ct))

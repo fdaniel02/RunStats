@@ -63,7 +63,7 @@ else
                 }
             </div>
         }
-        <RunTable Rows="data.Runs" ShowName="true" ShowMetrics="true" MarkRaces="true" EmptyText="No runs match these filters." />
+        <RunTable Rows="data.Runs" ShowStartTime="true" ShowName="true" ShowMetrics="true" MarkRaces="true" EmptyText="No runs match these filters." />
         @if (data.PageCount > 1)
         {
             <nav class="pager" aria-label="Pages">

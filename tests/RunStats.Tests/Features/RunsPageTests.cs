@@ -20,7 +20,7 @@ public class RunsPageTests : BunitContext
     }
 
     static readonly RunRow Amsterdam = new(2, new DateOnly(2026, 10, 17), "running", "Amsterdam Running", 7500, 2397,
-        new RunRowMetrics(3.13, 4.5, 162, 181, 171, 186, 109.7, 512.4, 12, 14));
+        new RunRowMetrics(3.13, 4.5, 162, 181, 171, 186, 109.7, 512.4, 12, 14), StartTime: new TimeOnly(18, 4, 30));
     static readonly RunRow Treadmill = new(1, new DateOnly(2026, 10, 9), "treadmill_running", "Treadmill", 6100, 2104,
         new RunRowMetrics(2.9, null, 140, 155, 166, 170, 104, 380, null, null));
 
@@ -132,7 +132,46 @@ public class RunsPageTests : BunitContext
         var rows = Render(Data()).FindAll("tbody tr");
 
         Assert.Equal(2, rows.Count);
-        Assert.Equal(["2026-10-17", "Amsterdam Running", "Run", "–", "7.5", "39:57", "5:20 / 3:42"], rows[0].Children.Take(7).Select(c => c.TextContent));
+        Assert.Equal(["Run", "2026-10-17", "18:04", "Amsterdam Running", "–", "7.5", "39:57", "5:20 / 3:42"], rows[0].Children.Take(8).Select(c => c.TextContent));
+    }
+
+    [Theory]
+    [InlineData("running", "icon-run", "Run")]
+    [InlineData("street_running", "icon-run", "Street run")]
+    [InlineData("treadmill_running", "icon-treadmill", "Treadmill")]
+    [InlineData("trail_running", "icon-trail", "Trail run")]
+    [InlineData("track_running", "icon-track", "Track")]
+    [InlineData("indoor_running", "icon-indoor", "Indoor run")]
+    [InlineData("virtual_run", "icon-virtual", "Virtual run")]
+    [InlineData("obstacle_run", "icon-obstacle", "Obstacle run")]
+    [InlineData("new_garmin_type", "icon-run", "New garmin type")]
+    public void The_type_is_an_icon_with_its_name_as_tooltip_and_for_screen_readers(string typeKey, string icon, string name)
+    {
+        var cell = Render(Data(runs: [Amsterdam with { TypeKey = typeKey }])).FindAll("tbody tr")[0].Children[0];
+
+        var link = cell.QuerySelector("a.type-link")!;
+        Assert.Equal(name, link.GetAttribute("title"));
+        Assert.Contains(icon, link.QuerySelector("svg")!.ClassName);
+        Assert.Equal(name, cell.QuerySelector(".visually-hidden")!.TextContent);
+    }
+
+    [Fact]
+    public void Clicking_the_type_icon_opens_the_run_without_adding_a_tab_stop()
+    {
+        var link = Render(Data()).Find("tbody tr a.type-link");
+
+        Assert.Equal(("runs/2", "false", "-1", "true"),
+            (link.GetAttribute("href"), link.GetAttribute("data-enhance-nav"), link.GetAttribute("tabindex"), link.GetAttribute("aria-hidden")));
+    }
+
+    [Fact]
+    public void The_start_time_follows_the_date_and_is_hidden_on_a_phone()
+    {
+        var page = Render(Data());
+
+        var header = page.FindAll("thead th")[2];
+        Assert.Equal(("Start", "optional"), (header.TextContent, header.ClassName));
+        Assert.Equal("optional", page.FindAll("tbody tr")[0].Children[2].ClassName);
     }
 
     [Fact]
@@ -140,14 +179,14 @@ public class RunsPageTests : BunitContext
     {
         var page = Render(Data());
 
-        Assert.Equal("Pace/km", page.FindAll("thead th")[6].TextContent);
-        Assert.Equal("/km", page.FindAll("thead th")[6].QuerySelector(".unit")!.TextContent);
+        Assert.Equal("Pace/km", page.FindAll("thead th")[7].TextContent);
+        Assert.Equal("/km", page.FindAll("thead th")[7].QuerySelector(".unit")!.TextContent);
     }
 
     [Fact]
     public void Max_pace_is_shown_only_on_wide_screens()
     {
-        var pace = Render(Data()).FindAll("tbody tr")[0].Children[6];
+        var pace = Render(Data()).FindAll("tbody tr")[0].Children[7];
 
         Assert.Equal(" / 3:42", pace.QuerySelector("span.metric")!.TextContent);
     }
@@ -155,7 +194,7 @@ public class RunsPageTests : BunitContext
     [Fact]
     public void Without_a_max_speed_the_max_pace_is_missing()
     {
-        Assert.Equal("5:45 / –", Render(Data()).FindAll("tbody tr")[1].Children[6].TextContent);
+        Assert.Equal("5:45 / –", Render(Data()).FindAll("tbody tr")[1].Children[7].TextContent);
     }
 
     [Fact]
@@ -163,7 +202,7 @@ public class RunsPageTests : BunitContext
     {
         var page = Render(Data());
 
-        Assert.Equal(["Speedkm/h", "HRbpm", "Cadencespm", "Stridem", "Energykcal", "Ascent / descentm"],
+        Assert.Equal(["Speedkm/h", "HRbpm", "Cadencespm", "Stridem", "Energykcal", "Asc / descm"],
             page.FindAll("th.metric").Select(th => th.TextContent));
         var rows = page.FindAll("tbody tr");
         Assert.Equal(["11.3 / 16.2", "162 / 181", "171 / 186", "1.10", "512", "12 / 14"], rows[0].QuerySelectorAll("td.metric").Select(c => c.TextContent));
@@ -176,11 +215,11 @@ public class RunsPageTests : BunitContext
         var page = Render(Data(runs: [Amsterdam with { TrainingEffectLabel = "LACTATE_THRESHOLD" }, Treadmill]));
         var rows = page.FindAll("tbody tr");
 
-        Assert.Equal("Benefit", page.FindAll("thead th")[3].TextContent);
-        var benefit = rows[0].Children[3];
+        Assert.Equal("Benefit", page.FindAll("thead th")[4].TextContent);
+        var benefit = rows[0].Children[4];
         Assert.Equal("Threshold", benefit.TextContent);
         Assert.Equal("effect-swatch effect-4", benefit.QuerySelector(".effect-swatch")!.GetAttribute("class"));
-        Assert.Equal("–", rows[1].Children[3].TextContent);
+        Assert.Equal("–", rows[1].Children[4].TextContent);
     }
 
     [Fact]
