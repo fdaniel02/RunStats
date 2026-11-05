@@ -16,6 +16,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<RunHeartRateBand> RunHeartRateBands => Set<RunHeartRateBand>();
     public DbSet<YearGoal> YearGoals => Set<YearGoal>();
     public DbSet<PersonalRecord> PersonalRecords => Set<PersonalRecord>();
+    public DbSet<RacePrediction> RacePredictions => Set<RacePrediction>();
     public DbSet<SyncRun> SyncRuns => Set<SyncRun>();
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
@@ -60,6 +61,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.EncodedPolyline).IsUnicode(false);
         });
         modelBuilder.Entity<PersonalRecord>(e =>
+        {
+            e.HasKey(x => x.TypeId);
+            e.Property(x => x.TypeId).ValueGeneratedNever();
+        });
+        modelBuilder.Entity<RacePrediction>(e =>
         {
             e.HasKey(x => x.TypeId);
             e.Property(x => x.TypeId).ValueGeneratedNever();

@@ -27,13 +27,14 @@ public class MainLayoutTests : BunitContext
     [InlineData("/years/2025", "Year")]
     [InlineData("/runs", "Runs")]
     [InlineData("/trends", "Trends")]
+    [InlineData("/pace", "Pace")]
     [InlineData("/heatmap", "Heatmap")]
     public void Highlights_the_current_screen(string path, string screen)
     {
         var layout = Render(path);
 
         var links = layout.FindAll(".app-nav a");
-        Assert.Equal(["Dashboard", "Year", "Runs", "Trends", "Heatmap"], links.Select(l => l.TextContent));
+        Assert.Equal(["Dashboard", "Year", "Runs", "Trends", "Pace", "Heatmap"], links.Select(l => l.TextContent));
         Assert.Equal(screen, Assert.Single(links, l => l.ClassList.Contains("active")).TextContent);
     }
 
@@ -61,6 +62,6 @@ public class MainLayoutTests : BunitContext
     {
         var links = Render("/").FindAll(".app-nav a");
 
-        Assert.Equal(["Year", "Heatmap"], links.Where(a => a.GetAttribute("data-enhance-nav") == "false").Select(a => a.TextContent));
+        Assert.Equal(["Year", "Pace", "Heatmap"], links.Where(a => a.GetAttribute("data-enhance-nav") == "false").Select(a => a.TextContent));
     }
 }

@@ -204,6 +204,20 @@ public class GarminGatewayClientTests
     }
 
     [Fact]
+    public async Task Race_predictions_come_back_as_they_came()
+    {
+        handler.Responses["/race-predictions"] = Json("""{"time5K":1310}""");
+
+        Assert.Equal("""{"time5K":1310}""", await client.GetRacePredictionsAsync(Ct));
+    }
+
+    [Fact]
+    public async Task Missing_race_predictions_are_null()
+    {
+        Assert.Null(await client.GetRacePredictionsAsync(Ct));
+    }
+
+    [Fact]
     public async Task Missing_personal_records_are_an_error()
     {
         var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.GetPersonalRecordsAsync(Ct));

@@ -15,6 +15,7 @@ public interface IGarminGateway
     Task<byte[]?> GetFitFileAsync(long id, CancellationToken cancellationToken);
     Task<IReadOnlyList<FitSample>> DecodeFitAsync(byte[] fitFile, CancellationToken cancellationToken);
     Task<string> GetPersonalRecordsAsync(CancellationToken cancellationToken);
+    Task<string?> GetRacePredictionsAsync(CancellationToken cancellationToken);
 }
 
 // The gateway waits after a rate limit or a failed login; until then it answers 503 with Retry-After.
@@ -59,6 +60,9 @@ public class GarminGatewayClient(HttpClient http) : IGarminGateway
     public async Task<string> GetPersonalRecordsAsync(CancellationToken cancellationToken) =>
         await GetStringAsync("personal-records", cancellationToken)
         ?? throw new HttpRequestException("The gateway didn't find the personal records.", null, HttpStatusCode.NotFound);
+
+    public Task<string?> GetRacePredictionsAsync(CancellationToken cancellationToken) =>
+        GetStringAsync("race-predictions", cancellationToken);
 
     public async Task<IReadOnlyList<FitSample>> DecodeFitAsync(byte[] fitFile, CancellationToken cancellationToken)
     {

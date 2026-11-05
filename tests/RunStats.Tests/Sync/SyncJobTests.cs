@@ -36,7 +36,7 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
     public async ValueTask DisposeAsync() => await services.DisposeAsync();
 
     SyncJob Job(int pageSize = 100) =>
-        new(db, garmin, new RunProcessing(db, garmin), new PersonalRecordUpdate(db, time), metrics, time, logger) { PageSize = pageSize };
+        new(db, garmin, new RunProcessing(db, garmin), new RecordsSync(garmin, new PersonalRecordUpdate(db, time), new RacePredictionUpdate(db)), metrics, time, logger) { PageSize = pageSize };
 
     async Task<SyncRun> SyncAsync(SyncJob? job = null, SyncTrigger trigger = SyncTrigger.Schedule, CancellationToken? cancellationToken = null)
     {
@@ -294,7 +294,7 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
         var sync = await SyncAsync();
 
         Assert.Equal(SyncStatus.Succeeded, sync.Status);
-        Assert.Equal("personal-records", garmin.Calls.Last());
+        Assert.Equal(["personal-records", "race-predictions"], garmin.Calls.TakeLast(2));
         await using var context = await db.CreateDbContextAsync(Ct);
         var record = Assert.Single(await context.PersonalRecords.ToListAsync(Ct));
         Assert.Equal((3, 1250.5, 1L), (record.TypeId, record.Value, record.RunId!.Value));
@@ -313,6 +313,49 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
         Assert.Equal((SyncStatus.Failed, 1, 1), (sync.Status, sync.RunsAdded, sync.RunsProcessed));
         Assert.Equal("Garmin is unavailable: Garmin rate limit reached", sync.Error);
         Assert.Single(await StoredRunsAsync());
+    }
+
+    [Fact]
+    public async Task Race_predictions_are_stored_at_the_end()
+    {
+        garmin.RacePredictionsJson = """{"calendarDate":"2026-11-05","time5K":1310,"time10K":2806}""";
+
+        var sync = await SyncAsync();
+
+        Assert.Equal(SyncStatus.Succeeded, sync.Status);
+        await using var context = await db.CreateDbContextAsync(Ct);
+        var stored = await context.RacePredictions.OrderBy(p => p.TypeId).ToListAsync(Ct);
+        Assert.Equal([(3, 1310.0), (4, 2806.0)], stored.Select(p => (p.TypeId, p.Seconds)));
+        var log = Assert.Single(logger.Collector.GetSnapshot(), r => r.Id.Id == 22);
+        Assert.Equal($"Sync {sync.Id}: 2 race predictions from Garmin", log.Message);
+    }
+
+    [Fact]
+    public async Task Without_predictions_from_Garmin_the_sync_succeeds_and_keeps_the_last_ones()
+    {
+        garmin.RacePredictionsJson = """{"calendarDate":"2026-11-05","time5K":1310}""";
+        await SyncAsync();
+        garmin.RacePredictionsJson = null;
+
+        var sync = await SyncAsync();
+
+        Assert.Equal(SyncStatus.Succeeded, sync.Status);
+        await using var context = await db.CreateDbContextAsync(Ct);
+        Assert.Equal(1310, Assert.Single(await context.RacePredictions.ToListAsync(Ct)).Seconds);
+    }
+
+    [Fact]
+    public async Task Failing_to_get_the_race_predictions_fails_the_sync_but_keeps_the_personal_records()
+    {
+        garmin.PersonalRecordsJson = """[{"typeId":3,"activityType":"running","value":1250.5,"prStartTimeGmt":1761385800000}]""";
+        garmin.Fail = call => call == "race-predictions" ? new GarminUnavailableException("Garmin rate limit reached", null) : null;
+
+        var sync = await SyncAsync();
+
+        Assert.Equal(SyncStatus.Failed, sync.Status);
+        Assert.Equal("Garmin is unavailable: Garmin rate limit reached", sync.Error);
+        await using var context = await db.CreateDbContextAsync(Ct);
+        Assert.Single(await context.PersonalRecords.ToListAsync(Ct));
     }
 
     [Fact]

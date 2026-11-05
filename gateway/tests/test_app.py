@@ -94,6 +94,14 @@ def test_personal_records(client, garmin):
     assert response.json() == [{"typeId": 3, "value": 1500.0}]
 
 
+def test_race_predictions(client, garmin):
+    garmin.responses["get_race_predictions"] = {"calendarDate": "2026-11-05", "time5K": 1310}
+
+    response = client.get("/race-predictions")
+
+    assert response.json() == {"calendarDate": "2026-11-05", "time5K": 1310}
+
+
 def test_fit_is_unpacked_from_the_original_download(client, garmin):
     garmin.responses["download_activity"] = zip_of(**{"42_ACTIVITY.fit": b"FIT-DATA"})
 

@@ -22,8 +22,8 @@ The work is planned in the GitHub issues.
 RunStats.slnx
 src/RunStats/                the app (Blazor Server)
   Components/                app shell: App, routes, layout, error pages
-  Features/<Screen>/         one folder per screen (Dashboard, Runs, Heatmap)
-  wwwroot/js/                the heatmap's script (tests: tests/js, Node's test runner)
+  Features/<Screen>/         one folder per screen (Dashboard, Runs, Pace, Heatmap)
+  wwwroot/js/                the scripts for the heatmap, the charts and the pace calculator (tests: tests/js, Node's test runner)
   wwwroot/lib/leaflet/       Leaflet 1.9.4, the map library, kept in the repo (BSD 2-Clause)
   Data/                      DbContext, entities, migrations, startup and time zone helpers
   Garmin/                    client for the Garmin gateway
@@ -205,6 +205,10 @@ Last, the sync updates `PersonalRecords` from Garmin's records, keeping the runn
 `UpdatedAtUtc` changes only when a record's value, run or time changes. Garmin leaves a record's local time empty, so
 `AchievedAtLocal` is its UTC start shifted by the activity's offset.
 
+It then stores Garmin's latest race predictions in `RacePredictions`, one row per distance, keyed by the same record
+type. A distance Garmin doesn't report keeps its last prediction. Garmin can return up to a year of daily predictions per
+request, so no history is kept here.
+
 Only one sync runs at a time. Each is recorded in `SyncRuns` with its progress and result; a sync that was running
 when the app stopped is marked as interrupted at the next start.
 
@@ -266,6 +270,7 @@ The tests use a fake Garmin client; they never call Garmin.
 | `GET /activities/{id}/weather` | Weather during the activity |
 | `GET /activities/{id}/fit` | The original FIT file (404 for activities imported without one) |
 | `GET /personal-records` | Personal records |
+| `GET /race-predictions` | Garmin's latest finish time predictions for 5 km, 10 km, half marathon and marathon |
 | `POST /fit/samples` | Decodes the FIT file in the request body into one sample per second (see below) |
 | `GET /healthz/live`, `GET /healthz/ready` | Up / logged in to Garmin |
 
