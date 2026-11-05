@@ -1,4 +1,4 @@
-@* Runs as a table; on a phone only date, distance and pace stay (plus the name where shown). *@
+@* Runs as a table; on a phone only type, date, distance and pace stay (plus the name where shown). *@
 @if (Rows.Count == 0)
 {
     <p class="muted">@EmptyText</p>
@@ -9,7 +9,7 @@ else
         <table class="runs">
             <thead>
                 <tr>
-                    <th scope="col" class="optional">Type</th>
+                    <th scope="col"><span class="type-label">Type</span></th>
                     <th scope="col">Date</th>
                     @if (ShowStartTime)
                     {
@@ -39,7 +39,7 @@ else
                 {
                     <tr class="@(MarkRaces && run.IsRace ? "race" : null)">
                         @* A link of its own above the row's link, or the row's link would cover the icon's tooltip. *@
-                        <td class="optional"><a class="type-link" href="runs/@run.Id" data-enhance-nav="false" tabindex="-1" aria-hidden="true" title="@Format.RunType(run.TypeKey)"><RunTypeIcon TypeKey="@run.TypeKey" /></a><span class="visually-hidden">@Format.RunType(run.TypeKey)</span></td>
+                        <td><a class="type-link" href="runs/@run.Id" data-enhance-nav="false" tabindex="-1" aria-hidden="true" title="@Format.RunType(run.TypeKey)"><RunTypeIcon TypeKey="@run.TypeKey" /></a><span class="visually-hidden">@Format.RunType(run.TypeKey)</span></td>
                         @* Full page load: the details page's map script wouldn't run after enhanced navigation. *@
                         <td><a class="row-link" href="runs/@run.Id" data-enhance-nav="false">@Format.Date(run.Date)</a></td>
                         @if (ShowStartTime)
