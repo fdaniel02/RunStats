@@ -1,0 +1,72 @@
+@using System.Globalization
+@if (DayWindow.Of(Runs) is not { } window)
+{
+    <p class="muted empty">@EmptyText</p>
+}
+else
+{
+    var counts = window.RunsInProgress(Runs);
+    // At least MaxIntervals, so a quiet year's axis doesn't get ticks like half a run.
+    var (max, step) = ChartScale.Nice(Math.Max(counts.Max(), ChartScale.MaxIntervals));
+    <figure class="plot">
+        <figcaption class="visually-hidden">Number of runs under way per half hour of the day</figcaption>
+        <div class="area">
+            <div class="grid" aria-hidden="true">
+                @foreach (var tick in ChartScale.Ticks(max, step))
+                {
+                    <div class="gridline" style="bottom: @Percent(tick / max)"><span>@tick.ToString("0", CultureInfo.InvariantCulture)</span></div>
+                }
+            </div>
+            <svg class="curve" viewBox="0 0 @window.Slots 100" preserveAspectRatio="none" aria-hidden="true">
+                <path class="fill" d="@AreaPath(counts, max)" />
+                <path class="line" d="@LinePath(counts, max)" />
+            </svg>
+            <ol class="slots">
+                @for (var slot = 0; slot < window.Slots; slot++)
+                {
+                    var text = $"{window.SlotName(slot)}: {Format.RunCount(counts[slot])}";
+                    <li class="slot @(slot < window.Slots / 2 ? "tip-right" : "tip-left")" tabindex="0" aria-label="@text">
+                        <span class="tip" aria-hidden="true">@text</span>
+                    </li>
+                }
+            </ol>
+            <div class="hours" aria-hidden="true">
+                @foreach (var hour in window.TickHours())
+                {
+                    <span style="left: @Percent(window.Fraction(hour * 60))">@DayWindow.HourName(hour)</span>
+                }
+            </div>
+        </div>
+    </figure>
+
+    <details class="as-table">
+        <summary>Show as table</summary>
+        <table>
+            <thead>
+                <tr><th scope="col">Time</th><th scope="col" class="num">Runs</th></tr>
+            </thead>
+            <tbody>
+                @for (var slot = 0; slot < window.Slots; slot++)
+                {
+                    <tr><td>@window.SlotName(slot)</td><td class="num">@counts[slot]</td></tr>
+                }
+            </tbody>
+        </table>
+    </details>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<RunTime> Runs { get; set; } = [];
+    [Parameter, EditorRequired] public string EmptyText { get; set; } = "";
+
+    static string LinePath(int[] counts, double max) => "M" + string.Join(" L", Points(counts, max));
+
+    static string AreaPath(int[] counts, double max) =>
+        string.Create(CultureInfo.InvariantCulture, $"M.5 100 L{string.Join(" L", Points(counts, max))} L{counts.Length - .5} 100 Z");
+
+    // A point at the middle of each slot, with the viewBox's y running down from 100 at the top of the scale.
+    static IEnumerable<string> Points(int[] counts, double max) =>
+        counts.Select((runs, slot) => string.Create(CultureInfo.InvariantCulture, $"{slot + .5} {100 - runs / max * 100:0.##}"));
+
+    static string Percent(double fraction) => (fraction * 100).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+}

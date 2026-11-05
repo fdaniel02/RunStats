@@ -11,6 +11,8 @@ public static class Format
 
     public static string Km(double meters) => (meters / 1000).ToString("0.0", Culture);
 
+    public static string RunCount(int runs) => runs == 1 ? "1 run" : $"{runs} runs";
+
     // 25:03 below an hour, 1:02:45 from an hour.
     public static string Duration(double seconds)
     {

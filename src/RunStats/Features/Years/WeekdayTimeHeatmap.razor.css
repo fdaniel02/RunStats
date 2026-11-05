@@ -1,0 +1,136 @@
+.plot {
+    margin: 0 0 12px;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 36px repeat(var(--slots), minmax(0, 1fr));
+    gap: 2px;
+    margin-bottom: 2px;
+}
+
+.day {
+    font-size: .75rem;
+    line-height: 26px;
+    color: var(--muted);
+}
+
+.cell {
+    position: relative;
+    height: 26px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, .03);
+    outline: none;
+}
+
+/* --effect-6 stops short of 3:1 against the card, so the scale ends at --effect-5. */
+.level-1 {
+    background: var(--effect-1);
+}
+
+.level-2 {
+    background: var(--effect-3);
+}
+
+.level-3 {
+    background: var(--effect-4);
+}
+
+.level-4 {
+    background: var(--effect-5);
+}
+
+.cell[tabindex]:hover,
+.cell[tabindex]:focus-visible {
+    outline: 2px solid var(--text);
+    outline-offset: 1px;
+}
+
+.tip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    z-index: 1;
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: .8rem;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+}
+
+.tip-right .tip {
+    left: 0;
+}
+
+.tip-left .tip {
+    right: 0;
+}
+
+.cell:hover .tip,
+.cell:focus-visible .tip {
+    opacity: 1;
+}
+
+.axis {
+    position: relative;
+    height: 18px;
+    margin: 4px 0 0 38px;
+}
+
+    .axis span {
+        position: absolute;
+        transform: translateX(-50%);
+        font-size: .7rem;
+        color: var(--muted);
+        white-space: nowrap;
+    }
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin: 0 0 12px;
+    font-size: .8rem;
+}
+
+.key {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+}
+
+.as-table summary {
+    cursor: pointer;
+    color: var(--muted);
+    font-size: .85rem;
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+.as-table table {
+    margin-top: 8px;
+    border-collapse: collapse;
+    font-size: .9rem;
+}
+
+.as-table th,
+.as-table td {
+    padding: 4px 12px 4px 0;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.as-table .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.empty {
+    margin: 24px 0;
+}
