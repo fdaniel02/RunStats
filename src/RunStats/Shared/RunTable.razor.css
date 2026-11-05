@@ -88,6 +88,11 @@ table.runs {
         white-space: nowrap;
     }
 
+    /* Positioned against the row, so the cell's overflow doesn't clip it: after a long name it would make the table scroll. */
+    table.runs td.name .visually-hidden {
+        left: 0;
+    }
+
     table.runs .unit {
         display: block;
         font-weight: 400;
@@ -102,5 +107,14 @@ table.runs {
 @media (max-width: 560px) {
     table.runs .optional {
         display: none;
+    }
+
+    /* The word is wider than the icon; screen readers still need it. */
+    table.runs .type-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
     }
 }

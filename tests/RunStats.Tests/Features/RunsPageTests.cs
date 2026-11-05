@@ -156,6 +156,17 @@ public class RunsPageTests : BunitContext
     }
 
     [Fact]
+    public void The_type_stays_on_a_phone_with_its_word_only_for_screen_readers()
+    {
+        var page = Render(Data());
+
+        var header = page.FindAll("thead th")[0];
+        Assert.False(header.ClassList.Contains("optional"));
+        Assert.Equal("Type", header.QuerySelector(".type-label")!.TextContent);
+        Assert.False(page.FindAll("tbody tr")[0].Children[0].ClassList.Contains("optional"));
+    }
+
+    [Fact]
     public void Clicking_the_type_icon_opens_the_run_without_adding_a_tab_stop()
     {
         var link = Render(Data()).Find("tbody tr a.type-link");
