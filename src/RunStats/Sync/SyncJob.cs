@@ -14,7 +14,6 @@ public class SyncJob(
     IGarminGateway garmin,
     RunProcessing processing,
     RecordsSync records,
-    UpcomingRacesSync upcomingRaces,
     SyncMetrics metrics,
     TimeProvider time,
     ILogger<SyncJob> logger)
@@ -62,7 +61,7 @@ public class SyncJob(
             var predictionCount = await records.UpdateRacePredictionsAsync(cancellationToken);
             logger.RacePredictionsUpdated(syncId, predictionCount);
 
-            await upcomingRaces.UpdateAsync(syncId, cancellationToken);
+            await records.UpdateUpcomingRacesAsync(syncId, cancellationToken);
 
             await FinishAsync(db, sync, SyncStatus.Succeeded, null);
             metrics.LastSuccessAt(sync.FinishedAtUtc!.Value);

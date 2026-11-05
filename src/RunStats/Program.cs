@@ -75,9 +75,10 @@ builder.Services.AddTransient<PersonalRecordUpdate>();
 builder.Services.AddTransient<RacePredictionUpdate>();
 builder.Services.AddTransient<RecordsSync>();
 builder.Services.AddOptions<NotionSettings>().BindConfiguration(NotionSettings.Section);
-builder.Services.AddHttpClient<INotionRaces, NotionRaces>(client =>
+builder.Services.AddHttpClient<INotionRaces, NotionRaces>((services, client) =>
 {
-    client.BaseAddress = new Uri("https://api.notion.com/v1/");
+    client.BaseAddress = new Uri(services.GetRequiredService<IConfiguration>()["Notion:BaseUrl"]
+        ?? throw new InvalidOperationException("Setting 'Notion:BaseUrl' is missing (e.g. 'https://api.notion.com/v1/')."));
     client.DefaultRequestHeaders.Add("Notion-Version", NotionRaces.ApiVersion);
 });
 builder.Services.AddTransient<UpcomingRacesSync>();

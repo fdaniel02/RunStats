@@ -110,23 +110,18 @@ public sealed class UpcomingRacesSyncTests(SqlServerFixture sqlServer) : IAsyncL
         Assert.Equal((200, 100, 50), (race.Name.Length, race.City!.Length, race.Type!.Length));
     }
 
-    public static TheoryData<Exception> NotionFailures =>
-    [
-        new HttpRequestException("Unauthorized"),
-        new JsonException("bad json"),
-        new KeyNotFoundException("results"),
-        new InvalidOperationException("wrong json type"),
-        new TaskCanceledException("timeout")
-    ];
-
     [Theory]
-    [MemberData(nameof(NotionFailures))]
-    public async Task When_Notion_fails_the_last_copy_stays_and_a_warning_is_logged(Exception failure)
+    [InlineData(typeof(HttpRequestException))]
+    [InlineData(typeof(JsonException))]
+    [InlineData(typeof(KeyNotFoundException))]
+    [InlineData(typeof(InvalidOperationException))]
+    [InlineData(typeof(TaskCanceledException))]
+    public async Task When_Notion_fails_the_last_copy_stays_and_a_warning_is_logged(Type failure)
     {
         notion.Races.Add(Race());
         await sync.UpdateAsync(1, Ct);
 
-        notion.Failure = failure;
+        notion.Failure = (Exception)Activator.CreateInstance(failure)!;
         await sync.UpdateAsync(2, Ct);
 
         Assert.Single(await StoredAsync());
