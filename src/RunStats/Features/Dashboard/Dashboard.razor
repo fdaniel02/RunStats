@@ -76,6 +76,6 @@
     [
         .. weeks.Select(w => w.IsCurrent
             ? new ChartBar($"This week (from {Format.Date(w.Monday)})", "This week", w.DistanceMeters, w.DurationSeconds, true)
-            : new ChartBar($"{Format.Date(w.Monday)} – {Format.Date(w.Monday.AddDays(6))}", Format.Date(w.Monday), w.DistanceMeters, w.DurationSeconds, false))
+            : new ChartBar($"{Format.Date(w.Monday)} – {Format.Date(w.Monday.AddDays(6))}", w.Monday.ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture), w.DistanceMeters, w.DurationSeconds, false))
     ];
 }
