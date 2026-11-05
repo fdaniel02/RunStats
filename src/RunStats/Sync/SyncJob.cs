@@ -12,8 +12,7 @@ public class SyncJob(
     IDbContextFactory<AppDbContext> dbFactory,
     IGarminGateway garmin,
     RunProcessing processing,
-    PersonalRecordUpdate personalRecords,
-    RacePredictionUpdate racePredictions,
+    RecordsSync records,
     SyncMetrics metrics,
     TimeProvider time,
     ILogger<SyncJob> logger)
@@ -55,13 +54,10 @@ public class SyncJob(
 
             await ProcessAsync(db, sync, cancellationToken);
 
-            var records = PersonalRecordMapper.Running(await garmin.GetPersonalRecordsAsync(cancellationToken));
-            var recordChanges = await personalRecords.ApplyAsync(records, cancellationToken);
+            var recordChanges = await records.UpdatePersonalRecordsAsync(cancellationToken);
             logger.PersonalRecordsUpdated(syncId, recordChanges.Added, recordChanges.Changed, recordChanges.Removed);
 
-            var predictions = RacePredictionMapper.FromJson(await garmin.GetRacePredictionsAsync(cancellationToken));
-            await racePredictions.ApplyAsync(predictions, cancellationToken);
-            logger.RacePredictionsUpdated(syncId, predictions.Count);
+            logger.RacePredictionsUpdated(syncId, await records.UpdateRacePredictionsAsync(cancellationToken));
 
             await FinishAsync(db, sync, SyncStatus.Succeeded, null);
             metrics.LastSuccessAt(sync.FinishedAtUtc!.Value);

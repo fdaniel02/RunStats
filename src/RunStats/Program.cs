@@ -71,6 +71,7 @@ builder.Services.AddTransient<ISyncStatusQueries, SyncStatusQueries>();
 builder.Services.AddTransient<RunProcessing>();
 builder.Services.AddTransient<PersonalRecordUpdate>();
 builder.Services.AddTransient<RacePredictionUpdate>();
+builder.Services.AddTransient<RecordsSync>();
 builder.Services.AddTransient<SyncJob>();
 builder.Services.AddHostedService<SyncWorker>();
 builder.Services.AddSingleton<DatabaseSizeMetrics>();

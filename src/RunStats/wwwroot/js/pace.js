@@ -20,7 +20,7 @@ export function parseDuration(text) {
 
 export function parseKm(text) {
     const trimmed = text.trim().replace(",", ".");
-    if (!/^\d*\.?\d+$|^\d+\.$/.test(trimmed))
+    if (!/^(\d+(\.\d*)?|\.\d+)$/.test(trimmed))
         return null;
     const km = Number(trimmed);
     return km > 0 ? km : null;

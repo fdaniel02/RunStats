@@ -36,7 +36,7 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
     public async ValueTask DisposeAsync() => await services.DisposeAsync();
 
     SyncJob Job(int pageSize = 100) =>
-        new(db, garmin, new RunProcessing(db, garmin), new PersonalRecordUpdate(db, time), new RacePredictionUpdate(db), metrics, time, logger) { PageSize = pageSize };
+        new(db, garmin, new RunProcessing(db, garmin), new RecordsSync(garmin, new PersonalRecordUpdate(db, time), new RacePredictionUpdate(db)), metrics, time, logger) { PageSize = pageSize };
 
     async Task<SyncRun> SyncAsync(SyncJob? job = null, SyncTrigger trigger = SyncTrigger.Schedule, CancellationToken? cancellationToken = null)
     {
