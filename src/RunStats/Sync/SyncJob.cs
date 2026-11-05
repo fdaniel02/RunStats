@@ -57,7 +57,8 @@ public class SyncJob(
             var recordChanges = await records.UpdatePersonalRecordsAsync(cancellationToken);
             logger.PersonalRecordsUpdated(syncId, recordChanges.Added, recordChanges.Changed, recordChanges.Removed);
 
-            logger.RacePredictionsUpdated(syncId, await records.UpdateRacePredictionsAsync(cancellationToken));
+            var predictionCount = await records.UpdateRacePredictionsAsync(cancellationToken);
+            logger.RacePredictionsUpdated(syncId, predictionCount);
 
             await FinishAsync(db, sync, SyncStatus.Succeeded, null);
             metrics.LastSuccessAt(sync.FinishedAtUtc!.Value);
