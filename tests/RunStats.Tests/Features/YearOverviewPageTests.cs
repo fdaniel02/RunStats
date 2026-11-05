@@ -41,7 +41,9 @@ public class YearOverviewPageTests : BunitContext
             [
                 new RunRow(12, new DateOnly(2025, 10, 12), "running", "Marathon Eindhoven", 21100, 7200, IsRace: true),
                 new RunRow(11, new DateOnly(2025, 5, 1), "running", "Evening run", 5000, 1500)
-            ]);
+            ],
+            [new DistanceCount(1, 0), new DistanceCount(2, 1)],
+            [new RunTime(new DateTime(2025, 5, 1, 18, 0, 0), 1500)]);
     }
 
     FakeQueries queries = null!;
@@ -209,6 +211,16 @@ public class YearOverviewPageTests : BunitContext
         var page = Render(Data(noDistance: true));
 
         Assert.Equal(["No runs in 2025.", "No runs in 2025."], page.FindAll(".period-chart .empty").Select(p => p.TextContent));
+    }
+
+    [Fact]
+    public void The_distance_and_time_charts_are_all_on_the_page()
+    {
+        var page = Render(Data());
+
+        Assert.Equal("2 km: 1 run", page.Find(".distances .slot .tip").TextContent);
+        Assert.Single(page.FindAll(".time-weekday .cell[tabindex]"));
+        Assert.Equal(2, page.FindAll(".time-day .slot").Count);
     }
 
     [Fact]

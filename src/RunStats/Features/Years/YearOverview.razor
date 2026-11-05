@@ -58,6 +58,24 @@
         <PeriodChart Bars="MonthBars()" Id="monthly" Period="month" EmptyText="@($"No runs in {data.Year}.")" />
     </section>
 
+    <section class="card distances">
+        <h2>Runs per distance</h2>
+        <p class="muted note">Each run rounded to the nearest km.</p>
+        <DistanceChart Counts="data.DistanceCounts" EmptyText="@($"No runs in {data.Year}.")" />
+    </section>
+
+    <section class="card time-weekday">
+        <h2>When you run, by weekday</h2>
+        <p class="muted note">How many runs were under way during each half hour, from their start to their end.</p>
+        <WeekdayTimeHeatmap Runs="data.RunTimes" EmptyText="@($"No runs in {data.Year}.")" />
+    </section>
+
+    <section class="card time-day">
+        <h2>When you run, through the day</h2>
+        <p class="muted note">How many runs were under way during each half hour of the day.</p>
+        <TimeOfDayChart Runs="data.RunTimes" EmptyText="@($"No runs in {data.Year}.")" />
+    </section>
+
     <section class="card records">
         <h2>Personal records @data.Year</h2>
         <p class="muted note">The fastest stretch of each distance within the year's runs, so not only Garmin's all-time records.</p>

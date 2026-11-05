@@ -11,7 +11,8 @@ public sealed record MonthTotal(int Month, double DistanceMeters, double Duratio
 // are the activity grid's columns, with only the year's own days counted in the first and last. Runs are newest first.
 public sealed record YearData(
     int Year, IReadOnlyList<int> Years, Totals Totals, double? GoalMeters, IReadOnlyList<WeekTotal> Weeks, IReadOnlyList<MonthTotal> Months,
-    IReadOnlyList<RunDay> RunDays, IReadOnlyList<RecordRow> Records, IReadOnlyList<RunRow> Races, IReadOnlyList<RunRow> Runs);
+    IReadOnlyList<RunDay> RunDays, IReadOnlyList<RecordRow> Records, IReadOnlyList<RunRow> Races, IReadOnlyList<RunRow> Runs,
+    IReadOnlyList<DistanceCount> DistanceCounts, IReadOnlyList<RunTime> RunTimes);
 
 public interface IYearQueries
 {
@@ -41,6 +42,9 @@ public class YearQueries(IDbContextFactory<AppDbContext> dbFactory, Clock clock)
         var efforts = await db.RunBestEfforts
             .Join(inYear, e => e.RunId, r => r.Id, (e, r) => new { e.TypeId, e.Seconds, e.RunId, r.StartLocal })
             .ToListAsync(cancellationToken);
+        var runTimes = await inYear.OrderBy(r => r.StartLocal)
+            .Select(r => new RunTime(r.StartLocal, r.ElapsedDurationSeconds ?? r.DurationSeconds))
+            .ToListAsync(cancellationToken);
 
         var fastest = efforts.GroupBy(e => e.TypeId)
             .Select(g => g.OrderBy(e => e.Seconds).ThenBy(e => e.StartLocal).First())
@@ -61,7 +65,9 @@ public class YearQueries(IDbContextFactory<AppDbContext> dbFactory, Clock clock)
             ],
             [.. fastest.Concat(longest).OrderBy(r => r.TypeId)],
             [.. runs.Where(r => r.IsRace)],
-            runs);
+            runs,
+            DistanceCounts.Of(runs.Select(r => r.DistanceMeters)),
+            runTimes);
     }
 
     static List<WeekTotal> Weeks(int year, List<RunRow> runs, DateOnly today)

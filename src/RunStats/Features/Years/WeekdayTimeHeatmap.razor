@@ -1,0 +1,89 @@
+@if (DayWindow.Of(Runs) is not { } window)
+{
+    <p class="muted empty">@EmptyText</p>
+}
+else
+{
+    var rows = Days.Select((_, day) => window.RunsInProgress(Runs.Where(r => r.DaysFromMonday == day))).ToList();
+    var most = rows.Max(row => row.Max());
+    <figure class="plot" style="--slots: @window.Slots">
+        <figcaption class="visually-hidden">Number of runs under way per weekday and half hour</figcaption>
+        @for (var day = 0; day < Days.Length; day++)
+        {
+            <div class="row">
+                <span class="day">@Days[day]</span>
+                @for (var slot = 0; slot < window.Slots; slot++)
+                {
+                    var runs = rows[day][slot];
+                    @if (runs == 0)
+                    {
+                        <span class="cell"></span>
+                    }
+                    else
+                    {
+                        var text = $"{Days[day]} {window.SlotName(slot)}: {Format.RunCount(runs)}";
+                        <span class="cell level-@Level(runs, most) @(slot < window.Slots / 2 ? "tip-right" : "tip-left")" tabindex="0" role="img" aria-label="@text">
+                            <span class="tip" aria-hidden="true">@text</span>
+                        </span>
+                    }
+                }
+            </div>
+        }
+        <div class="axis" aria-hidden="true">
+            @foreach (var hour in window.TickHours())
+            {
+                <span style="left: @Percent(window.Fraction(hour * 60))">@DayWindow.HourName(hour)</span>
+            }
+        </div>
+    </figure>
+
+    <p class="legend muted">
+        <span>Fewer</span>
+        @for (var level = 1; level <= Levels; level++)
+        {
+            <span class="key level-@level" aria-hidden="true"></span>
+        }
+        <span>More (at most @Format.RunCount(most) in a half hour)</span>
+    </p>
+
+    <details class="as-table">
+        <summary>Show as table</summary>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">Time</th>
+                        @foreach (var day in Days)
+                        {
+                            <th scope="col" class="num">@day</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var slot = 0; slot < window.Slots; slot++)
+                    {
+                        <tr>
+                            <td>@window.SlotName(slot)</td>
+                            @for (var day = 0; day < Days.Length; day++)
+                            {
+                                <td class="num">@rows[day][slot]</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </details>
+}
+
+@code {
+    const int Levels = 4;
+    static readonly string[] Days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+    [Parameter, EditorRequired] public IReadOnlyList<RunTime> Runs { get; set; } = [];
+    [Parameter, EditorRequired] public string EmptyText { get; set; } = "";
+
+    static int Level(int runs, int most) => (int)Math.Ceiling((double)runs * Levels / most);
+
+    static string Percent(double fraction) => (fraction * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
+}

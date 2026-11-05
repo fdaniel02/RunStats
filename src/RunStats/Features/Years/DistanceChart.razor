@@ -1,0 +1,57 @@
+@if (Counts.Count == 0)
+{
+    <p class="muted empty">@EmptyText</p>
+}
+else
+{
+    var most = Counts.Max(c => c.Runs);
+    <figure class="plot">
+        <figcaption class="visually-hidden">Number of runs per distance, rounded to whole km</figcaption>
+        <ol class="bars">
+            @foreach (var count in Counts)
+            {
+                var text = $"{count.Km} km: {Format.RunCount(count.Runs)}";
+                <li class="slot" tabindex="@(count.Runs > 0 ? "0" : null)" aria-label="@text">
+                    @if (count.Runs > 0)
+                    {
+                        <span class="bar" style="height: @Percent((double)count.Runs / most)">
+                            <span class="value" aria-hidden="true">@count.Runs</span>
+                        </span>
+                        <span class="tip" aria-hidden="true">@text</span>
+                    }
+                    @if (HasAxisLabel(count.Km))
+                    {
+                        <span class="x" aria-hidden="true">@count.Km</span>
+                    }
+                </li>
+            }
+        </ol>
+        <p class="axis-name muted" aria-hidden="true">km</p>
+    </figure>
+
+    <details class="as-table">
+        <summary>Show as table</summary>
+        <table>
+            <thead>
+                <tr><th scope="col" class="num">km</th><th scope="col" class="num">Runs</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var count in Counts.Where(c => c.Runs > 0))
+                {
+                    <tr><td class="num">@count.Km</td><td class="num">@count.Runs</td></tr>
+                }
+            </tbody>
+        </table>
+    </details>
+}
+
+@code {
+    const int MostBarsWithAllLabels = 25;
+
+    [Parameter, EditorRequired] public IReadOnlyList<DistanceCount> Counts { get; set; } = [];
+    [Parameter, EditorRequired] public string EmptyText { get; set; } = "";
+
+    bool HasAxisLabel(int km) => Counts.Count <= MostBarsWithAllLabels || km == 1 || km % 5 == 0;
+
+    static string Percent(double fraction) => (fraction * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
+}

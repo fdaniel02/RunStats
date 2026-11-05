@@ -28,7 +28,7 @@ public sealed class YearQueriesTests(SqlServerFixture sqlServer) : IAsyncLifetim
 
     // The start is Garmin's local time; UTC is an hour earlier, as in Amsterdam's winter.
     async Task<long> AddAsync(DateTime startLocal, double km, double minutes, bool race = false, string name = "Run",
-        string? trainingEffect = null, params (int TypeId, double Seconds)[] efforts)
+        string? trainingEffect = null, double? elapsedMinutes = null, params (int TypeId, double Seconds)[] efforts)
     {
         var id = nextId++;
         await using var context = await db.CreateDbContextAsync(Ct);
@@ -44,6 +44,7 @@ public sealed class YearQueriesTests(SqlServerFixture sqlServer) : IAsyncLifetim
             StartUtc = DateTime.SpecifyKind(startLocal.AddHours(-1), DateTimeKind.Utc),
             DistanceMeters = km * 1000,
             DurationSeconds = minutes * 60,
+            ElapsedDurationSeconds = elapsedMinutes * 60,
             TrainingEffectLabel = trainingEffect,
             BestEfforts = [.. efforts.Select(e => new RunBestEffort { TypeId = e.TypeId, Seconds = e.Seconds })]
         });
@@ -167,6 +168,35 @@ public sealed class YearQueriesTests(SqlServerFixture sqlServer) : IAsyncLifetim
             new RecordRow(7, 21100, new DateOnly(2026, 9, 1), longest)
         ], records);
         Assert.DoesNotContain(records, r => r.RunId == tie);
+    }
+
+    [Fact]
+    public async Task Distance_counts_cover_only_the_years_runs_rounded_to_the_km()
+    {
+        await AddAsync(new DateTime(2025, 6, 1, 9, 0, 0), 9, 50);
+        await AddAsync(new DateTime(2026, 3, 1, 9, 0, 0), 2.4, 15);
+        await AddAsync(new DateTime(2026, 3, 2, 9, 0, 0), 2.5, 15);
+        await AddAsync(new DateTime(2026, 3, 3, 9, 0, 0), 3.2, 20);
+
+        var counts = (await queries.LoadAsync(2026, Ct))!.DistanceCounts;
+
+        Assert.Equal([new DistanceCount(1, 0), new DistanceCount(2, 1), new DistanceCount(3, 2)], counts);
+    }
+
+    [Fact]
+    public async Task Run_times_are_the_years_in_order_by_elapsed_time_or_else_duration()
+    {
+        await AddAsync(new DateTime(2025, 6, 1, 9, 0, 0), 5, 30);
+        await AddAsync(new DateTime(2026, 5, 1, 18, 0, 0), 5, 30);
+        await AddAsync(new DateTime(2026, 3, 1, 9, 0, 0), 5, 30, elapsedMinutes: 35);
+
+        var times = (await queries.LoadAsync(2026, Ct))!.RunTimes;
+
+        Assert.Equal(
+        [
+            new RunTime(new DateTime(2026, 3, 1, 9, 0, 0), 2100),
+            new RunTime(new DateTime(2026, 5, 1, 18, 0, 0), 1800)
+        ], times);
     }
 
     [Fact]
