@@ -206,7 +206,7 @@ public class DashboardPageTests : BunitContext
         var slots = page.Find(".plot.distance").QuerySelectorAll(".slot");
         Assert.Equal("2026-10-05 – 2026-10-11: 12.0 km", slots[0].GetAttribute("aria-label"));
         Assert.Equal("2026-10-05 – 2026-10-11: 12.0 km", slots[0].QuerySelector(".tip")!.TextContent);
-        Assert.Equal("2026-10-05", slots[0].QuerySelector(".x")!.TextContent);
+        Assert.Equal("10-05", slots[0].QuerySelector(".x")!.TextContent);
         Assert.Equal("This week (from 2026-10-26): 6.0 km", slots[^1].GetAttribute("aria-label"));
         Assert.Equal("slot current", slots[^1].ClassName!.Trim());
         Assert.Equal("This week", slots[^1].QuerySelector(".x")!.TextContent);
