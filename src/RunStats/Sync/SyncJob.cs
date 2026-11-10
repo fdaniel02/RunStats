@@ -15,7 +15,6 @@ public class SyncJob(
     RunProcessing processing,
     RecordsSync records,
     SyncMetrics metrics,
-    DatabaseSizeMonitor databaseSize,
     TimeProvider time,
     ILogger<SyncJob> logger)
 {
@@ -89,8 +88,6 @@ public class SyncJob(
             span?.SetStatus(ActivityStatusCode.Error, error);
             await FinishAsync(db, sync, SyncStatus.Failed, error);
         }
-        // Also after a failed sync: the runs stored before the failure stay.
-        await databaseSize.RefreshAsync(cancellationToken);
         span?.SetTag("runstats.sync.outcome", sync.Status.ToString().ToLowerInvariant());
         metrics.SyncFinished(sync.Trigger, sync.Status, time.GetElapsedTime(started));
     }

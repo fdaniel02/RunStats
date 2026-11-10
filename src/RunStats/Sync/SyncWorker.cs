@@ -1,6 +1,10 @@
+using RunStats.Data;
+
 namespace RunStats.Sync;
 
-public class SyncWorker(SyncCoordinator coordinator, IServiceScopeFactory scopes, ILogger<SyncWorker> logger) : BackgroundService
+public class SyncWorker(
+    SyncCoordinator coordinator, IServiceScopeFactory scopes, DatabaseSizeMonitor databaseSize, ILogger<SyncWorker> logger)
+    : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -19,6 +23,8 @@ public class SyncWorker(SyncCoordinator coordinator, IServiceScopeFactory scopes
             }
             finally
             {
+                // Also after a failed sync: the runs stored before the failure stay.
+                await databaseSize.RefreshAsync(stoppingToken);
                 coordinator.Finished(syncId);
             }
         }

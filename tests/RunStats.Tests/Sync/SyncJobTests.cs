@@ -5,7 +5,6 @@ using System.Diagnostics.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using RunStats.Data;
 using RunStats.Garmin;
@@ -26,35 +25,18 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
     readonly FixedTimeProvider time = new(new DateTimeOffset(2026, 10, 26, 12, 0, 0, TimeSpan.Zero));
     readonly FakeLogger<SyncJob> logger = new();
     readonly ServiceProvider services = new ServiceCollection().AddMetrics().BuildServiceProvider();
-    readonly FakeLogger<DatabaseSizeMonitor> sizeLogger = new();
-    readonly List<DatabaseSizeMonitor> sizeMonitors = [];
     PooledDbContextFactory<AppDbContext> db = null!;
     SyncMetrics metrics = null!;
-    DatabaseSizeMetrics sizes = null!;
-    IDbContextFactory<AppDbContext>? sizeDb;
 
     public async ValueTask InitializeAsync()
     {
         db = await MigratedDatabase.CreateAsync(sqlServer);
         metrics = new SyncMetrics(services.GetRequiredService<IMeterFactory>());
-        sizes = new DatabaseSizeMetrics(services.GetRequiredService<IMeterFactory>());
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        sizeMonitors.ForEach(m => m.Dispose());
-        await services.DisposeAsync();
-    }
+    public ValueTask DisposeAsync() => services.DisposeAsync();
 
-    SyncJob Job(int pageSize = 100)
-    {
-        var sizeMonitor = new DatabaseSizeMonitor(sizeDb ?? db, sizes, sizeLogger);
-        sizeMonitors.Add(sizeMonitor);
-        return new(db, garmin, new RunProcessing(db, garmin),
-            new RecordsSync(garmin, new PersonalRecordUpdate(db, time), new RacePredictionUpdate(db),
-                new UpcomingRacesSync(notion, db, new Clock(TimeZoneInfo.Utc, time), NullLogger<UpcomingRacesSync>.Instance)),
-            metrics, sizeMonitor, time, logger) { PageSize = pageSize };
-    }
+    SyncJob Job(int pageSize = 100) => TestSyncJob.Create(db, garmin, notion, time, metrics, logger, pageSize);
 
     async Task<SyncRun> SyncAsync(SyncJob? job = null, SyncTrigger trigger = SyncTrigger.Schedule, CancellationToken? cancellationToken = null)
     {
@@ -87,57 +69,6 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
         Assert.Equal(SyncStatus.Succeeded, sync.Status);
         await using var context = await db.CreateDbContextAsync(Ct);
         Assert.Equal("Zandvoort", (await context.UpcomingRaces.SingleAsync(Ct)).Name);
-    }
-
-    sealed class UnreachableDatabase : IDbContextFactory<AppDbContext>
-    {
-        public AppDbContext CreateDbContext() => throw new NotSupportedException();
-
-        public Task<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
-            throw new InvalidOperationException("Database is down");
-    }
-
-    long? ReportedRunsTableSize()
-    {
-        using var tables = new MetricCollector<long>(services.GetRequiredService<IMeterFactory>(), Telemetry.Name, "runstats.db.table.size");
-        tables.RecordObservableInstruments();
-        return tables.GetMeasurementSnapshot().Where(m => (string?)m.Tags["runstats.db.table"] == "Runs").Select(m => (long?)m.Value).LastOrDefault();
-    }
-
-    [Fact]
-    public async Task A_sync_reports_the_database_size_afterwards()
-    {
-        Assert.Null(ReportedRunsTableSize());
-        garmin.Activities.Add(Activity(1));
-
-        var sync = await SyncAsync();
-
-        Assert.Equal(SyncStatus.Succeeded, sync.Status);
-        Assert.True(ReportedRunsTableSize() > 0);
-    }
-
-    [Fact]
-    public async Task A_failed_sync_reports_the_database_size_too()
-    {
-        garmin.Fail = _ => new InvalidOperationException("Garmin is down");
-
-        var sync = await SyncAsync();
-
-        Assert.Equal(SyncStatus.Failed, sync.Status);
-        Assert.NotNull(ReportedRunsTableSize());
-    }
-
-    [Fact]
-    public async Task A_failed_size_read_doesnt_fail_the_sync()
-    {
-        garmin.Activities.Add(Activity(1));
-        sizeDb = new UnreachableDatabase();
-
-        var sync = await SyncAsync();
-
-        Assert.Equal((SyncStatus.Succeeded, 1), (sync.Status, sync.RunsAdded));
-        Assert.Equal("The database size couldn't be read", sizeLogger.LatestRecord.Message);
-        Assert.Null(ReportedRunsTableSize());
     }
 
     [Fact]

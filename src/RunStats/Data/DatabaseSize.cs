@@ -64,15 +64,13 @@ public class DatabaseSizeMonitor(
             await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
             metrics.Update(await DatabaseSizeMetrics.ReadAsync(db, cancellationToken));
         }
-        catch (Exception e) when (!cancellationToken.IsCancellationRequested)
-        {
-            // The last sizes stay reported; a database outage shows up in the health check, not here.
-            logger.DatabaseSizeFailed(e);
-        }
         // SQL Server reports a read cancelled by the stop as a SqlException, not an OperationCanceledException; left to
         // escape, it would be logged as a failed background service or fail the sync.
-        catch (Exception) when (cancellationToken.IsCancellationRequested)
+        catch (Exception e)
         {
+            // The last sizes stay reported; a database outage shows up in the health check, not here.
+            if (!cancellationToken.IsCancellationRequested)
+                logger.DatabaseSizeFailed(e);
         }
     }
 }
