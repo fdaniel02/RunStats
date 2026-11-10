@@ -24,7 +24,10 @@ def configure_telemetry(env: Mapping[str, str] = os.environ) -> bool:
     endpoint = env.get("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip().rstrip("/")
     if not endpoint:
         return False
-    resource = Resource.create({"service.name": env.get("OTEL_SERVICE_NAME") or "garmin-gateway"})
+    service_name = env.get("OTEL_SERVICE_NAME") or "garmin-gateway"
+    # Not the generated UUID: it becomes the metrics' instance label, so each restart would start a new set of series.
+    # There is only ever one pod (the Deployment is Recreate).
+    resource = Resource.create({"service.name": service_name, "service.instance.id": service_name})
     tracing = SdkTracerProvider(resource=resource)
     tracing.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=f"{endpoint}/v1/traces")))
     trace.set_tracer_provider(tracing)

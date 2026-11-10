@@ -58,3 +58,15 @@ def test_service_name_comes_from_otel_service_name(installed):
     telemetry.configure_telemetry({"OTEL_EXPORTER_OTLP_ENDPOINT": "http://alloy:4318", "OTEL_SERVICE_NAME": "gw-test"})
 
     assert providers["tracing"].resource.attributes["service.name"] == "gw-test"
+
+
+@pytest.mark.parametrize(("service_name", "expected"), [(None, "garmin-gateway"), ("gw-test", "gw-test")])
+def test_instance_id_is_the_service_name_so_it_stays_the_same_across_restarts(installed, service_name, expected):
+    providers, _ = installed
+    env = {"OTEL_EXPORTER_OTLP_ENDPOINT": "http://alloy:4318"}
+    if service_name:
+        env["OTEL_SERVICE_NAME"] = service_name
+
+    telemetry.configure_telemetry(env)
+
+    assert providers["tracing"].resource.attributes["service.instance.id"] == expected

@@ -46,6 +46,26 @@ public class TelemetryTests
         Assert.Equal("runstats-test", ServiceName(services.GetRequiredService<TracerProvider>()));
     }
 
+    [Theory]
+    [InlineData(null, Telemetry.Name)]
+    [InlineData("runstats-test", "runstats-test")]
+    public void Instance_id_is_the_service_name_so_it_stays_the_same_across_restarts(string? serviceName, string expected)
+    {
+        (string, string)[] settings = serviceName is null
+            ? [("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")]
+            : [("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"), ("OTEL_SERVICE_NAME", serviceName)];
+        using var services = Services(settings);
+
+        Assert.Equal(expected, Attribute(services.GetRequiredService<TracerProvider>(), "service.instance.id"));
+    }
+
+    [Fact]
+    public void Blazor_lifecycle_metrics_are_left_out()
+    {
+        Assert.DoesNotContain("Microsoft.AspNetCore.Components.Lifecycle", Telemetry.BlazorMeters);
+        Assert.Contains("Microsoft.AspNetCore.Components.Server.Circuits", Telemetry.BlazorMeters);
+    }
+
     [Fact]
     public void SignalR_spans_and_untraced_requests_are_left_out()
     {
@@ -74,6 +94,8 @@ public class TelemetryTests
     public void Static_files_and_Blazor_connection_requests_are_not_traced(string path, bool traced) =>
         Assert.Equal(traced, Telemetry.IsTraced(path));
 
-    static object? ServiceName(TracerProvider tracing) =>
-        tracing.GetResource().Attributes.Single(a => a.Key == "service.name").Value;
+    static object? ServiceName(TracerProvider tracing) => Attribute(tracing, "service.name");
+
+    static object? Attribute(TracerProvider tracing, string key) =>
+        tracing.GetResource().Attributes.Single(a => a.Key == key).Value;
 }
