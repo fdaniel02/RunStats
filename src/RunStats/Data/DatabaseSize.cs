@@ -48,34 +48,31 @@ public class DatabaseSizeMetrics
     }
 }
 
-// Reads the sizes now and then rather than on every metrics export, which happens every minute.
+// Reads the sizes at start and after each sync, the only writer, instead of on a timer: on an idle app every read opened
+// a new connection, and SqlClient's connect on Linux throws (and catches) a SocketException, which the exceptions
+// metric counts.
 public class DatabaseSizeMonitor(
-    IDbContextFactory<AppDbContext> dbFactory, DatabaseSizeMetrics metrics, TimeProvider time, ILogger<DatabaseSizeMonitor> logger)
+    IDbContextFactory<AppDbContext> dbFactory, DatabaseSizeMetrics metrics, ILogger<DatabaseSizeMonitor> logger)
     : BackgroundService
 {
-    public static readonly TimeSpan Interval = TimeSpan.FromMinutes(15);
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) => RefreshAsync(stoppingToken);
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public async Task RefreshAsync(CancellationToken cancellationToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        try
         {
-            try
-            {
-                await using var db = await dbFactory.CreateDbContextAsync(stoppingToken);
-                metrics.Update(await DatabaseSizeMetrics.ReadAsync(db, stoppingToken));
-            }
-            catch (Exception e) when (!stoppingToken.IsCancellationRequested)
-            {
-                // The last sizes stay reported; a database outage shows up in the health check, not here.
-                logger.DatabaseSizeFailed(e);
-            }
-            // SQL Server reports a read cancelled by the stop as a SqlException, not an OperationCanceledException; left to
-            // escape, it would be logged as a failed background service.
-            catch (Exception) when (stoppingToken.IsCancellationRequested)
-            {
-                return;
-            }
-            await Task.Delay(Interval, time, stoppingToken);
+            await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+            metrics.Update(await DatabaseSizeMetrics.ReadAsync(db, cancellationToken));
+        }
+        catch (Exception e) when (!cancellationToken.IsCancellationRequested)
+        {
+            // The last sizes stay reported; a database outage shows up in the health check, not here.
+            logger.DatabaseSizeFailed(e);
+        }
+        // SQL Server reports a read cancelled by the stop as a SqlException, not an OperationCanceledException; left to
+        // escape, it would be logged as a failed background service or fail the sync.
+        catch (Exception) when (cancellationToken.IsCancellationRequested)
+        {
         }
     }
 }

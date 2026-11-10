@@ -86,7 +86,8 @@ builder.Services.AddTransient<IUpcomingRaceQueries, UpcomingRaceQueries>();
 builder.Services.AddTransient<SyncJob>();
 builder.Services.AddHostedService<SyncWorker>();
 builder.Services.AddSingleton<DatabaseSizeMetrics>();
-builder.Services.AddHostedService<DatabaseSizeMonitor>();
+builder.Services.AddSingleton<DatabaseSizeMonitor>();
+builder.Services.AddHostedService(services => services.GetRequiredService<DatabaseSizeMonitor>());
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddSingleton(TimeProvider.System);
 // Resolved after Build(), so a bad setting is logged like any other startup error.
