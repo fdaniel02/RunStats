@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Microsoft.Extensions.Logging.Testing;
-using Microsoft.Extensions.Time.Testing;
 using RunStats.Data;
 
 namespace RunStats.Tests.Data;
@@ -103,12 +102,11 @@ public sealed class DatabaseSizeTests(SqlServerFixture sqlServer) : IAsyncLifeti
     }
 
     [Fact]
-    public async Task The_monitor_reads_the_sizes_at_start_and_again_every_quarter_hour()
+    public async Task The_monitor_reads_the_sizes_at_start_and_then_only_when_refreshed()
     {
-        var time = new FakeTimeProvider(DateTimeOffset.UtcNow);
         var metrics = new DatabaseSizeMetrics(services.GetRequiredService<IMeterFactory>());
         using var tables = new MetricCollector<long>(services.GetRequiredService<IMeterFactory>(), Telemetry.Name, "runstats.db.table.size");
-        using var monitor = new DatabaseSizeMonitor(db, metrics, time, new FakeLogger<DatabaseSizeMonitor>());
+        using var monitor = new DatabaseSizeMonitor(db, metrics, new FakeLogger<DatabaseSizeMonitor>());
         long Samples()
         {
             tables.RecordObservableInstruments();
@@ -117,15 +115,15 @@ public sealed class DatabaseSizeTests(SqlServerFixture sqlServer) : IAsyncLifeti
         }
 
         await monitor.StartAsync(Ct);
-        await WaitUntilAsync(() => Samples() >= 0);
+        await monitor.ExecuteTask!.WaitAsync(Ct);
         var first = Samples();
+        Assert.True(first >= 0);
         await AddSamplesAsync(20_000);
-
-        time.Advance(DatabaseSizeMonitor.Interval - TimeSpan.FromSeconds(1));
-        await Task.Delay(200, Ct);
         Assert.Equal(first, Samples());
-        time.Advance(TimeSpan.FromSeconds(1));
-        await WaitUntilAsync(() => Samples() > first);
+
+        await monitor.RefreshAsync(Ct);
+
+        Assert.True(Samples() > first);
         await monitor.StopAsync(Ct);
     }
 
@@ -140,28 +138,25 @@ public sealed class DatabaseSizeTests(SqlServerFixture sqlServer) : IAsyncLifeti
     }
 
     [Fact]
-    public async Task A_failed_read_is_logged_and_tried_again_later()
+    public async Task A_failed_read_is_logged_and_the_next_refresh_reports_the_sizes()
     {
-        var time = new FakeTimeProvider(DateTimeOffset.UtcNow);
         var logger = new FakeLogger<DatabaseSizeMonitor>();
         var factory = new FailingOnce(db);
         var metrics = new DatabaseSizeMetrics(services.GetRequiredService<IMeterFactory>());
         using var files = new MetricCollector<long>(services.GetRequiredService<IMeterFactory>(), Telemetry.Name, "runstats.db.size");
-        using var monitor = new DatabaseSizeMonitor(factory, metrics, time, logger);
+        using var monitor = new DatabaseSizeMonitor(factory, metrics, logger);
 
         await monitor.StartAsync(Ct);
-        await WaitUntilAsync(() => logger.Collector.Count == 1);
+        await monitor.ExecuteTask!.WaitAsync(Ct);
         Assert.Equal("The database size couldn't be read", logger.LatestRecord.Message);
         files.RecordObservableInstruments();
         Assert.Empty(files.GetMeasurementSnapshot());
 
-        time.Advance(DatabaseSizeMonitor.Interval);
-        await WaitUntilAsync(() =>
-        {
-            files.RecordObservableInstruments();
-            return files.GetMeasurementSnapshot().Count > 0;
-        });
-        Assert.Equal(2, factory.Calls);
+        await monitor.RefreshAsync(Ct);
+
+        files.RecordObservableInstruments();
+        Assert.NotEmpty(files.GetMeasurementSnapshot());
+        Assert.Equal((2, 1), (factory.Calls, logger.Collector.Count));
         await monitor.StopAsync(Ct);
     }
 
@@ -186,7 +181,7 @@ public sealed class DatabaseSizeTests(SqlServerFixture sqlServer) : IAsyncLifeti
         var logger = new FakeLogger<DatabaseSizeMonitor>();
         var factory = new FailingWhenStopped();
         var metrics = new DatabaseSizeMetrics(services.GetRequiredService<IMeterFactory>());
-        using var monitor = new DatabaseSizeMonitor(factory, metrics, new FakeTimeProvider(DateTimeOffset.UtcNow), logger);
+        using var monitor = new DatabaseSizeMonitor(factory, metrics, logger);
 
         await monitor.StartAsync(Ct);
         await factory.Reading.Task.WaitAsync(Ct);
@@ -216,12 +211,5 @@ public sealed class DatabaseSizeTests(SqlServerFixture sqlServer) : IAsyncLifeti
             files.GetMeasurementSnapshot().Select(m => ((string)m.Tags["runstats.db.file"]!, m.Value)).Order());
         Assert.Equal([("RunSamples", 18_661_376L)], tables.GetMeasurementSnapshot().Select(m => ((string)m.Tags["runstats.db.table"]!, m.Value)));
         Assert.Equal("By", files.Instrument!.Unit);
-    }
-
-    static async Task WaitUntilAsync(Func<bool> condition)
-    {
-        for (var i = 0; i < 200 && !condition(); i++)
-            await Task.Delay(50, Ct);
-        Assert.True(condition());
     }
 }

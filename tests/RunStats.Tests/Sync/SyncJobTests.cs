@@ -5,7 +5,6 @@ using System.Diagnostics.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using RunStats.Data;
 using RunStats.Garmin;
@@ -35,13 +34,9 @@ public sealed class SyncJobTests(SqlServerFixture sqlServer) : IAsyncLifetime
         metrics = new SyncMetrics(services.GetRequiredService<IMeterFactory>());
     }
 
-    public async ValueTask DisposeAsync() => await services.DisposeAsync();
+    public ValueTask DisposeAsync() => services.DisposeAsync();
 
-    SyncJob Job(int pageSize = 100) =>
-        new(db, garmin, new RunProcessing(db, garmin),
-            new RecordsSync(garmin, new PersonalRecordUpdate(db, time), new RacePredictionUpdate(db),
-                new UpcomingRacesSync(notion, db, new Clock(TimeZoneInfo.Utc, time), NullLogger<UpcomingRacesSync>.Instance)),
-            metrics, time, logger) { PageSize = pageSize };
+    SyncJob Job(int pageSize = 100) => TestSyncJob.Create(db, garmin, notion, time, metrics, logger, pageSize);
 
     async Task<SyncRun> SyncAsync(SyncJob? job = null, SyncTrigger trigger = SyncTrigger.Schedule, CancellationToken? cancellationToken = null)
     {
