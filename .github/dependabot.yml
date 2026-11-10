@@ -18,6 +18,15 @@ updates:
       - dependency-name: "System.Security.Cryptography.Pkcs"
         update-types: ["version-update:semver-major"]
 
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
