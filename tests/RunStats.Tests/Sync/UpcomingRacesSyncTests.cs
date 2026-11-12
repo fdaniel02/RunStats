@@ -10,8 +10,8 @@ using static RunStats.Tests.Sync.FakeNotionRaces;
 
 namespace RunStats.Tests.Sync;
 
-[Collection("SqlServer")]
-public sealed class UpcomingRacesSyncTests(SqlServerFixture sqlServer) : IAsyncLifetime
+[Collection("Postgres")]
+public sealed class UpcomingRacesSyncTests(PostgresFixture postgres) : IAsyncLifetime
 {
     static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -22,7 +22,7 @@ public sealed class UpcomingRacesSyncTests(SqlServerFixture sqlServer) : IAsyncL
 
     public async ValueTask InitializeAsync()
     {
-        db = await MigratedDatabase.CreateAsync(sqlServer);
+        db = await MigratedDatabase.CreateAsync(postgres);
         var clock = new Clock(TimeZoneInfo.FindSystemTimeZoneById("Europe/Amsterdam"), new FixedTimeProvider(new DateTimeOffset(2026, 11, 5, 23, 30, 0, TimeSpan.Zero)));
         sync = new UpcomingRacesSync(notion, db, clock, logger);
     }

@@ -5,8 +5,8 @@ using RunStats.Tests.Data;
 
 namespace RunStats.Tests.Features;
 
-[Collection("SqlServer")]
-public sealed class DashboardQueriesTests(SqlServerFixture sqlServer) : IAsyncLifetime
+[Collection("Postgres")]
+public sealed class DashboardQueriesTests(PostgresFixture postgres) : IAsyncLifetime
 {
     static CancellationToken Ct => TestContext.Current.CancellationToken;
     static readonly TimeZoneInfo Amsterdam = TimeZoneInfo.FindSystemTimeZoneById("Europe/Amsterdam");
@@ -19,7 +19,7 @@ public sealed class DashboardQueriesTests(SqlServerFixture sqlServer) : IAsyncLi
 
     public async ValueTask InitializeAsync()
     {
-        db = await MigratedDatabase.CreateAsync(sqlServer);
+        db = await MigratedDatabase.CreateAsync(postgres);
         queries = new DashboardQueries(db, new Clock(Amsterdam, time));
     }
 

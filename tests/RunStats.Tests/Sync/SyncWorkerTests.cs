@@ -12,8 +12,8 @@ using static RunStats.Tests.Sync.FakeGarminGateway;
 
 namespace RunStats.Tests.Sync;
 
-[Collection("SqlServer")]
-public sealed class SyncWorkerTests(SqlServerFixture sqlServer) : IAsyncLifetime
+[Collection("Postgres")]
+public sealed class SyncWorkerTests(PostgresFixture postgres) : IAsyncLifetime
 {
     static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -26,7 +26,7 @@ public sealed class SyncWorkerTests(SqlServerFixture sqlServer) : IAsyncLifetime
     IDbContextFactory<AppDbContext>? jobDb;
     IDbContextFactory<AppDbContext>? sizeDb;
 
-    public async ValueTask InitializeAsync() => db = await MigratedDatabase.CreateAsync(sqlServer);
+    public async ValueTask InitializeAsync() => db = await MigratedDatabase.CreateAsync(postgres);
 
     public ValueTask DisposeAsync() => meters.DisposeAsync();
 

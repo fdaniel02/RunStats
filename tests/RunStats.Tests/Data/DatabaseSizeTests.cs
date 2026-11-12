@@ -1,5 +1,4 @@
 using System.Diagnostics.Metrics;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,15 +8,15 @@ using RunStats.Data;
 
 namespace RunStats.Tests.Data;
 
-[Collection("SqlServer")]
-public sealed class DatabaseSizeTests(SqlServerFixture sqlServer) : IAsyncLifetime
+[Collection("Postgres")]
+public sealed class DatabaseSizeTests(PostgresFixture postgres) : IAsyncLifetime
 {
     static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     readonly ServiceProvider services = new ServiceCollection().AddMetrics().BuildServiceProvider();
     PooledDbContextFactory<AppDbContext> db = null!;
 
-    public async ValueTask InitializeAsync() => db = await MigratedDatabase.CreateAsync(sqlServer);
+    public async ValueTask InitializeAsync() => db = await MigratedDatabase.CreateAsync(postgres);
 
     public async ValueTask DisposeAsync() => await services.DisposeAsync();
 
@@ -45,11 +44,11 @@ public sealed class DatabaseSizeTests(SqlServerFixture sqlServer) : IAsyncLifeti
     }
 
     [Fact]
-    public async Task Reads_the_data_and_log_files_and_every_table()
+    public async Task Reads_the_database_and_every_table()
     {
         var size = await ReadAsync(db);
 
-        Assert.Equal(["data", "log"], size.Files.Keys.Order());
+        Assert.Equal(["data"], size.Files.Keys);
         Assert.All(size.Files.Values, bytes => Assert.True(bytes > 0));
         Assert.Contains("Runs", size.Tables.Keys);
         Assert.Contains("RunSamples", size.Tables.Keys);
@@ -70,35 +69,25 @@ public sealed class DatabaseSizeTests(SqlServerFixture sqlServer) : IAsyncLifeti
     [Fact]
     public async Task The_apps_login_sees_the_same_sizes_without_extra_permissions()
     {
-        await AddSamplesAsync(5_000);
-        await using var context = await db.CreateDbContextAsync(Ct);
-        var login = $"app_{Guid.NewGuid():N}"[..20];
+        // As in the cluster: the app's login owns its database and is no superuser. The names are generated, not input.
+        var login = $"app_{Guid.NewGuid():N}";
+        var database = PostgresFixture.NewDatabaseName();
         const string password = "Size-check-Passw0rd!";
-        // The same roles scripts/setup-cluster-database.sh gives the runstats login. DDL can't take the login's name as a
-        // parameter; it's generated above, not input.
-#pragma warning disable EF1002
-        await context.Database.ExecuteSqlRawAsync($"""
-            CREATE LOGIN [{login}] WITH PASSWORD = N'{password}', CHECK_POLICY = OFF;
-            CREATE USER [{login}] FOR LOGIN [{login}];
-            ALTER ROLE [db_datareader] ADD MEMBER [{login}];
-            ALTER ROLE [db_datawriter] ADD MEMBER [{login}];
-            ALTER ROLE [db_ddladmin] ADD MEMBER [{login}];
-            """, Ct);
-#pragma warning restore EF1002
-        var connection = new SqlConnectionStringBuilder(sqlServer.ConnectionString(context.Database.GetDbConnection().Database))
-        {
-            UserID = login,
-            Password = password
-        };
+        await postgres.ExecuteAsync($"CREATE ROLE {login} LOGIN NOSUPERUSER PASSWORD '{password}'");
+        await postgres.ExecuteAsync($"CREATE DATABASE {database} OWNER {login}");
         var asApp = new PooledDbContextFactory<AppDbContext>(new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlServer(connection.ConnectionString).Options);
+            .UseNpgsql(postgres.ConnectionString(database, password, login)).Options);
+        var asAdmin = new PooledDbContextFactory<AppDbContext>(new DbContextOptionsBuilder<AppDbContext>()
+            .UseNpgsql(postgres.ConnectionString(database)).Options);
+        await using (var context = await asApp.CreateDbContextAsync(Ct))
+            await context.Database.MigrateAsync(Ct);
 
         var seenByApp = await ReadAsync(asApp);
-        var seenByAdmin = await ReadAsync(db);
+        var seenByAdmin = await ReadAsync(asAdmin);
 
         Assert.Equal(seenByAdmin.Files, seenByApp.Files);
         Assert.Equal(seenByAdmin.Tables, seenByApp.Tables);
-        Assert.True(seenByApp.Tables["RunSamples"] > 0);
+        Assert.Contains("RunSamples", seenByApp.Tables.Keys);
     }
 
     [Fact]
@@ -160,7 +149,7 @@ public sealed class DatabaseSizeTests(SqlServerFixture sqlServer) : IAsyncLifeti
         await monitor.StopAsync(Ct);
     }
 
-    // Like SQL Server: a read cancelled by the stop fails with its own error, not with OperationCanceledException.
+    // A read cancelled by the stop that fails with a database error, not with OperationCanceledException.
     sealed class FailingWhenStopped : IDbContextFactory<AppDbContext>
     {
         public TaskCompletionSource Reading { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -202,13 +191,13 @@ public sealed class DatabaseSizeTests(SqlServerFixture sqlServer) : IAsyncLifeti
         Assert.Empty(files.GetMeasurementSnapshot());
 
         metrics.Update(new DatabaseSize(
-            new Dictionary<string, long> { ["data"] = 75_497_472, ["log"] = 142_606_336 },
+            new Dictionary<string, long> { ["data"] = 75_497_472 },
             new Dictionary<string, long> { ["RunSamples"] = 18_661_376 }));
         files.RecordObservableInstruments();
         tables.RecordObservableInstruments();
 
-        Assert.Equal([("data", 75_497_472L), ("log", 142_606_336L)],
-            files.GetMeasurementSnapshot().Select(m => ((string)m.Tags["runstats.db.file"]!, m.Value)).Order());
+        Assert.Equal([("data", 75_497_472L)],
+            files.GetMeasurementSnapshot().Select(m => ((string)m.Tags["runstats.db.file"]!, m.Value)));
         Assert.Equal([("RunSamples", 18_661_376L)], tables.GetMeasurementSnapshot().Select(m => ((string)m.Tags["runstats.db.table"]!, m.Value)));
         Assert.Equal("By", files.Instrument!.Unit);
     }

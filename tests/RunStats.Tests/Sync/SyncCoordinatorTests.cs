@@ -11,8 +11,8 @@ using RunStats.Tests.Data;
 
 namespace RunStats.Tests.Sync;
 
-[Collection("SqlServer")]
-public sealed class SyncCoordinatorTests(SqlServerFixture sqlServer) : IAsyncLifetime
+[Collection("Postgres")]
+public sealed class SyncCoordinatorTests(PostgresFixture postgres) : IAsyncLifetime
 {
     static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -24,7 +24,7 @@ public sealed class SyncCoordinatorTests(SqlServerFixture sqlServer) : IAsyncLif
 
     public async ValueTask InitializeAsync()
     {
-        db = await MigratedDatabase.CreateAsync(sqlServer);
+        db = await MigratedDatabase.CreateAsync(postgres);
         coordinator = new SyncCoordinator(db, new SyncMetrics(services.GetRequiredService<IMeterFactory>()), time, logger);
     }
 

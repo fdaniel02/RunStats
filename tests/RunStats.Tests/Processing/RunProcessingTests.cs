@@ -10,8 +10,8 @@ using static RunStats.Tests.Sync.FakeGarminGateway;
 
 namespace RunStats.Tests.Processing;
 
-[Collection("SqlServer")]
-public sealed class RunProcessingTests(SqlServerFixture sqlServer) : IAsyncLifetime
+[Collection("Postgres")]
+public sealed class RunProcessingTests(PostgresFixture postgres) : IAsyncLifetime
 {
     static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -21,7 +21,7 @@ public sealed class RunProcessingTests(SqlServerFixture sqlServer) : IAsyncLifet
 
     public async ValueTask InitializeAsync()
     {
-        db = await MigratedDatabase.CreateAsync(sqlServer);
+        db = await MigratedDatabase.CreateAsync(postgres);
         processing = new RunProcessing(db, garmin);
     }
 
