@@ -2,31 +2,31 @@ using System.Net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using RunStats.Data;
 using RunStats.Features.Warnings;
 using RunStats.Tests.Data;
 
 namespace RunStats.Tests;
 
-// The whole app with its production configuration, against a real SQL Server.
-[Collection("SqlServer")]
+// The whole app with its production configuration, against a real PostgreSQL.
+[Collection("Postgres")]
 public sealed class StartupTests : IDisposable
 {
     readonly WebApplicationFactory<Program> factory;
 
-    readonly SqlServerFixture sqlServer;
-    readonly string databaseName = SqlServerFixture.NewDatabaseName();
+    readonly PostgresFixture postgres;
+    readonly string databaseName = PostgresFixture.NewDatabaseName();
 
-    public StartupTests(SqlServerFixture sqlServer)
+    public StartupTests(PostgresFixture postgres)
     {
-        this.sqlServer = sqlServer;
-        var connectionString = sqlServer.ConnectionString(databaseName);
+        this.postgres = postgres;
+        var connectionString = postgres.ConnectionString(databaseName);
         factory = new WebApplicationFactory<Program>().WithWebHostBuilder(b => b
             .UseEnvironment("Production")
             .UseSetting("ConnectionStrings:Default", connectionString));
@@ -160,12 +160,8 @@ public sealed class StartupTests : IDisposable
     // The app can't start without its database (it migrates at startup), so the database goes away afterwards.
     async Task DropDatabaseAsync()
     {
-        SqlConnection.ClearAllPools();
-        await using var connection = new SqlConnection(sqlServer.ConnectionString("master"));
-        await connection.OpenAsync(TestContext.Current.CancellationToken);
-        await using var command = new SqlCommand(
-            $"ALTER DATABASE [{databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{databaseName}];", connection);
-        await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        NpgsqlConnection.ClearAllPools();
+        await postgres.ExecuteAsync($"DROP DATABASE {databaseName} WITH (FORCE)");
     }
 
     public void Dispose() => factory.Dispose();

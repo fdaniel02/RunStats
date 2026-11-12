@@ -5,8 +5,8 @@ using RunStats.Tests.Data;
 
 namespace RunStats.Tests.Features;
 
-[Collection("SqlServer")]
-public sealed class UpcomingRaceQueriesTests(SqlServerFixture sqlServer) : IAsyncLifetime
+[Collection("Postgres")]
+public sealed class UpcomingRaceQueriesTests(PostgresFixture postgres) : IAsyncLifetime
 {
     static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -15,7 +15,7 @@ public sealed class UpcomingRaceQueriesTests(SqlServerFixture sqlServer) : IAsyn
 
     public async ValueTask InitializeAsync()
     {
-        db = await MigratedDatabase.CreateAsync(sqlServer);
+        db = await MigratedDatabase.CreateAsync(postgres);
         var clock = new Clock(TimeZoneInfo.FindSystemTimeZoneById("Europe/Amsterdam"), new FixedTimeProvider(new DateTimeOffset(2026, 11, 5, 12, 0, 0, TimeSpan.Zero)));
         queries = new UpcomingRaceQueries(db, clock);
     }

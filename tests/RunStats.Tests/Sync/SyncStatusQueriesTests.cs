@@ -8,8 +8,8 @@ using RunStats.Tests.Data;
 
 namespace RunStats.Tests.Sync;
 
-[Collection("SqlServer")]
-public sealed class SyncStatusQueriesTests(SqlServerFixture sqlServer) : IAsyncLifetime
+[Collection("Postgres")]
+public sealed class SyncStatusQueriesTests(PostgresFixture postgres) : IAsyncLifetime
 {
     static CancellationToken Ct => TestContext.Current.CancellationToken;
     static readonly DateTime Evening = new(2026, 10, 26, 19, 0, 0, DateTimeKind.Utc);
@@ -22,7 +22,7 @@ public sealed class SyncStatusQueriesTests(SqlServerFixture sqlServer) : IAsyncL
 
     public async ValueTask InitializeAsync()
     {
-        db = await MigratedDatabase.CreateAsync(sqlServer);
+        db = await MigratedDatabase.CreateAsync(postgres);
         coordinator = new SyncCoordinator(db, new SyncMetrics(services.GetRequiredService<System.Diagnostics.Metrics.IMeterFactory>()), time,
             new FakeLogger<SyncCoordinator>());
         queries = new SyncStatusQueries(coordinator, db);

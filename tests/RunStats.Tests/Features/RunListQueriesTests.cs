@@ -6,8 +6,8 @@ using RunStats.Tests.Data;
 
 namespace RunStats.Tests.Features;
 
-[Collection("SqlServer")]
-public sealed class RunListQueriesTests(SqlServerFixture sqlServer) : IAsyncLifetime
+[Collection("Postgres")]
+public sealed class RunListQueriesTests(PostgresFixture postgres) : IAsyncLifetime
 {
     static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -17,7 +17,7 @@ public sealed class RunListQueriesTests(SqlServerFixture sqlServer) : IAsyncLife
 
     public async ValueTask InitializeAsync()
     {
-        db = await MigratedDatabase.CreateAsync(sqlServer);
+        db = await MigratedDatabase.CreateAsync(postgres);
         queries = new RunListQueries(db);
     }
 

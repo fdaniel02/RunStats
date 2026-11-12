@@ -5,8 +5,8 @@ using RunStats.Tests.Data;
 
 namespace RunStats.Tests.Features;
 
-[Collection("SqlServer")]
-public sealed class BestEffortQueriesTests(SqlServerFixture sqlServer) : IAsyncLifetime
+[Collection("Postgres")]
+public sealed class BestEffortQueriesTests(PostgresFixture postgres) : IAsyncLifetime
 {
     static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -18,7 +18,7 @@ public sealed class BestEffortQueriesTests(SqlServerFixture sqlServer) : IAsyncL
 
     public async ValueTask InitializeAsync()
     {
-        db = await MigratedDatabase.CreateAsync(sqlServer);
+        db = await MigratedDatabase.CreateAsync(postgres);
         queries = new BestEffortQueries(db, new Clock(TimeZoneInfo.FindSystemTimeZoneById("Europe/Amsterdam"), time));
     }
 

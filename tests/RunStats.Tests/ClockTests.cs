@@ -34,7 +34,7 @@ public class ClockTests
     [Fact]
     public void ToLocalDate_treats_unspecified_kind_as_utc()
     {
-        // EF Core returns DateTime values from SQL Server with Kind = Unspecified.
+        // A DateTime can lose its Kind on the way, e.g. through JSON without a "Z".
         var fromDb = new DateTime(2026, 10, 13, 22, 30, 0, DateTimeKind.Unspecified);
 
         Assert.Equal(new DateOnly(2026, 10, 14), clock.ToLocalDate(fromDb));

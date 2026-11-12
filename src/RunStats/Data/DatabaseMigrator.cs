@@ -7,7 +7,7 @@ public class DatabaseMigrator(
 {
     public const string DbFactoryKey = "migration";
 
-    // The SQL Server container may still be starting when the app boots.
+    // PostgreSQL may still be starting when the app boots.
     public int MaxAttempts { get; init; } = 15;
     public TimeSpan Delay { get; init; } = TimeSpan.FromSeconds(4);
 

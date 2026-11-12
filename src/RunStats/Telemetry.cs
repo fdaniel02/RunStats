@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Npgsql;
 using OpenTelemetry;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
@@ -39,7 +40,7 @@ public static class Telemetry
                     options.Filter = context => IsTraced(context.Request.Path);
                 })
                 .AddHttpClientInstrumentation()
-                .AddSqlClientInstrumentation()
+                .AddNpgsql()
                 .AddProcessor<SpanNames>())
             .WithMetrics(metrics => metrics
                 .AddMeter(Name)
@@ -47,7 +48,7 @@ public static class Telemetry
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
-                .AddSqlClientInstrumentation())
+                .AddNpgsqlInstrumentation())
             .WithLogging()
             .UseOtlpExporter();
         return services;

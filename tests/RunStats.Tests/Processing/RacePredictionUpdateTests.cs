@@ -6,8 +6,8 @@ using RunStats.Tests.Data;
 
 namespace RunStats.Tests.Processing;
 
-[Collection("SqlServer")]
-public sealed class RacePredictionUpdateTests(SqlServerFixture sqlServer) : IAsyncLifetime
+[Collection("Postgres")]
+public sealed class RacePredictionUpdateTests(PostgresFixture postgres) : IAsyncLifetime
 {
     static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -16,7 +16,7 @@ public sealed class RacePredictionUpdateTests(SqlServerFixture sqlServer) : IAsy
 
     public async ValueTask InitializeAsync()
     {
-        db = await MigratedDatabase.CreateAsync(sqlServer);
+        db = await MigratedDatabase.CreateAsync(postgres);
         update = new RacePredictionUpdate(db);
     }
 

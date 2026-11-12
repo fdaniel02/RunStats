@@ -17,7 +17,7 @@ using static RunStats.Tests.Sync.FakeGarminGateway;
 namespace RunStats.Tests.Sync;
 
 // The whole app with a fake gateway: the API, the coordinator and the background worker together.
-[Collection("SqlServer")]
+[Collection("Postgres")]
 public sealed class SyncApiTests : IDisposable
 {
     static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -25,9 +25,9 @@ public sealed class SyncApiTests : IDisposable
     readonly FakeGarminGateway garmin = new();
     readonly WebApplicationFactory<Program> factory;
 
-    public SyncApiTests(SqlServerFixture sqlServer)
+    public SyncApiTests(PostgresFixture postgres)
     {
-        var connectionString = sqlServer.ConnectionString(SqlServerFixture.NewDatabaseName());
+        var connectionString = postgres.ConnectionString(PostgresFixture.NewDatabaseName());
         factory = new WebApplicationFactory<Program>().WithWebHostBuilder(b => b
             .UseEnvironment("Production")
             .UseSetting("ConnectionStrings:Default", connectionString)

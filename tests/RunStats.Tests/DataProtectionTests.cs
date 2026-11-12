@@ -13,15 +13,15 @@ using RunStats.Tests.Data;
 namespace RunStats.Tests;
 
 // Two app instances on one database stand in for the pod before and after a restart.
-[Collection("SqlServer")]
+[Collection("Postgres")]
 public sealed class DataProtectionTests : IDisposable
 {
     readonly WebApplicationFactory<Program> before;
     readonly WebApplicationFactory<Program> after;
 
-    public DataProtectionTests(SqlServerFixture sqlServer)
+    public DataProtectionTests(PostgresFixture postgres)
     {
-        var connectionString = sqlServer.ConnectionString(SqlServerFixture.NewDatabaseName());
+        var connectionString = postgres.ConnectionString(PostgresFixture.NewDatabaseName());
         before = CreateApp(connectionString);
         after = CreateApp(connectionString);
     }

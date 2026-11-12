@@ -7,7 +7,7 @@ Statistics from my runs, downloaded from Garmin Connect and shown in a web app. 
 
 ## Components
 
-- `runstats`: Blazor Server app (.NET). Holds the UI and the sync, and owns the SQL Server database.
+- `runstats`: Blazor Server app (.NET). Holds the UI and the sync, and owns the PostgreSQL database.
 - `garmin-gateway`: small Python service that talks to Garmin Connect through
   [python-garminconnect](https://github.com/cyberjunky/python-garminconnect). It has no database; it only passes
   Garmin's responses on to the app.
@@ -29,7 +29,7 @@ src/RunStats/                the app (Blazor Server)
   Garmin/                    client for the Garmin gateway
   Sync/                      the sync with Garmin and its API
   Processing/                turns a run's raw data into stats, laps, samples and its track
-tests/RunStats.Tests/        unit, component (bUnit) and SQL Server tests (xUnit v3)
+tests/RunStats.Tests/        unit, component (bUnit) and PostgreSQL tests (xUnit v3)
 gateway/                     the Garmin gateway (Python, FastAPI), see below
 .github/workflows/ci.yml     build and test on every pull request and push to main, publish the image from main
 .github/dependabot.yml       weekly update pull requests for NuGet, uv (gateway) and GitHub Actions
@@ -65,8 +65,7 @@ node --test "tests/js/*.test.mjs"
 Tests run on Microsoft Testing Platform (set in `global.json`). `--coverlet` writes an OpenCover report
 to `TestResults/coverage.opencover.*.xml`; the settings are in `tests/RunStats.Tests/testconfig.json`.
 
-Some tests run against a real SQL Server in a container (Testcontainers), so Docker must be running.
-The first run downloads the SQL Server image (about 1.5 GB).
+Some tests run against a real PostgreSQL in a container (Testcontainers, image `postgres:18`), so Docker must be running.
 
 ### Database migrations
 
@@ -74,7 +73,7 @@ The first run downloads the SQL Server image (about 1.5 GB).
 connect for adding a migration:
 
 ```powershell
-$env:ConnectionStrings__Default = "Server=unused;Database=unused"
+$env:ConnectionStrings__Default = "Host=unused;Database=unused"
 dotnet ef migrations add <Name> --project src/RunStats
 ```
 
@@ -140,20 +139,34 @@ Locally (`Development`) they use the plain console format. Each log message has 
 
 Traces and metrics are sent over OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 
-At startup the app applies database migrations. While SQL Server is unreachable it tries 15 times, 4 seconds apart, and logs
+At startup the app applies database migrations. While PostgreSQL is unreachable it tries 15 times, 4 seconds apart, and logs
 each failed attempt as a warning. If the host doesn't answer at all, each attempt also waits for the connect timeout (15 s by default).
-Errors that waiting won't fix (wrong password, missing database, locked or expired login) stop it at once.
+Errors that waiting won't fix (wrong password, missing database, no permission to connect) stop it at once.
 A startup failure is logged as `Critical` and the process exits with code 1.
 
 ### Local development
 
+Run PostgreSQL in Docker; the app creates the database and its tables on the first start:
+
+```powershell
+docker run -d --name runstats-db -p 5432:5432 -e POSTGRES_USER=runstats -e POSTGRES_PASSWORD=<password> postgres:18
+```
+
 The connection string lives in user-secrets (stored in `%APPDATA%\Microsoft\UserSecrets\`, outside the project):
 
 ```powershell
-dotnet user-secrets set --project src/RunStats "ConnectionStrings:Default" "Server=<sql-host>;Database=RunStats;User Id=<login>;Password=<password>;TrustServerCertificate=True"
+dotnet user-secrets set --project src/RunStats "ConnectionStrings:Default" "Host=localhost;Database=runstats;Username=runstats;Password=<password>"
 ```
 
 User-secrets are only loaded when `ASPNETCORE_ENVIRONMENT=Development` (the default in `launchSettings.json`).
+
+The cluster's database isn't reachable from the LAN. For a one-off look or fix, forward it to this machine; it stays
+reachable on `localhost:5433` while the command runs. The second command prints the login's password:
+
+```sh
+kubectl port-forward -n postgres svc/postgres-rw 5433:5432
+kubectl get secret -n postgres postgres-runstats -o jsonpath='{.data.password}' | base64 -d; echo
+```
 
 ### Docker
 
@@ -182,7 +195,7 @@ docker run -d -p 8080:8080 --env-file runstats.env runstats
 `runstats.env` contains a single line, without quotes:
 
 ```
-ConnectionStrings__Default=Server=<sql-host>;Database=RunStats;User Id=<login>;Password=<password>;TrustServerCertificate=True
+ConnectionStrings__Default=Host=<db-host>;Database=runstats;Username=runstats;Password=<password>
 ```
 
 Keep that file outside the project folder, so it can't end up in the image or in git.
@@ -245,22 +258,13 @@ Telemetry: a `Sync` span (the gateway's spans join its trace), log events 10–1
 ## Deployment
 
 RunStats runs in the homelab's k3s cluster; its manifests are in
-[cluster-gitops](https://github.com/fdaniel02/cluster-gitops) (`workloads/runstats/`). The database is `RunStats` on the
-cluster's SQL Server, with its own login `runstats` (`db_datareader`, `db_datawriter`, `db_ddladmin` for the migrations)
-and the `backup` user the nightly backup job needs.
+[cluster-gitops](https://github.com/fdaniel02/cluster-gitops) (`workloads/runstats/`). The database is `runstats` on the
+cluster's PostgreSQL, owned by the login `runstats`, which has no rights elsewhere. Both are created by the cluster
+(cluster-gitops, `infrastructure/postgres`), not by the app; the app only applies its migrations. The cluster archives
+the database to object storage continuously, so it can be restored to any point in time within 30 days.
 
-`scripts/setup-cluster-database.sh` sets this up once from WSL. It copies the local development database into the
-cluster (backup, copy into the `mssql-0` pod, restore), so production starts with every run instead of downloading the
-whole history from Garmin again; it empties the development sync history and Data Protection keys, creates the login
-with a generated password, and seals `runstats-db` (the connection string) and `garmin-gateway` (from `gateway.env`)
-into the cluster-gitops checkout. No password is printed or stored in plain text; the login's password exists only in
-the sealed secret and in SQL Server. It refuses to overwrite an existing `RunStats` database unless given `--replace`.
-
-```bash
-scripts/setup-cluster-database.sh --gitops /mnt/c/_WORK/cluster-gitops
-```
-
-`scripts/create-sql-login.sql` has the same login setup for doing it by hand.
+The size metrics (`runstats.db.size` for the whole database, `runstats.db.table.size` per table, indexes and long
+values included) are read at start and after each sync.
 
 ## Garmin gateway
 

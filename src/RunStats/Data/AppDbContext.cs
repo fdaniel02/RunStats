@@ -88,13 +88,25 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(x => x.StartedAtUtc);
         });
 
-        // SQL Server doesn't store DateTimeKind; without this, values read back are Unspecified and
-        // ToLocalTime() would treat them as server-local time.
-        var utc = new ValueConverter<DateTime, DateTime>(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
-        var utcProperties = modelBuilder.Model.GetEntityTypes()
+        // *Utc columns are timestamptz. The others (*Local) are wall-clock times in the run's own time zone: timestamp
+        // without time zone, so PostgreSQL never shifts them. Npgsql only writes the first from Kind = Utc and the second
+        // from any other Kind, and a value can carry the wrong Kind, so the converters set it.
+        var utc = new ValueConverter<DateTime, DateTime>(
+            v => DateTime.SpecifyKind(v, DateTimeKind.Utc), v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        var local = new ValueConverter<DateTime, DateTime>(
+            v => DateTime.SpecifyKind(v, DateTimeKind.Unspecified), v => DateTime.SpecifyKind(v, DateTimeKind.Unspecified));
+        var dateTimes = modelBuilder.Model.GetEntityTypes()
             .SelectMany(t => t.GetProperties())
-            .Where(p => (p.ClrType == typeof(DateTime) || p.ClrType == typeof(DateTime?)) && p.Name.EndsWith("Utc", StringComparison.Ordinal));
-        foreach (var property in utcProperties)
-            property.SetValueConverter(utc);
+            .Where(p => p.ClrType == typeof(DateTime) || p.ClrType == typeof(DateTime?));
+        foreach (var property in dateTimes)
+        {
+            if (property.Name.EndsWith("Utc", StringComparison.Ordinal))
+                property.SetValueConverter(utc);
+            else
+            {
+                property.SetValueConverter(local);
+                property.SetColumnType("timestamp without time zone");
+            }
+        }
     }
 }

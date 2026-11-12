@@ -7,8 +7,8 @@ using RunStats.Tests.Data;
 
 namespace RunStats.Tests.Features;
 
-[Collection("SqlServer")]
-public sealed class FormQueriesTests(SqlServerFixture sqlServer) : IAsyncLifetime
+[Collection("Postgres")]
+public sealed class FormQueriesTests(PostgresFixture postgres) : IAsyncLifetime
 {
     static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -20,7 +20,7 @@ public sealed class FormQueriesTests(SqlServerFixture sqlServer) : IAsyncLifetim
 
     public async ValueTask InitializeAsync()
     {
-        db = await MigratedDatabase.CreateAsync(sqlServer);
+        db = await MigratedDatabase.CreateAsync(postgres);
         queries = new FormQueries(db, Options.Create(new WarningSettings()), new FixedTimeProvider(Now));
     }
 

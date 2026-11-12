@@ -6,8 +6,8 @@ using RunStats.Tests.Data;
 
 namespace RunStats.Tests.Features;
 
-[Collection("SqlServer")]
-public sealed class EfficiencyQueriesTests(SqlServerFixture sqlServer) : IAsyncLifetime
+[Collection("Postgres")]
+public sealed class EfficiencyQueriesTests(PostgresFixture postgres) : IAsyncLifetime
 {
     static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -16,7 +16,7 @@ public sealed class EfficiencyQueriesTests(SqlServerFixture sqlServer) : IAsyncL
     PooledDbContextFactory<AppDbContext> db = null!;
     long nextId = 1;
 
-    public async ValueTask InitializeAsync() => db = await MigratedDatabase.CreateAsync(sqlServer);
+    public async ValueTask InitializeAsync() => db = await MigratedDatabase.CreateAsync(postgres);
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 

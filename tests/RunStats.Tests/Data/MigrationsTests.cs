@@ -11,7 +11,7 @@ public class MigrationsTests
     {
         // Compares the model with the last migration's snapshot; the database is never opened.
         using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlServer("Server=unused;Database=unused").Options);
+            .UseNpgsql("Host=unused;Database=unused").Options);
 
         Assert.False(db.Database.HasPendingModelChanges(),
             "The model has changes without a migration. Add one: dotnet ef migrations add <Name> --project src/RunStats");

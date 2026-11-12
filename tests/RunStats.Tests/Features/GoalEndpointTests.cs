@@ -13,7 +13,7 @@ using RunStats.Tests.Sync;
 namespace RunStats.Tests.Features;
 
 // The whole app: the year page's form, the antiforgery check and the database together.
-[Collection("SqlServer")]
+[Collection("Postgres")]
 public sealed partial class GoalEndpointTests : IDisposable
 {
     static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -21,9 +21,9 @@ public sealed partial class GoalEndpointTests : IDisposable
     readonly WebApplicationFactory<Program> factory;
     readonly HttpClient client;
 
-    public GoalEndpointTests(SqlServerFixture sqlServer)
+    public GoalEndpointTests(PostgresFixture postgres)
     {
-        var connectionString = sqlServer.ConnectionString(SqlServerFixture.NewDatabaseName());
+        var connectionString = postgres.ConnectionString(PostgresFixture.NewDatabaseName());
         factory = new WebApplicationFactory<Program>().WithWebHostBuilder(b => b
             .UseEnvironment("Production")
             .UseSetting("ConnectionStrings:Default", connectionString)

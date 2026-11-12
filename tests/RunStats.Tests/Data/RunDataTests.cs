@@ -1,15 +1,15 @@
-using Microsoft.Data.SqlClient;
+using Npgsql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using RunStats.Data;
 
 namespace RunStats.Tests.Data;
 
-[Collection("SqlServer")]
-public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
+[Collection("Postgres")]
+public sealed class RunDataTests(PostgresFixture postgres) : IAsyncLifetime
 {
     readonly PooledDbContextFactory<AppDbContext> factory =
-        new(new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(sqlServer.ConnectionString(SqlServerFixture.NewDatabaseName())).Options);
+        new(new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(postgres.ConnectionString(PostgresFixture.NewDatabaseName())).Options);
 
     static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -193,6 +193,26 @@ public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Dates_with_the_other_kind_are_stored_without_shifting()
+    {
+        var start = new DateTime(2026, 10, 25, 7, 30, 0);
+        var run = FullRun(21_000_000_006);
+        run.StartUtc = DateTime.SpecifyKind(start, DateTimeKind.Unspecified);
+        run.StartLocal = DateTime.SpecifyKind(start.AddHours(1), DateTimeKind.Utc);
+        await using (var db = await factory.CreateDbContextAsync(Ct))
+        {
+            db.Runs.Add(run);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        await using var read = await factory.CreateDbContextAsync(Ct);
+        var stored = await read.Runs.AsNoTracking().SingleAsync(r => r.Id == 21_000_000_006, Ct);
+
+        Assert.Equal((start.Ticks, DateTimeKind.Utc), (stored.StartUtc.Ticks, stored.StartUtc.Kind));
+        Assert.Equal((start.AddHours(1).Ticks, DateTimeKind.Unspecified), (stored.StartLocal.Ticks, stored.StartLocal.Kind));
+    }
+
+    [Fact]
     public async Task Deleting_a_run_deletes_its_data()
     {
         await using (var db = await factory.CreateDbContextAsync(Ct))
@@ -213,9 +233,9 @@ public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
     }
 
     [Theory]
-    [InlineData("INSERT INTO RunLaps (RunId, LapIndex, StartUtc, DistanceMeters, DurationSeconds) VALUES (21000000005, 1, '2026-10-25', 1, 1)")]
-    [InlineData("INSERT INTO RunSamples (RunId, OffsetSeconds) VALUES (21000000005, 0)")]
-    [InlineData("INSERT INTO RunPaceBands (RunId, PaceSecondsPerKm, Seconds, FlatSeconds) VALUES (21000000005, 330, 1, 1)")]
+    [InlineData("""INSERT INTO "RunLaps" ("RunId", "LapIndex", "StartUtc", "DistanceMeters", "DurationSeconds") VALUES (21000000005, 1, '2026-10-25', 1, 1)""")]
+    [InlineData("""INSERT INTO "RunSamples" ("RunId", "OffsetSeconds") VALUES (21000000005, 0)""")]
+    [InlineData("""INSERT INTO "RunPaceBands" ("RunId", "PaceSecondsPerKm", "Seconds", "FlatSeconds") VALUES (21000000005, 330, 1, 1)""")]
     public async Task A_lap_sample_or_pace_band_can_only_be_stored_once(string duplicate)
     {
         await using (var db = await factory.CreateDbContextAsync(Ct))
@@ -225,9 +245,9 @@ public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
         }
 
         await using var write = await factory.CreateDbContextAsync(Ct);
-        var error = await Assert.ThrowsAsync<SqlException>(() => write.Database.ExecuteSqlRawAsync(duplicate, Ct));
+        var error = await Assert.ThrowsAsync<PostgresException>(() => write.Database.ExecuteSqlRawAsync(duplicate, Ct));
 
-        Assert.Equal(2627, error.Number);
+        Assert.Equal(PostgresErrorCodes.UniqueViolation, error.SqlState);
     }
 
     [Fact]
@@ -235,21 +255,10 @@ public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
     {
         await using var db = await factory.CreateDbContextAsync(Ct);
 
-        var error = await Assert.ThrowsAsync<SqlException>(() =>
-            db.Database.ExecuteSqlRawAsync("INSERT INTO RunSamples (RunId, OffsetSeconds) VALUES (1, 0)", Ct));
+        var error = await Assert.ThrowsAsync<PostgresException>(() =>
+            db.Database.ExecuteSqlRawAsync("""INSERT INTO "RunSamples" ("RunId", "OffsetSeconds") VALUES (1, 0)""", Ct));
 
-        Assert.Equal(547, error.Number);
-    }
-
-    [Fact]
-    public async Task Samples_are_page_compressed()
-    {
-        await using var db = await factory.CreateDbContextAsync(Ct);
-
-        var compression = await db.Database.SqlQueryRaw<string>(
-            "SELECT p.data_compression_desc AS Value FROM sys.partitions p WHERE p.object_id = OBJECT_ID('RunSamples')").ToListAsync(Ct);
-
-        Assert.Equal(["PAGE"], compression);
+        Assert.Equal(PostgresErrorCodes.ForeignKeyViolation, error.SqlState);
     }
 
     [Fact]
@@ -262,7 +271,7 @@ public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
         }
 
         await using var read = await factory.CreateDbContextAsync(Ct);
-        var stored = await read.Database.SqlQueryRaw<string>("SELECT [Trigger] + '/' + [Status] AS Value FROM SyncRuns").SingleAsync(Ct);
+        var stored = await read.Database.SqlQueryRaw<string>("""SELECT "Trigger" || '/' || "Status" AS "Value" FROM "SyncRuns" """).SingleAsync(Ct);
         var sync = await read.SyncRuns.AsNoTracking().SingleAsync(Ct);
 
         Assert.Equal("Manual/Succeeded", stored);
@@ -290,8 +299,8 @@ public sealed class RunDataTests(SqlServerFixture sqlServer) : IAsyncLifetime
 
         await using var read = await factory.CreateDbContextAsync(Ct);
         Assert.Equivalent(record, await read.PersonalRecords.AsNoTracking().SingleAsync(Ct), strict: true);
-        var duplicate = await Assert.ThrowsAsync<SqlException>(() => read.Database.ExecuteSqlRawAsync(
-            "INSERT INTO PersonalRecords (TypeId, Value, AchievedAtUtc, AchievedAtLocal, RawJson, UpdatedAtUtc) VALUES (3, 1, '2026-01-01', '2026-01-01', '', '2026-01-01')", Ct));
-        Assert.Equal(2627, duplicate.Number);
+        var duplicate = await Assert.ThrowsAsync<PostgresException>(() => read.Database.ExecuteSqlRawAsync(
+            """INSERT INTO "PersonalRecords" ("TypeId", "Value", "AchievedAtUtc", "AchievedAtLocal", "RawJson", "UpdatedAtUtc") VALUES (3, 1, '2026-01-01', '2026-01-01', '', '2026-01-01')""", Ct));
+        Assert.Equal(PostgresErrorCodes.UniqueViolation, duplicate.SqlState);
     }
 }
