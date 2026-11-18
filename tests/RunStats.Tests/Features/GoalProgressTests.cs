@@ -13,6 +13,10 @@ public class GoalProgressTests
         Assert.Equal(1_500_000 * 305 / 365.0, progress.ExpectedMeters!.Value, 6);
         Assert.Equal(60 / 7.0, progress.WeeksLeft!.Value, 6);
         Assert.Equal(300_000 / (60 / 7.0), progress.WeeklyMeters!.Value, 6);
+        Assert.Equal(60, progress.DaysLeft);
+        Assert.Equal(5_000, progress.DailyMeters!.Value, 6);
+        Assert.Equal(60 * 12 / 365.0, progress.MonthsLeft!.Value, 6);
+        Assert.Equal(300_000 / (60 * 12 / 365.0), progress.MonthlyMeters!.Value, 6);
         Assert.False(progress.IsPast);
         Assert.False(progress.IsReached);
         Assert.Equal(0.8, progress.Fraction, 6);
@@ -25,6 +29,8 @@ public class GoalProgressTests
 
         Assert.True(progress.IsReached);
         Assert.Null(progress.WeeklyMeters);
+        Assert.Null(progress.DailyMeters);
+        Assert.Null(progress.MonthlyMeters);
         Assert.Equal(1, progress.Fraction);
     }
 
@@ -39,6 +45,8 @@ public class GoalProgressTests
             Assert.True(p.IsPast);
             Assert.Null(p.ExpectedMeters);
             Assert.Null(p.WeeklyMeters);
+            Assert.Null(p.DailyMeters);
+            Assert.Null(p.MonthlyMeters);
         });
     }
 
@@ -50,5 +58,7 @@ public class GoalProgressTests
         Assert.Equal(0, progress.ExpectedMeters);
         Assert.Equal(366 / 7.0, progress.WeeksLeft!.Value, 6);
         Assert.Equal(1_464_000 / (366 / 7.0), progress.WeeklyMeters!.Value, 6);
+        Assert.Equal(4_000, progress.DailyMeters!.Value, 6);
+        Assert.Equal(122_000, progress.MonthlyMeters!.Value, 6);
     }
 }

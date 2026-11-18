@@ -119,6 +119,24 @@ public class DashboardPageTests : BunitContext
     }
 
     [Fact]
+    public void With_a_goal_the_totals_say_how_the_year_stands_and_what_each_month_and_week_need()
+    {
+        var page = Render(Data(goal: 1_000_000));
+
+        Assert.Equal(
+        [
+            "111.1 km behind the 821.9 km expected by today",
+            "135.3 km a month for the remaining 2.1 months",
+            "31.1 km a week for the remaining 9.3 weeks"
+        ], page.FindAll(".total .goal-line").Select(l => l.TextContent));
+        Assert.Equal("4.4 km a day for the remaining 65 days", page.Find(".goal .daily").TextContent);
+    }
+
+    [Fact]
+    public void Without_a_goal_the_totals_have_no_goal_lines() =>
+        Assert.Empty(Render(Data()).FindAll(".goal-line"));
+
+    [Fact]
     public void Last_runs_show_date_type_distance_time_and_pace()
     {
         var page = Render(Data());
