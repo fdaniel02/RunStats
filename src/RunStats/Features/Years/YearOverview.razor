@@ -22,11 +22,12 @@
 </div>
 
 <section class="totals" aria-label="Totals">
-    <TotalCard Label="@data.Year.ToString(CultureInfo.InvariantCulture)" Totals="data.Totals" />
-    @if (data.GoalMeters is { } goal)
+    @{ var goal = data.GoalMeters is { } goalMeters ? GoalProgress.For(data.Year, goalMeters, data.Totals.DistanceMeters, Clock.Today) : null; }
+    <TotalCard Label="@data.Year.ToString(CultureInfo.InvariantCulture)" Totals="data.Totals" Goal="@GoalLines.Pace(goal)" />
+    @if (goal is not null)
     {
-        <GoalCard Progress="GoalProgress.For(data.Year, goal, data.Totals.DistanceMeters, Clock.Today)">
-            <GoalForm Year="data.Year" GoalMeters="goal" />
+        <GoalCard Progress="goal">
+            <GoalForm Year="data.Year" GoalMeters="goal.GoalMeters" />
         </GoalCard>
     }
     else

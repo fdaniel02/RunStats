@@ -23,9 +23,9 @@
     {
         <span class="status @(Progress.IsReached ? "reached" : "")">@status</span>
     }
-    @if (Progress.WeeklyMeters is { } weekly)
+    @if (GoalLines.Daily(Progress) is { } daily)
     {
-        <span class="muted weekly">@Format.Km(weekly) km a week for the remaining @Progress.WeeksLeft!.Value.ToString("0.#", Culture) weeks</span>
+        <span class="muted daily">@daily</span>
     }
     @ChildContent
 </div>
@@ -49,16 +49,11 @@
         {
             if (Progress.IsReached)
                 return "Reached";
-            if (Progress.IsPast)
-                return $"Missed by {Format.Km(Progress.GoalMeters - Progress.DoneMeters)} km";
-            if (Progress.ExpectedMeters is not { } expected || expected <= 0)
-                return null;
-            var difference = Progress.DoneMeters - expected;
-            return $"{Format.Km(Math.Abs(difference))} km {(difference >= 0 ? "ahead of" : "behind")} the {Whole(expected)} km expected by today";
+            return Progress.IsPast ? $"Missed by {Format.Km(Progress.GoalMeters - Progress.DoneMeters)} km" : null;
         }
     }
 
-    static string Whole(double meters) => (meters / 1000).ToString("0.#", Culture);
+    static string Whole(double meters) => GoalLines.Whole(meters);
 
     static string Percent(double fraction) => (Math.Max(fraction, 0) * 100).ToString("0", Culture) + "%";
 }

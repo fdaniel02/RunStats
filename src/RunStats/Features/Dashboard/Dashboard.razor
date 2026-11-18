@@ -16,12 +16,12 @@
     <AttentionCard Warnings="warnings" />
 
     <section class="totals" aria-label="Totals">
-        <TotalCard Label="@($"This year ({Clock.Today.Year})")" Totals="data.Year" />
-        <TotalCard Label="@($"This month ({Clock.Today.ToString("MMMM", System.Globalization.CultureInfo.InvariantCulture)})")" Totals="data.Month" />
-        <TotalCard Label="@($"This week (from {Format.Date(DashboardQueries.Monday(Clock.Today))})")" Totals="data.Week" />
-        @if (data.YearGoalMeters is { } goal)
+        <TotalCard Label="@($"This year ({Clock.Today.Year})")" Totals="data.Year" Goal="@GoalLines.Pace(goal)" />
+        <TotalCard Label="@($"This month ({Clock.Today.ToString("MMMM", System.Globalization.CultureInfo.InvariantCulture)})")" Totals="data.Month" Goal="@GoalLines.Monthly(goal)" />
+        <TotalCard Label="@($"This week (from {Format.Date(DashboardQueries.Monday(Clock.Today))})")" Totals="data.Week" Goal="@GoalLines.Weekly(goal)" />
+        @if (goal is not null)
         {
-            <GoalCard Progress="GoalProgress.For(Clock.Today.Year, goal, data.Year.DistanceMeters, Clock.Today)" Href="@($"years/{Clock.Today.Year}")" />
+            <GoalCard Progress="goal" Href="@($"years/{Clock.Today.Year}")" />
         }
     </section>
 
@@ -70,6 +70,7 @@
     IReadOnlyList<Warning> warnings = [];
     IReadOnlyList<UpcomingRaceRow> upcomingRaces = [];
     ActivityGrid grid = null!;
+    GoalProgress? goal;
 
     [SupplyParameterFromQuery(Name = "races")] public int? RaceYear { get; set; }
 
@@ -77,6 +78,7 @@
     {
         grid = new ActivityGrid(Clock.Today, DashboardQueries.GridWeeks);
         data = await Queries.LoadAsync(RaceYear, CancellationToken.None);
+        goal = data.YearGoalMeters is { } goalMeters ? GoalProgress.For(Clock.Today.Year, goalMeters, data.Year.DistanceMeters, Clock.Today) : null;
         warnings = await WarningQueries.ActiveAsync(CancellationToken.None);
         upcomingRaces = await UpcomingRaceQueries.LoadAsync(CancellationToken.None);
     }

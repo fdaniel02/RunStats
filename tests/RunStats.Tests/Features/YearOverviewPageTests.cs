@@ -23,12 +23,12 @@ public class YearOverviewPageTests : BunitContext
 
     static YearData Data(
         IReadOnlyList<int>? years = null, IReadOnlyList<RecordRow>? records = null, IReadOnlyList<RunRow>? races = null,
-        IReadOnlyList<RunRow>? runs = null, bool noDistance = false, double? goal = null)
+        IReadOnlyList<RunRow>? runs = null, bool noDistance = false, double? goal = null, int year = 2025)
     {
         var weeks = ActivityGrid.ForYear(2025).Weeks.Select((w, i) => new WeekTotal(w.Days[0], noDistance ? 0 : i * 1000, noDistance ? 0 : i * 300, false)).ToList();
         var months = Enumerable.Range(1, 12).Select(m => new MonthTotal(m, noDistance ? 0 : m * 10_000, noDistance ? 0 : m * 3600, false)).ToList();
         return new YearData(
-            2025,
+            year,
             years ?? [2026, 2025, 2024],
             new Totals(150, 1_234_500, 120 * 3600 + 5 * 60),
             goal,
@@ -135,6 +135,20 @@ public class YearOverviewPageTests : BunitContext
         Assert.Equal("true", forms[1].QuerySelector("input[name=remove]")!.GetAttribute("value"));
         Assert.Empty(page.FindAll(".new-goal"));
     }
+
+    [Fact]
+    public void This_years_goal_puts_how_the_year_stands_on_the_total_and_what_each_day_needs_on_the_goal()
+    {
+        var page = Render(Data(goal: 1_500_000, year: 2026), year: 2026);
+
+        Assert.Equal("1.6 km ahead of the 1232.9 km expected by today", page.Find(".total .goal-line").TextContent);
+        Assert.Equal("4.1 km a day for the remaining 65 days", page.Find(".goal .daily").TextContent);
+        Assert.Empty(page.FindAll(".weekly"));
+    }
+
+    [Fact]
+    public void A_past_years_total_has_no_goal_line() =>
+        Assert.Empty(Render(Data(goal: 1_500_000)).FindAll(".goal-line"));
 
     [Fact]
     public void Days_with_a_run_cover_the_whole_year()

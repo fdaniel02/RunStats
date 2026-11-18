@@ -20,3 +20,7 @@
         font-weight: 400;
         color: var(--muted);
     }
+
+.goal-line {
+    font-size: .9rem;
+}
