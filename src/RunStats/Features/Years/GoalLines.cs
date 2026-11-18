@@ -21,8 +21,13 @@ public static class GoalLines
     public static string? Monthly(GoalProgress? progress) =>
         progress?.MonthlyMeters is { } monthly ? $"{Format.Km(monthly)} km a month for the remaining {OneDecimal(progress.MonthsLeft!.Value)} months" : null;
 
-    public static string? Daily(GoalProgress? progress) =>
-        progress?.DailyMeters is { } daily ? $"{Format.Km(daily)} km a day for the remaining {(progress.DaysLeft == 1 ? "day" : $"{progress.DaysLeft} days")}" : null;
+    public static string? Daily(GoalProgress? progress)
+    {
+        if (progress?.DailyMeters is not { } daily)
+            return null;
+        var remaining = progress.DaysLeft == 1 ? "day" : $"{progress.DaysLeft} days";
+        return $"{Format.Km(daily)} km a day for the remaining {remaining}";
+    }
 
     public static string Whole(double meters) => (meters / 1000).ToString("0.#", Culture);
 
