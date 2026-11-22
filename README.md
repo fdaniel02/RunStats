@@ -255,6 +255,18 @@ Telemetry: a `Sync` span (the gateway's spans join its trace), log events 10–1
 (by trigger and outcome), `runstats.sync.duration`, `runstats.sync.runs` (by change: added, updated, deleted, processed, processing_failed) and
 `runstats.sync.last_success` (Unix time of the last successful sync).
 
+## Runs API
+
+Other homelab apps read the runs from `GET /api/runs`; NutriLog uses it to raise the day's energy target.
+
+```powershell
+curl.exe "http://localhost:5310/api/runs?from=2026-11-01&to=2026-11-07"
+```
+
+`from` and `to` are dates in the app's time zone (`TimeZone`), both included, at most 366 days apart. Each run has
+`id`, `date`, `startUtc`, `name`, `typeKey`, `distanceMeters`, `durationSeconds`, `calories`, `trainingLoad` and
+`averageHeartRate`, in Garmin's units; the last four can be `null`.
+
 ## Deployment
 
 RunStats runs in the homelab's k3s cluster; its manifests are in

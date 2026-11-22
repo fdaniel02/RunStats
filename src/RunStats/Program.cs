@@ -123,6 +123,7 @@ try
     app.MapHealthChecks("/healthz/ready");
     app.MapSyncEndpoints();
     app.MapGoalEndpoints();
+    app.MapRunsEndpoints();
 
     app.MapStaticAssets();
     app.MapRazorComponents<App>()
