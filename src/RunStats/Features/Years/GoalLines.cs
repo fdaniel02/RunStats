@@ -15,11 +15,28 @@ public static class GoalLines
         return $"{Format.Km(Math.Abs(difference))} km {(difference >= 0 ? "ahead of" : "behind")} the {Whole(expected)} km expected by today";
     }
 
-    public static string? Weekly(GoalProgress? progress) =>
-        progress?.WeeklyMeters is { } weekly ? $"{Format.Km(weekly)} km a week for the remaining {OneDecimal(progress.WeeksLeft!.Value)} weeks" : null;
+    public static string? Weekly(GoalProgress? progress)
+    {
+        if (progress?.Weeks is not { } weeks)
+            return null;
+        var thisWeek = Format.Km(weeks.ThisWeekMeters);
+        if (weeks.IsLast)
+            return weeks.ThisWeekDays == 7 ? $"{thisWeek} km for the last week" : $"{thisWeek} km for the last {weeks.ThisWeekDays} days";
+        var share = $"{Format.Km(weeks.FullWeekMeters)} km a week for the remaining {weeks.Count} weeks";
+        if (weeks.ThisWeekDays == 7)
+            return share;
+        var days = weeks.ThisWeekDays == 1 ? "1 day" : $"{weeks.ThisWeekDays} days";
+        return $"{share} (this one {thisWeek} km for {days})";
+    }
 
-    public static string? Monthly(GoalProgress? progress) =>
-        progress?.MonthlyMeters is { } monthly ? $"{Format.Km(monthly)} km a month for the remaining {OneDecimal(progress.MonthsLeft!.Value)} months" : null;
+    public static string? Monthly(GoalProgress? progress)
+    {
+        if (progress?.Months is not { } months)
+            return null;
+        return months.IsLast
+            ? $"{Format.Km(months.MonthlyMeters)} km for the last month"
+            : $"{Format.Km(months.MonthlyMeters)} km a month for the remaining {months.Count} months";
+    }
 
     public static string? Daily(GoalProgress? progress)
     {
@@ -30,6 +47,4 @@ public static class GoalLines
     }
 
     public static string Whole(double meters) => (meters / 1000).ToString("0.#", Culture);
-
-    static string OneDecimal(double value) => value.ToString("0.#", Culture);
 }
