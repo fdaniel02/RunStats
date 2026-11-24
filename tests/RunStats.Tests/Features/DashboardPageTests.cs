@@ -126,8 +126,8 @@ public class DashboardPageTests : BunitContext
         Assert.Equal(
         [
             "111.1 km behind the 821.9 km expected by today",
-            "135.3 km a month for the remaining 2.1 months",
-            "31.1 km a week for the remaining 9.3 weeks"
+            "104.3 km a month for the remaining 3 months",
+            "31.5 km a week for the remaining 10 weeks"
         ], page.FindAll(".total .goal-line").Select(l => l.TextContent));
         Assert.Equal("4.4 km a day for the remaining 65 days", page.Find(".goal .daily").TextContent);
     }

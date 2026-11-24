@@ -78,7 +78,8 @@
     {
         grid = new ActivityGrid(Clock.Today, DashboardQueries.GridWeeks);
         data = await Queries.LoadAsync(RaceYear, CancellationToken.None);
-        goal = data.YearGoalMeters is { } goalMeters ? GoalProgress.For(Clock.Today.Year, goalMeters, data.Year.DistanceMeters, Clock.Today) : null;
+        goal = data.YearGoalMeters is { } goalMeters ? GoalProgress.For(Clock.Today.Year, goalMeters, data.Year.DistanceMeters, Clock.Today,
+            data.Week.DistanceMeters, data.Month.DistanceMeters) : null;
         warnings = await WarningQueries.ActiveAsync(CancellationToken.None);
         upcomingRaces = await UpcomingRaceQueries.LoadAsync(CancellationToken.None);
     }
