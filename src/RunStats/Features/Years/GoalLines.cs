@@ -23,9 +23,10 @@ public static class GoalLines
         if (weeks.IsLast)
             return weeks.ThisWeekDays == 7 ? $"{thisWeek} km for the last week" : $"{thisWeek} km for the last {weeks.ThisWeekDays} days";
         var share = $"{Format.Km(weeks.FullWeekMeters)} km a week for the remaining {weeks.Count} weeks";
-        return weeks.ThisWeekDays < 7
-            ? $"{share} (this one {thisWeek} km for {weeks.ThisWeekDays} {(weeks.ThisWeekDays == 1 ? "day" : "days")})"
-            : share;
+        if (weeks.ThisWeekDays == 7)
+            return share;
+        var days = weeks.ThisWeekDays == 1 ? "1 day" : $"{weeks.ThisWeekDays} days";
+        return $"{share} (this one {thisWeek} km for {days})";
     }
 
     public static string? Monthly(GoalProgress? progress)
